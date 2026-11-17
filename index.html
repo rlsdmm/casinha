@@ -1,0 +1,975 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Casinha</title>
+<meta name="description" content="Uma casa compartilhada para jogar com quem você gosta: cuide do seu bonequinho, faça coisas juntos e decore a casa.">
+<meta name="theme-color" content="#221B33">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' shape-rendering='crispEdges'%3E%3Crect x='2' y='7' width='12' height='8' fill='%23E7A3B8'/%3E%3Crect x='1' y='6' width='14' height='2' fill='%235246B0'/%3E%3Crect x='3' y='4' width='10' height='2' fill='%235246B0'/%3E%3Crect x='5' y='2' width='6' height='2' fill='%235246B0'/%3E%3Crect x='7' y='10' width='3' height='5' fill='%237A5A3E'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Pixelify+Sans:wght@500;700&family=Nunito:wght@500;700;800&display=swap">
+<style>
+/* Layout: tela do jogo no topo, painel do boneco embaixo; tema escuro de propósito (noite aconchegante) */
+:root{
+  --bg:#1B1528; --panel:#261E39; --panel-2:#30264A; --line:#3E3260; --fg:#F1EDFA; --muted:#B4AACB;
+  --accent:#8E7CF0; --accent-ink:#1B1528; --good:#5DCAA5; --warn:#EF9F27; --bad:#F0707A; --money:#FAC775;
+  --pixel:"Pixelify Sans", "Courier New", monospace;
+  --body:"Nunito", "Segoe UI", system-ui, sans-serif;
+  color-scheme:dark;
+}
+*,*::before,*::after{box-sizing:border-box}
+:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+[hidden]{display:none!important}
+html,body{background:var(--bg);color:var(--fg)}
+body{margin:0;font-family:var(--body);font-size:15px;line-height:1.45;-webkit-text-size-adjust:100%;
+  padding-left:max(12px,env(safe-area-inset-left,0px));padding-right:max(12px,env(safe-area-inset-right,0px));padding-block:12px 32px}
+.wrap{max-width:920px;margin:0 auto;display:flex;flex-direction:column;gap:12px}
+h1,h2,h3{font-family:var(--pixel);margin:0;font-weight:700;letter-spacing:.01em}
+h1{font-size:1.6rem} h2{font-size:1.15rem}
+p{margin:0}
+.muted{color:var(--muted)}
+button,input{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+.btn{border:0;border-radius:10px;padding:10px 14px;font-weight:800;background:var(--accent);color:var(--accent-ink)}
+.btn.ghost{background:transparent;color:var(--fg);border:1.5px solid var(--line)}
+.btn.small{padding:7px 11px;font-size:.88rem}
+.btn:disabled{opacity:.5;cursor:default}
+input[type=text]{border:1.5px solid var(--line);background:var(--bg);border-radius:10px;padding:10px 12px;min-width:0;width:100%}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:14px;display:flex;flex-direction:column;gap:12px}
+
+header{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
+.brand{display:flex;align-items:center;gap:10px}
+.brand svg{width:30px;height:30px;image-rendering:pixelated}
+.people{display:flex;gap:6px;flex-wrap:wrap}
+.chip{display:inline-flex;align-items:center;gap:6px;background:var(--panel);border:1px solid var(--line);border-radius:999px;padding:4px 10px 4px 6px;font-size:.85rem;font-weight:700}
+.chip .sw{width:12px;height:12px;border-radius:4px}
+.chip.off{opacity:.55}
+
+/* Tela do jogo */
+.stage{position:relative;border-radius:14px;overflow:hidden;background:#120E1C;border:1px solid var(--line);touch-action:manipulation}
+canvas#game{display:block;width:100%;height:auto;image-rendering:pixelated;cursor:pointer}
+.menu{position:absolute;z-index:5;background:var(--panel-2);border:1px solid var(--line);border-radius:12px;padding:6px;display:flex;flex-direction:column;gap:4px;min-width:170px;max-width:240px;box-shadow:0 8px 24px rgba(0,0,0,.4)}
+.menu .ttl{font-family:var(--pixel);font-size:.9rem;padding:4px 8px 2px;color:var(--muted)}
+.menu button{background:transparent;border:0;text-align:left;padding:9px 10px;border-radius:8px;font-weight:700;display:flex;justify-content:space-between;gap:10px}
+.menu button:hover,.menu button:focus-visible{background:var(--line)}
+.menu small{color:var(--muted);font-weight:500}
+.banner{position:absolute;left:10px;top:10px;z-index:4;background:rgba(27,21,40,.85);border:1px solid var(--line);border-radius:10px;padding:6px 10px;font-size:.85rem;font-weight:700}
+
+/* Painel do boneco */
+.hud{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.4fr);gap:12px}
+@media (max-width:700px){.hud{grid-template-columns:1fr}}
+.me{display:flex;gap:12px;align-items:center}
+.me canvas{width:56px;height:56px;image-rendering:pixelated;background:var(--bg);border-radius:12px;border:1px solid var(--line);flex-shrink:0}
+.me .nm{font-family:var(--pixel);font-size:1.15rem}
+.money{font-family:var(--pixel);color:var(--money);font-size:1.1rem}
+.needs{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:8px 14px}
+.need{display:flex;flex-direction:column;gap:3px;font-size:.82rem;font-weight:700}
+.need .row{display:flex;justify-content:space-between}
+.bar{height:10px;background:var(--bg);border-radius:6px;overflow:hidden;border:1px solid var(--line)}
+.bar i{display:block;height:100%;border-radius:5px;transition:width .4s}
+.status{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;font-size:.9rem}
+.prog{flex:1 1 120px;height:8px;background:var(--bg);border-radius:6px;overflow:hidden}
+.prog i{display:block;height:100%;background:var(--accent)}
+.talk{display:flex;gap:8px}
+.modes{display:flex;gap:6px;background:var(--bg);padding:4px;border-radius:12px;border:1px solid var(--line)}
+.modes button{flex:1;border:0;background:transparent;border-radius:9px;padding:8px 12px;font-weight:800;color:var(--muted)}
+.modes button[aria-pressed=true]{background:var(--accent);color:var(--accent-ink)}
+.toolbar{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;align-items:center}
+
+/* Modo construir */
+.cat{display:grid;grid-template-columns:repeat(auto-fill,minmax(104px,1fr));gap:8px}
+.item{background:var(--bg);border:1.5px solid var(--line);border-radius:12px;padding:8px;display:flex;flex-direction:column;align-items:center;gap:4px;font-size:.8rem;font-weight:700;text-align:center}
+.item canvas{width:64px;height:48px;image-rendering:pixelated}
+.item .pr{font-family:var(--pixel);color:var(--money)}
+.item[aria-pressed=true]{border-color:var(--accent);background:var(--panel-2)}
+.item:disabled{opacity:.45}
+.floors{display:flex;gap:8px;flex-wrap:wrap}
+.floor{width:44px;height:44px;border-radius:10px;border:2px solid var(--line);padding:0;overflow:hidden}
+.floor canvas{width:100%;height:100%;image-rendering:pixelated;display:block}
+.floor[aria-pressed=true]{border-color:var(--accent)}
+.tabs{display:flex;gap:6px}
+.tabs button{border:1.5px solid var(--line);background:transparent;border-radius:999px;padding:6px 12px;font-weight:800;color:var(--muted)}
+.tabs button[aria-pressed=true]{border-color:var(--accent);color:var(--fg)}
+
+/* Criar boneco */
+.creator{display:grid;grid-template-columns:auto minmax(0,1fr);gap:16px;align-items:start}
+@media (max-width:560px){.creator{grid-template-columns:1fr;justify-items:center}}
+.creator canvas{width:128px;height:128px;image-rendering:pixelated;background:var(--bg);border-radius:16px;border:1px solid var(--line)}
+.opts{display:flex;flex-direction:column;gap:10px;width:100%}
+.swatches{display:flex;gap:6px;flex-wrap:wrap}
+.swatch{width:34px;height:34px;border-radius:10px;border:2px solid var(--line);padding:0}
+.swatch[aria-pressed=true]{border-color:#fff;box-shadow:0 0 0 2px var(--accent)}
+.lbl{font-size:.82rem;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.06em}
+.linkbox{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.linkbox code{flex:1 1 220px;min-width:0;overflow-wrap:anywhere;font-size:.85rem;background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:8px 10px}
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(16px + env(safe-area-inset-bottom,0px));background:var(--fg);color:var(--bg);padding:10px 16px;border-radius:999px;font-weight:800;font-size:.9rem;max-width:calc(100% - 32px);z-index:20;text-align:center}
+@media (prefers-reduced-motion: reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="brand">
+      <svg viewBox="0 0 16 16" shape-rendering="crispEdges" aria-hidden="true"><rect x="2" y="7" width="12" height="8" fill="#E7A3B8"/><rect x="1" y="6" width="14" height="2" fill="#8E7CF0"/><rect x="3" y="4" width="10" height="2" fill="#8E7CF0"/><rect x="5" y="2" width="6" height="2" fill="#8E7CF0"/><rect x="7" y="10" width="3" height="5" fill="#7A5A3E"/><rect x="3" y="9" width="3" height="3" fill="#9FC3E0"/></svg>
+      <h1>Casinha</h1>
+    </div>
+    <div class="people" id="people"></div>
+  </header>
+
+  <section id="screenRoom" class="card" hidden>
+    <h2>Crie a casa de vocês</h2>
+    <p class="muted">A casa fica salva e cada um entra pelo mesmo link, no celular ou no computador. Cabe você, ela e quem mais vocês chamarem.</p>
+    <div><button class="btn" type="button" id="createRoom">Criar casa</button></div>
+    <p class="muted">Recebeu um link? Abra ele direto e você já entra na casa.</p>
+  </section>
+
+  <section id="screenCreator" class="card" hidden>
+    <h2>Monte seu bonequinho</h2>
+    <div class="creator">
+      <canvas id="cPreview" width="32" height="32" aria-label="Prévia do bonequinho"></canvas>
+      <div class="opts">
+        <label class="lbl" for="cName">Nome</label>
+        <input type="text" id="cName" maxlength="16" placeholder="Como você quer aparecer">
+        <span class="lbl">Roupa</span><div class="swatches" id="swRoupa"></div>
+        <span class="lbl">Cabelo</span><div class="swatches" id="swCabelo"></div>
+        <span class="lbl">Penteado</span><div class="swatches" id="swEstilo"></div>
+        <span class="lbl">Pele</span><div class="swatches" id="swPele"></div>
+        <div><button class="btn" type="button" id="cGo">Entrar na casa</button></div>
+      </div>
+    </div>
+  </section>
+
+  <section id="screenGame" hidden>
+    <div class="wrap" style="padding:0">
+      <div class="toolbar">
+        <div class="modes" role="group" aria-label="Modo">
+          <button type="button" id="mLive" aria-pressed="true">Viver</button>
+          <button type="button" id="mBuild" aria-pressed="false">Construir</button>
+        </div>
+        <button class="btn ghost small" type="button" id="invite">Convidar</button>
+      </div>
+      <div class="stage" id="stage">
+        <canvas id="game" aria-label="Casa. Toque no chão para andar, nos móveis para usar e nas pessoas para interagir."></canvas>
+        <div class="banner" id="banner" hidden></div>
+      </div>
+
+      <div class="card" id="buildPanel" hidden>
+        <div class="toolbar">
+          <div class="tabs"><button type="button" id="tMov" aria-pressed="true">Móveis</button><button type="button" id="tPiso" aria-pressed="false">Pisos</button></div>
+          <span class="money" id="money2"></span>
+        </div>
+        <p class="muted" id="buildHint">Escolha um móvel e toque na casa para colocar. Toque num móvel que já está lá para mover ou vender.</p>
+        <div class="cat" id="cat"></div>
+        <div class="floors" id="floors" hidden></div>
+      </div>
+
+      <div class="hud" id="hud">
+        <div class="card">
+          <div class="me"><canvas id="meAv" width="24" height="24"></canvas>
+            <div><p class="nm" id="meName"></p><p class="muted" id="meMood"></p><p class="money" id="money"></p></div>
+          </div>
+          <div class="status" id="status"></div>
+          <form class="talk" id="talk"><input type="text" id="say" maxlength="60" placeholder="Falar algo..." aria-label="Mensagem"><button class="btn small" type="submit">Falar</button></form>
+        </div>
+        <div class="card">
+          <div class="needs" id="needs"></div>
+          <p class="muted" style="font-size:.85rem">Toque no chão para andar. Toque nos móveis para usar e em outra pessoa para interagir. Fazer coisas juntos enche a barra social mais rápido.</p>
+        </div>
+      </div>
+
+      <div class="card" id="invitePanel" hidden>
+        <h2>Chamar mais gente</h2>
+        <p class="muted">Quem abrir este link entra na casa e monta o próprio bonequinho.</p>
+        <div id="inviteBox"></div>
+        <div><button class="btn ghost small" type="button" id="reskin">Mudar meu bonequinho</button></div>
+      </div>
+    </div>
+  </section>
+</div>
+<div class="toast" id="toast" hidden role="status"></div>
+
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+<script>
+"use strict";
+const DB_URL = "https://sintonia-a-dois-default-rtdb.firebaseio.com";
+const W = 18, H = 13, T = 16;
+const $ = id => document.getElementById(id);
+const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+const store = {
+  get(k){ try { return localStorage.getItem(k); } catch(e){ return null; } },
+  set(k, v){ try { v == null ? localStorage.removeItem(k) : localStorage.setItem(k, v); } catch(e){} }
+};
+function el(tag, cls, text){ const e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; }
+let toastT; function toast(m){ const t = $("toast"); t.textContent = m; t.hidden = false; clearTimeout(toastT); toastT = setTimeout(() => t.hidden = true, 3000); }
+
+// ===================== mapa =====================
+const MAP = [];
+for (let y = 0; y < H; y++){ MAP.push([]); for (let x = 0; x < W; x++){
+  let wall = x === 0 || y === 0 || x === W - 1 || y === H - 1 || x === 7 || (y === 6 && x < 7) || (y === 8 && x > 7);
+  MAP[y].push(wall ? 1 : 0);
+}}
+for (const [x, y] of [[3,6],[7,3],[7,9],[12,8],[13,8]]) MAP[y][x] = 2; // portas
+function comodo(x, y){ if (x < 7) return y < 6 ? "quarto" : "banheiro"; if (x === 7) return y < 6 ? "sala" : "cozinha"; return y < 8 ? "sala" : "cozinha"; }
+const COMODOS = { quarto: "Quarto", banheiro: "Banheiro", sala: "Sala", cozinha: "Cozinha" };
+
+const PISOS = [
+  { nome: "Madeira", a: "#9B7653", b: "#8A6847", tipo: "tabua" },
+  { nome: "Madeira clara", a: "#D2B48C", b: "#BFA079", tipo: "tabua" },
+  { nome: "Azulejo", a: "#E8ECF0", b: "#D3DAE1", tipo: "xadrez" },
+  { nome: "Azulejo azul", a: "#9FC3E0", b: "#86AED0", tipo: "xadrez" },
+  { nome: "Carpete rosa", a: "#E7A3B8", b: "#D98FA6", tipo: "carpete" },
+  { nome: "Carpete verde", a: "#8DBB8A", b: "#78A675", tipo: "carpete" },
+  { nome: "Xadrez", a: "#F1EFE8", b: "#3A3A3A", tipo: "xadrez" },
+  { nome: "Madeira escura", a: "#5E4430", b: "#4E3826", tipo: "tabua" }
+];
+const PISO_PADRAO = { quarto: 0, banheiro: 3, sala: 1, cozinha: 6 };
+
+// ===================== catálogo =====================
+const NEEDS = [
+  { id: "fome", nome: "Fome", cor: "#EF9F27", queda: 0.040 },
+  { id: "energia", nome: "Energia", cor: "#378ADD", queda: 0.030 },
+  { id: "diversao", nome: "Diversão", cor: "#D4537E", queda: 0.045 },
+  { id: "social", nome: "Social", cor: "#5DCAA5", queda: 0.035 },
+  { id: "higiene", nome: "Higiene", cor: "#85B7EB", queda: 0.025 }
+];
+const DORMIR = [{ id: "dormir", nome: "Dormir", dur: 20, ganho: { energia: 75 }, sobre: 1, deitar: 1 }, { id: "cochilo", nome: "Tirar um cochilo", dur: 8, ganho: { energia: 25 }, sobre: 1, deitar: 1 }];
+const CAT = {
+  casal:     { nome: "Cama de casal", w: 3, h: 3, preco: 450, acoes: DORMIR },
+  solteiro:  { nome: "Cama de solteiro", w: 2, h: 3, preco: 300, acoes: DORMIR },
+  sofa:      { nome: "Sofá", w: 3, h: 1, preco: 250, acoes: [{ id: "relaxar", nome: "Relaxar", dur: 8, ganho: { energia: 10, diversao: 12 }, sobre: 1 }] },
+  tv:        { nome: "TV", w: 2, h: 1, preco: 200, acoes: [{ id: "tv", nome: "Assistir TV", dur: 12, ganho: { diversao: 35 } }] },
+  game:      { nome: "Videogame", w: 1, h: 1, preco: 150, acoes: [{ id: "jogar", nome: "Jogar videogame", dur: 12, ganho: { diversao: 45, energia: -5 } }] },
+  geladeira: { nome: "Geladeira", w: 1, h: 1, preco: 250, acoes: [{ id: "lanche", nome: "Pegar um lanche", dur: 6, ganho: { fome: 30 } }] },
+  fogao:     { nome: "Fogão", w: 1, h: 1, preco: 200, acoes: [{ id: "cozinhar", nome: "Cozinhar", dur: 14, ganho: { fome: 65 }, junto: 1 }] },
+  pia:       { nome: "Pia", w: 1, h: 1, preco: 100, acoes: [{ id: "maos", nome: "Lavar as mãos", dur: 4, ganho: { higiene: 12 } }] },
+  mesa:      { nome: "Mesa", w: 2, h: 2, preco: 120, acoes: [{ id: "cafe", nome: "Tomar um café", dur: 6, ganho: { fome: 10, energia: 12 }, junto: 1 }] },
+  chuveiro:  { nome: "Chuveiro", w: 1, h: 1, preco: 200, acoes: [{ id: "banho", nome: "Tomar banho", dur: 10, ganho: { higiene: 80 }, sobre: 1 }] },
+  vaso:      { nome: "Vaso sanitário", w: 1, h: 1, preco: 100, acoes: [{ id: "banheiro", nome: "Usar o banheiro", dur: 5, ganho: { higiene: 20 }, sobre: 1 }] },
+  pc:        { nome: "Computador", w: 2, h: 1, preco: 300, acoes: [{ id: "trabalhar", nome: "Trabalhar", dur: 15, ganho: { diversao: -10, energia: -8 }, dinheiro: 90 }, { id: "videos", nome: "Ver vídeos", dur: 8, ganho: { diversao: 20 } }] },
+  estante:   { nome: "Estante", w: 2, h: 1, preco: 150, acoes: [{ id: "ler", nome: "Ler um livro", dur: 10, ganho: { diversao: 25 } }] },
+  som:       { nome: "Som", w: 1, h: 1, preco: 180, acoes: [{ id: "dancar", nome: "Dançar", dur: 10, ganho: { diversao: 30, energia: -5 }, junto: 1 }] },
+  planta:    { nome: "Planta", w: 1, h: 1, preco: 40, acoes: [{ id: "regar", nome: "Regar", dur: 3, ganho: { diversao: 5 } }] },
+  armario:   { nome: "Guarda-roupa", w: 2, h: 1, preco: 200, acoes: [{ id: "roupa", nome: "Trocar de roupa", dur: 1, ganho: {}, roupa: 1 }] },
+  abajur:    { nome: "Abajur", w: 1, h: 1, preco: 60, acoes: [] },
+  tapete:    { nome: "Tapete", w: 3, h: 2, preco: 80, acoes: [], chao: 1 }
+};
+const SOCIAL = [
+  { id: "conversar", nome: "Conversar", dur: 6, eu: { social: 30 }, outro: { social: 25 }, txt: "conversou com você" },
+  { id: "abracar", nome: "Abraçar", dur: 3, eu: { social: 25 }, outro: { social: 25 }, txt: "te deu um abraço" },
+  { id: "dancar", nome: "Dançar juntos", dur: 8, eu: { social: 25, diversao: 20 }, outro: { social: 25, diversao: 20 }, txt: "dançou com você" },
+  { id: "cocegas", nome: "Fazer cócegas", dur: 3, eu: { diversao: 15, social: 10 }, outro: { diversao: 15, social: 10 }, txt: "te fez cócegas" },
+  { id: "beijo", nome: "Dar um beijinho", dur: 3, eu: { social: 30 }, outro: { social: 30 }, txt: "te deu um beijinho" }
+];
+const MOVEIS_INICIAIS = [
+  ["casal",1,1],["abajur",4,1],["armario",5,1],["tapete",1,4],["planta",6,5],
+  ["chuveiro",1,7],["pia",5,7],["vaso",1,11],["planta",6,11],
+  ["tv",10,1],["game",12,1],["som",8,1],["estante",15,1],["tapete",10,3],["sofa",10,5],["pc",15,6],["planta",8,7],
+  ["geladeira",16,9],["fogao",15,9],["pia",14,9],["mesa",10,10]
+];
+
+const ROUPAS = ["#0B8A7C", "#D9483D", "#5246B0", "#EF9F27", "#D4537E", "#378ADD", "#3B6D11", "#2C2C2A"];
+const CABELOS = ["#2B1D14", "#6B3A2A", "#B5651D", "#E8C27A", "#8E8E8E", "#1E1E1E", "#B03A5B", "#5246B0"];
+const PELES = ["#F6D2B0", "#E8B48C", "#C98E62", "#9C6644", "#6B4430"];
+const ESTILOS = ["Curto", "Comprido", "Coque", "Cacheado"];
+
+// ===================== desenho =====================
+let ctx, S = 1;
+function R(x, y, w, h, c){ ctx.fillStyle = c; const X = Math.round(x * S), Y = Math.round(y * S); ctx.fillRect(X, Y, Math.round((x + w) * S) - X, Math.round((y + h) * S) - Y); }
+function withCtx(c, s, fn){ const pc = ctx, ps = S; ctx = c; S = s; try { fn(); } finally { ctx = pc; S = ps; } }
+
+function drawFloorTile(x, y, p){
+  const px = x * T, py = y * T;
+  if (p.tipo === "xadrez"){
+    R(px, py, 8, 8, p.a); R(px + 8, py, 8, 8, p.b); R(px, py + 8, 8, 8, p.b); R(px + 8, py + 8, 8, 8, p.a);
+  } else if (p.tipo === "tabua"){
+    R(px, py, T, T, p.a); R(px, py + 7, T, 1, p.b); R(px, py + 15, T, 1, p.b);
+    R(px + ((x * 7 + y * 3) % 14) + 1, py, 1, 7, p.b); R(px + ((x * 5 + y * 11) % 14) + 1, py + 8, 1, 7, p.b);
+  } else {
+    R(px, py, T, T, p.a); R(px + ((x * 5 + y) % 12) + 2, py + ((y * 7 + x) % 12) + 2, 1, 1, p.b); R(px + ((x * 3 + y * 5) % 12) + 2, py + ((y * 3 + x * 2) % 12) + 2, 1, 1, p.b);
+  }
+}
+
+function drawFurn(t, x, y, on, tm){
+  const tt = tm || 0;
+  switch (t){
+    case "casal": case "solteiro": {
+      const w = t === "casal" ? 48 : 32;
+      R(x, y, w, 48, "#7A5A3E"); R(x, y, w, 7, "#5E4430");
+      if (t === "casal"){ R(x + 4, y + 8, 18, 7, "#F4F1FB"); R(x + 26, y + 8, 18, 7, "#F4F1FB"); }
+      else R(x + 5, y + 8, 22, 7, "#F4F1FB");
+      const bl = t === "casal" ? "#5246B0" : "#D9483D", bf = t === "casal" ? "#6B5FD0" : "#E8675C";
+      R(x + 2, y + 17, w - 4, 29, bl); R(x + 2, y + 17, w - 4, 4, bf); R(x + 2, y + 44, w - 4, 2, "#00000033");
+      break; }
+    case "sofa":
+      R(x, y - 2, 48, 8, "#3D318F"); R(x, y + 5, 48, 10, "#5246B0"); R(x, y, 5, 15, "#2F2670"); R(x + 43, y, 5, 15, "#2F2670");
+      R(x + 18, y + 6, 1, 8, "#3D318F"); R(x + 30, y + 6, 1, 8, "#3D318F"); break;
+    case "tv":
+      R(x + 2, y + 9, 28, 7, "#4A3A2C"); R(x + 2, y + 9, 28, 1, "#5E4A38"); R(x + 4, y - 5, 24, 14, "#111");
+      if (on){ const c = ["#378ADD", "#5DCAA5", "#D4537E", "#EF9F27"][Math.floor(tt / 700) % 4]; R(x + 5, y - 4, 22, 12, c); R(x + 7, y - 2, 6, 3, "#ffffff55"); }
+      else { R(x + 5, y - 4, 22, 12, "#1E2A3A"); R(x + 7, y - 2, 6, 2, "#2A3B55"); }
+      break;
+    case "game":
+      R(x + 1, y + 7, 14, 9, "#4A3A2C"); R(x + 3, y + 4, 10, 5, "#222"); R(x + 11, y + 5, 1, 1, on ? "#5DCAA5" : "#3B6D11"); R(x + 4, y + 11, 7, 3, "#777"); R(x + 5, y + 12, 1, 1, "#D9483D"); break;
+    case "geladeira":
+      R(x + 1, y - 8, 14, 24, "#E9EEF2"); R(x + 1, y - 8, 14, 1, "#FFFFFF"); R(x + 1, y + 2, 14, 1, "#B9C3CC"); R(x + 12, y - 5, 1, 5, "#9AA8B5"); R(x + 12, y + 5, 1, 6, "#9AA8B5"); R(x + 1, y + 15, 14, 1, "#9AA8B5"); break;
+    case "fogao":
+      R(x + 1, y, 14, 16, "#D7DCE2"); R(x + 1, y, 14, 8, "#333"); for (const [a, b] of [[3,1],[9,1],[3,4],[9,4]]) R(x + a, y + b, 4, 2, "#555");
+      if (on && Math.floor(tt / 200) % 2) { R(x + 4, y + 1, 2, 1, "#EF9F27"); R(x + 10, y + 4, 2, 1, "#E24B4A"); }
+      R(x + 3, y + 10, 10, 5, "#9AA0A8"); R(x + 4, y + 9, 8, 1, "#666"); break;
+    case "pia":
+      R(x + 1, y + 2, 14, 14, "#C9B79C"); R(x + 1, y + 2, 14, 1, "#DDCCB0"); R(x + 3, y + 3, 10, 6, "#DDE6EE"); R(x + 4, y + 4, 8, 4, on ? "#7FB8E8" : "#B5CCDD"); R(x + 7, y, 2, 4, "#9AA8B5"); R(x + 4, y + 11, 8, 1, "#A8977E"); break;
+    case "mesa":
+      R(x + 2, y + 3, 28, 24, "#9B7653"); R(x + 2, y + 25, 28, 3, "#7A5D41"); R(x + 6, y + 7, 6, 6, "#F4F1FB"); R(x + 20, y + 16, 6, 6, "#F4F1FB"); R(x + 14, y + 12, 4, 4, "#D4537E"); R(x + 15, y + 10, 2, 2, "#3E8E5B");
+      R(x + 10, y - 2, 12, 4, "#6E5440"); R(x + 10, y + 28, 12, 4, "#6E5440"); break;
+    case "chuveiro":
+      R(x, y, 16, 16, "#BFD9E8"); R(x + 7, y + 7, 2, 2, "#7FA6C9"); R(x, y, 16, 1, "#E6F1FB"); R(x + 15, y, 1, 16, "#E6F1FB"); R(x + 6, y - 4, 4, 3, "#9AA8B5");
+      if (on) for (let i = 0; i < 6; i++) R(x + 3 + ((i * 5 + Math.floor(tt / 90)) % 10), y + ((i * 7 + Math.floor(tt / 60)) % 14), 1, 2, "#E6F1FB");
+      break;
+    case "vaso":
+      R(x + 4, y, 8, 5, "#E9EEF2"); R(x + 3, y + 5, 10, 9, "#F4F6F8"); R(x + 5, y + 7, 6, 5, "#C9D6E0"); R(x + 3, y + 13, 10, 1, "#B9C3CC"); break;
+    case "pc":
+      R(x, y + 3, 32, 13, "#8B6A4F"); R(x, y + 3, 32, 1, "#A07E60"); R(x + 10, y - 6, 12, 10, "#222"); R(x + 11, y - 5, 10, 7, on ? "#378ADD" : "#1E2A3A");
+      if (on) { R(x + 12, y - 4, 6, 1, "#E6F1FB"); R(x + 12, y - 2, 4, 1, "#E6F1FB"); }
+      R(x + 15, y + 4, 2, 1, "#333"); R(x + 10, y + 7, 12, 3, "#CCCCCC"); R(x + 24, y + 7, 3, 3, "#DDDDDD"); break;
+    case "estante":
+      R(x, y - 10, 32, 26, "#6E5440"); for (const yy of [-8, -1, 6]){ R(x + 2, y + yy, 28, 6, "#4E3A2A");
+        let bx = x + 3; const cs = ["#D9483D", "#378ADD", "#EF9F27", "#5DCAA5", "#D4537E", "#8E7CF0"]; for (let i = 0; i < 7; i++){ const bw = 2 + ((i + yy) & 1); R(bx, y + yy + (i % 3 === 0 ? 1 : 0), bw, 6 - (i % 3 === 0 ? 1 : 0), cs[(i * 3 + yy + 9) % 6]); bx += bw + 1; if (bx > x + 28) break; } }
+      R(x, y + 14, 32, 2, "#5E4430"); break;
+    case "som":
+      R(x + 2, y - 2, 12, 18, "#2B2B2B"); R(x + 4, y, 8, 6, "#444"); R(x + 6, y + 2, 4, 2, on && Math.floor(tt / 250) % 2 ? "#8E7CF0" : "#666"); R(x + 4, y + 8, 8, 6, "#444"); R(x + 6, y + 10, 4, 2, "#666"); break;
+    case "planta":
+      R(x + 4, y + 9, 8, 7, "#B5643C"); R(x + 3, y + 9, 10, 2, "#9A5030"); R(x + 3, y + 2, 4, 7, "#3E8E5B"); R(x + 7, y - 1, 3, 10, "#56B07A"); R(x + 10, y + 3, 3, 6, "#3E8E5B"); R(x + 5, y + 4, 2, 2, "#56B07A"); break;
+    case "armario":
+      R(x, y - 10, 32, 26, "#8B6A4F"); R(x, y - 10, 32, 2, "#A07E60"); R(x + 15, y - 8, 2, 23, "#6E5440"); R(x + 12, y + 1, 2, 4, "#FAC775"); R(x + 18, y + 1, 2, 4, "#FAC775"); R(x, y + 14, 32, 2, "#5E4430"); break;
+    case "abajur":
+      R(x + 5, y + 12, 6, 4, "#5E4430"); R(x + 7, y + 4, 2, 8, "#888"); R(x + 3, y - 1, 10, 6, "#FAC775"); R(x + 3, y + 4, 10, 1, "#E0A848"); break;
+    case "tapete":
+      R(x + 2, y + 2, 44, 28, "#B03A5B"); R(x + 4, y + 4, 40, 24, "#E7A3B8"); R(x + 6, y + 6, 36, 20, "#D4537E");
+      for (let i = 0; i < 5; i++) R(x + 10 + i * 7, y + 14, 3, 3, "#E7A3B8"); break;
+  }
+}
+
+function drawAvatar(p, cx, by, opts){
+  const o = opts || {};
+  const dir = o.dir || "down", step = o.step || 0;
+  const skin = PELES[p.pele] || PELES[0], hair = CABELOS[p.cabelo] || CABELOS[0], shirt = ROUPAS[p.roupa] || ROUPAS[0];
+  if (o.deitado){
+    R(cx - 4, by - 6, 8, 7, skin); R(cx - 4, by - 7, 8, 3, hair); if (p.estilo === 1) R(cx - 5, by - 6, 1, 6, hair);
+    R(cx - 2, by - 3, 1, 1, "#2B1D14"); R(cx + 1, by - 3, 1, 1, "#2B1D14"); return;
+  }
+  R(cx - 4, by - 1, 8, 2, "#00000040");
+  const l = step ? 1 : 0;
+  R(cx - 3, by - 5, 2, 4 - l, "#2C2C3A"); R(cx + 1, by - 5, 2, 4 - (1 - l) * (step ? 1 : 0), "#2C2C3A");
+  R(cx - 4, by - 11, 8, 7, shirt); R(cx - 4, by - 11, 8, 1, "#ffffff22");
+  R(cx - 5, by - 10, 1, 5, skin); R(cx + 4, by - 10, 1, 5, skin);
+  if (o.bracos){ R(cx - 6, by - 14, 1, 4, skin); R(cx + 5, by - 14, 1, 4, skin); }
+  R(cx - 3, by - 17, 6, 6, skin);
+  R(cx - 3, by - 18, 6, 2, hair);
+  const st = p.estilo || 0;
+  if (dir === "up") R(cx - 3, by - 17, 6, 5, hair);
+  if (st === 1){ R(cx - 4, by - 17, 1, 7, hair); R(cx + 3, by - 17, 1, 7, hair); if (dir === "up") R(cx - 3, by - 12, 6, 2, hair); }
+  else if (st === 2){ R(cx - 1, by - 21, 3, 3, hair); R(cx - 4, by - 17, 1, 2, hair); R(cx + 3, by - 17, 1, 2, hair); }
+  else if (st === 3){ R(cx - 4, by - 19, 8, 3, hair); R(cx - 4, by - 16, 1, 3, hair); R(cx + 3, by - 16, 1, 3, hair); }
+  else { R(cx - 4, by - 17, 1, 2, hair); R(cx + 3, by - 17, 1, 2, hair); }
+  const eye = "#2B1D14";
+  if (dir === "down"){ R(cx - 2, by - 14, 1, 1, eye); R(cx + 1, by - 14, 1, 1, eye); R(cx - 1, by - 12, 2, 1, "#C0706055"); }
+  else if (dir === "left") R(cx - 2, by - 14, 1, 1, eye);
+  else if (dir === "right") R(cx + 1, by - 14, 1, 1, eye);
+}
+
+// ===================== estado =====================
+function salaFromHash(){ const h = decodeURIComponent(location.hash.replace(/^#/, "")).trim().toLowerCase(); return /^[a-z0-9-]{10,40}$/.test(h) ? h : null; }
+let sala = null, fdb = null, salaRef = null, listeners = [];
+let pid = null;
+let moveis = {}, pisos = {}, jogadores = {};
+let occ = [];
+let me = null;            // estado local do meu boneco
+let disp = {};            // posições exibidas dos outros
+let mode = "live", buildTab = "mov", tool = null;
+let hover = null, menuEl = null, particles = [], lastSave = 0, lastNeedsSent = "";
+let creator = { nome: "", roupa: 0, cabelo: 0, estilo: 0, pele: 1 };
+
+function link(){ return location.origin + location.pathname + "#" + sala; }
+function nomeDe(id){ const j = jogadores[id]; return (j && j.nome) || "Alguém"; }
+
+function rebuildOcc(){
+  occ = MAP.map(r => r.map(() => null));
+  for (const [id, m] of Object.entries(moveis)){
+    const c = CAT[m.t]; if (!c || c.chao) continue;
+    for (let dy = 0; dy < c.h; dy++) for (let dx = 0; dx < c.w; dx++){ const yy = m.y + dy, xx = m.x + dx; if (occ[yy] && xx < W) occ[yy][xx] = id; }
+  }
+}
+const walkable = (x, y) => x >= 0 && y >= 0 && x < W && y < H && MAP[y][x] !== 1 && !occ[y][x];
+
+function bfs(sx, sy, isGoal){
+  const prev = new Map(), k = (x, y) => y * W + x, q = [[sx, sy]]; prev.set(k(sx, sy), null);
+  while (q.length){
+    const [x, y] = q.shift();
+    if (isGoal(x, y)){ const path = []; let cur = k(x, y); while (cur != null){ path.unshift([cur % W, Math.floor(cur / W)]); cur = prev.get(cur); } path.shift(); return path; }
+    for (const [dx, dy] of [[1,0],[-1,0],[0,1],[0,-1]]){ const nx = x + dx, ny = y + dy; if (walkable(nx, ny) && !prev.has(k(nx, ny))){ prev.set(k(nx, ny), k(x, y)); q.push([nx, ny]); } }
+  }
+  return null;
+}
+function adjTo(m){
+  const c = CAT[m.t], set = new Set();
+  for (let dy = -1; dy <= c.h; dy++) for (let dx = -1; dx <= c.w; dx++){
+    const inside = dx >= 0 && dy >= 0 && dx < c.w && dy < c.h; if (inside) continue;
+    if ((dx === -1 || dx === c.w) && (dy === -1 || dy === c.h)) continue;
+    set.add((m.y + dy) * W + (m.x + dx));
+  }
+  return (x, y) => set.has(y * W + x);
+}
+function freeSpot(){ for (const [x, y] of [[10,4],[11,4],[12,4],[9,3],[13,3],[11,7],[9,6]]) if (walkable(x, y)) return [x, y]; for (let y = 1; y < H - 1; y++) for (let x = 1; x < W - 1; x++) if (walkable(x, y)) return [x, y]; return [10, 4]; }
+
+// ===================== Firebase =====================
+function ref(p){ return salaRef.child(p); }
+function on(r, ev, fn){ r.on(ev, fn); listeners.push(() => r.off(ev, fn)); }
+function stop(){ listeners.forEach(f => f()); listeners = []; moveis = {}; pisos = {}; jogadores = {}; me = null; disp = {}; }
+
+function showScreen(id){ for (const s of ["screenRoom", "screenCreator", "screenGame"]) $(s).hidden = s !== id; }
+
+function boot(){
+  stop(); closeMenu();
+  sala = salaFromHash();
+  renderPeople();
+  if (!sala){ showScreen("screenRoom"); return; }
+  if (!window.firebase){ showScreen("screenRoom"); toast("Não deu pra carregar o jogo. Confira a internet."); return; }
+  if (!fdb){ firebase.initializeApp({ databaseURL: DB_URL }); fdb = firebase.database(); }
+  salaRef = fdb.ref("salas/" + sala);
+  pid = store.get("casinha-pid-" + sala);
+  if (!pid){ pid = "p" + Math.random().toString(36).slice(2, 10); store.set("casinha-pid-" + sala, pid); }
+
+  ref("casa").transaction(cur => {
+    if (cur) return; // já existe
+    const mv = {}; MOVEIS_INICIAIS.forEach(([t, x, y], i) => mv["m" + i] = { t, x, y });
+    return { moveis: mv, pisos: PISO_PADRAO, criada: Date.now() };
+  }).catch(() => {});
+
+  on(ref("casa/moveis"), "value", s => { moveis = s.val() || {}; rebuildOcc(); if (me && !walkable(me.tx, me.ty) && !me.acao){ const [x, y] = freeSpot(); me.tx = x; me.ty = y; me.px = x; me.py = y; me.path = []; savePos(); } if (mode === "build") renderBuild(); });
+  on(ref("casa/pisos"), "value", s => { pisos = s.val() || {}; });
+  on(ref("jogadores"), "value", s => {
+    jogadores = s.val() || {};
+    const mine = jogadores[pid];
+    if (!mine){ if (!me && $("screenCreator").hidden) openCreator(); }
+    else if (!me) startMe(mine);
+    else { me.dados = mine; }
+    renderPeople(); renderHud();
+  });
+  on(fdb.ref(".info/connected"), "value", s => { if (s.val() && me) setOnline(); });
+}
+
+function setOnline(){
+  const r = ref("jogadores/" + pid + "/online");
+  r.onDisconnect().set(false); r.set(true).catch(() => {});
+  ref("jogadores/" + pid + "/visto").onDisconnect().set(firebase.database.ServerValue.TIMESTAMP);
+}
+
+function startMe(d){
+  me = { dados: d, px: d.x, py: d.y, tx: d.x, ty: d.y, path: [], dir: d.dir || "down", acao: null, plano: null, needs: Object.assign({}, d.needs || {}), dinheiro: d.dinheiro || 0 };
+  for (const n of NEEDS) if (typeof me.needs[n.id] !== "number") me.needs[n.id] = 80;
+  if (!walkable(me.tx, me.ty)){ const [x, y] = freeSpot(); me.tx = me.px = x; me.ty = me.py = y; }
+  showScreen("screenGame");
+  setOnline();
+  ref("jogadores/" + pid).update({ acao: null, x: me.tx, y: me.ty });
+  on(ref("eventos/" + pid), "child_added", s => {
+    const ev = s.val(); s.ref.remove().catch(() => {});
+    if (!ev || Date.now() - (ev.at || 0) > 60000) return;
+    const so = SOCIAL.find(x => x.id === ev.tipo); if (!so) return;
+    for (const [k, v] of Object.entries(so.outro)) me.needs[k] = clamp(me.needs[k] + v, 0, 100);
+    burst(me.px, me.py, ev.tipo === "beijo" || ev.tipo === "abracar" ? "heart" : "note");
+    toast(nomeDe(ev.de) + " " + so.txt + ".");
+    saveNeeds(true);
+  });
+  resize(); renderHud(); renderInvite();
+}
+
+function savePos(){ if (me) ref("jogadores/" + pid).update({ x: me.tx, y: me.ty, dir: me.dir }).catch(() => {}); }
+function saveNeeds(force){
+  if (!me) return;
+  const n = {}; for (const k of NEEDS) n[k.id] = Math.round(me.needs[k.id]);
+  const sig = JSON.stringify(n) + me.dinheiro;
+  if (!force && sig === lastNeedsSent) return;
+  lastNeedsSent = sig;
+  ref("jogadores/" + pid).update({ needs: n, dinheiro: Math.round(me.dinheiro) }).catch(() => {});
+}
+function setAcao(a){
+  me.acao = a;
+  ref("jogadores/" + pid + "/acao").set(a ? { id: a.id, nome: a.nome, ini: a.ini, dur: a.dur, mov: a.mov || null, alvo: a.alvo || null, sobre: a.sobre || 0, deitar: a.deitar || 0 } : null).catch(() => {});
+  renderHud();
+}
+
+// ===================== criação do boneco =====================
+function openCreator(edit){
+  const d = edit && me ? me.dados : null;
+  if (d) creator = { nome: d.nome || "", roupa: d.roupa || 0, cabelo: d.cabelo || 0, estilo: d.estilo || 0, pele: d.pele || 0 };
+  else if (!creator.nome){ creator.roupa = Math.floor(Math.random() * ROUPAS.length); creator.cabelo = Math.floor(Math.random() * 4); creator.estilo = Math.floor(Math.random() * 4); creator.pele = Math.floor(Math.random() * PELES.length); }
+  showScreen("screenCreator");
+  $("cName").value = creator.nome;
+  $("cGo").textContent = d ? "Salvar" : "Entrar na casa";
+  $("cGo").dataset.edit = d ? "1" : "";
+  swatchRow("swRoupa", ROUPAS, "roupa"); swatchRow("swCabelo", CABELOS, "cabelo"); swatchRow("swPele", PELES, "pele");
+  const est = $("swEstilo"); est.innerHTML = "";
+  ESTILOS.forEach((n, i) => { const b = el("button", "btn ghost small", n); b.type = "button"; b.setAttribute("aria-pressed", String(creator.estilo === i)); b.onclick = () => { creator.estilo = i; openCreatorRefresh(); }; est.append(b); });
+  drawCreator();
+}
+function openCreatorRefresh(){ creator.nome = $("cName").value; const ed = $("cGo").dataset.edit; openCreator(false); $("cGo").dataset.edit = ed; $("cGo").textContent = ed ? "Salvar" : "Entrar na casa"; }
+function swatchRow(id, cores, key){
+  const box = $(id); box.innerHTML = "";
+  cores.forEach((c, i) => { const b = el("button", "swatch"); b.type = "button"; b.style.background = c; b.setAttribute("aria-label", key + " " + (i + 1)); b.setAttribute("aria-pressed", String(creator[key] === i)); b.onclick = () => { creator[key] = i; openCreatorRefresh(); }; box.append(b); });
+}
+function drawCreator(){
+  const c = $("cPreview"), x = c.getContext("2d"); x.imageSmoothingEnabled = false; x.clearRect(0, 0, 32, 32);
+  withCtx(x, 1, () => { R(0, 22, 32, 10, "#30264A"); drawAvatar(creator, 16, 28, { dir: "down" }); });
+}
+$("cName").addEventListener("input", e => creator.nome = e.target.value);
+$("cGo").onclick = () => {
+  const nome = $("cName").value.trim().slice(0, 16);
+  if (!nome){ toast("Escreva um nome pro seu bonequinho."); $("cName").focus(); return; }
+  creator.nome = nome;
+  const base = { nome, roupa: creator.roupa, cabelo: creator.cabelo, estilo: creator.estilo, pele: creator.pele };
+  if ($("cGo").dataset.edit && me){ ref("jogadores/" + pid).update(base); showScreen("screenGame"); resize(); return; }
+  const [x, y] = freeSpot();
+  const n = {}; NEEDS.forEach(k => n[k.id] = 80);
+  ref("jogadores/" + pid).set(Object.assign(base, { x, y, dir: "down", needs: n, dinheiro: 500, online: true, entrou: Date.now() })).catch(() => toast("Não deu pra entrar. Tente de novo."));
+};
+$("createRoom").onclick = () => {
+  const abc = "abcdefghjkmnpqrstuvwxyz23456789"; let c = ""; const r = new Uint32Array(14); crypto.getRandomValues(r); for (const v of r) c += abc[v % abc.length];
+  location.hash = c;
+};
+
+// ===================== tela do jogo =====================
+const canvas = $("game");
+function resize(){
+  const w = canvas.clientWidth || canvas.parentElement.clientWidth, dpr = Math.min(window.devicePixelRatio || 1, 3);
+  canvas.width = Math.round(w * dpr); canvas.height = Math.round(w * H / W * dpr);
+  canvas.style.height = (w * H / W) + "px";
+}
+window.addEventListener("resize", () => { if (!$("screenGame").hidden) resize(); });
+
+function worldFromEvent(e){
+  const r = canvas.getBoundingClientRect();
+  return { x: (e.clientX - r.left) / r.width * W * T, y: (e.clientY - r.top) / r.height * H * T, sx: e.clientX - r.left, sy: e.clientY - r.top };
+}
+function playerAt(wx, wy){
+  let best = null, bd = 12;
+  for (const [id, j] of Object.entries(jogadores)){
+    if (id === pid || !disp[id]) continue;
+    const d = disp[id], cx = (d.x + .5) * T, cy = (d.y + 1) * T - 2;
+    const dd = Math.hypot(wx - cx, (wy - (cy - 8)) * .8);
+    if (dd < bd){ bd = dd; best = id; }
+  }
+  return best;
+}
+function furnAt(tx, ty){
+  let found = occ[ty] && occ[ty][tx];
+  if (found) return found;
+  // móveis altos: toque um tile acima também conta
+  if (occ[ty + 1] && occ[ty + 1][tx] && ["geladeira", "estante", "armario", "tv", "pc", "som"].includes((moveis[occ[ty + 1][tx]] || {}).t)) return occ[ty + 1][tx];
+  return null;
+}
+
+canvas.addEventListener("pointermove", e => { if (mode !== "build") return; const p = worldFromEvent(e); hover = { x: Math.floor(p.x / T), y: Math.floor(p.y / T) }; });
+canvas.addEventListener("pointerleave", () => { hover = null; });
+canvas.addEventListener("click", e => {
+  if (!me) return;
+  const p = worldFromEvent(e), tx = Math.floor(p.x / T), ty = Math.floor(p.y / T);
+  closeMenu();
+  if (mode === "build"){ hover = { x: tx, y: ty }; buildClick(tx, ty, p); return; }
+  const other = playerAt(p.x, p.y);
+  if (other) return socialMenu(other, p);
+  const f = furnAt(tx, ty);
+  if (f) return furnMenu(f, p);
+  if (walkable(tx, ty)) goTo(() => tx === me.tx && ty === me.ty ? true : null, (x, y) => x === tx && y === ty, null);
+});
+
+function openMenu(p, titulo, items){
+  closeMenu();
+  const m = el("div", "menu"); m.setAttribute("role", "menu");
+  m.append(el("div", "ttl", titulo));
+  for (const it of items){
+    const b = el("button"); b.type = "button"; b.setAttribute("role", "menuitem");
+    b.append(el("span", null, it.nome)); if (it.info) b.append(el("small", null, it.info));
+    b.onclick = ev => { ev.stopPropagation(); closeMenu(); it.fn(); };
+    m.append(b);
+  }
+  $("stage").append(m);
+  const sw = $("stage").clientWidth, sh = $("stage").clientHeight;
+  m.style.left = clamp(p.sx + 8, 6, sw - m.offsetWidth - 6) + "px";
+  m.style.top = clamp(p.sy - 10, 6, Math.max(6, sh - m.offsetHeight - 6)) + "px";
+  menuEl = m; const first = m.querySelector("button"); if (first) first.focus({ preventScroll: true });
+}
+function closeMenu(){ if (menuEl){ menuEl.remove(); menuEl = null; } }
+document.addEventListener("keydown", e => { if (e.key === "Escape") closeMenu(); });
+document.addEventListener("click", e => { if (menuEl && !menuEl.contains(e.target) && e.target !== canvas) closeMenu(); });
+
+function ganhoTxt(a){
+  const parts = [];
+  if (a.dinheiro) parts.push("+$" + a.dinheiro);
+  for (const [k, v] of Object.entries(a.ganho || {})) if (v > 0) parts.push(NEEDS.find(n => n.id === k).nome);
+  return parts.slice(0, 2).join(", ");
+}
+function furnMenu(id, p){
+  const m = moveis[id], c = CAT[m.t];
+  if (!c.acoes.length){ toast(c.nome + " é só decoração. Fica lindo, né?"); return; }
+  openMenu(p, c.nome, c.acoes.map(a => ({ nome: a.nome, info: ganhoTxt(a), fn: () => useFurn(id, a) })));
+}
+function socialMenu(id, p){
+  openMenu(p, nomeDe(id), SOCIAL.map(s => ({ nome: s.nome, fn: () => social(id, s) })));
+}
+
+function goTo(_unused, isGoal, after){
+  if (me.acao) setAcao(null);
+  const path = bfs(me.tx, me.ty, isGoal);
+  if (!path){ toast("Não dá pra chegar aí."); return; }
+  me.path = path; me.plano = after;
+  if (!path.length && after) { me.plano = null; after(); }
+  renderHud();
+}
+function useFurn(id, a){
+  const m = moveis[id]; if (!m) return;
+  goTo(null, adjTo(m), () => {
+    const mm = moveis[id]; if (!mm) return;
+    const c = CAT[mm.t];
+    if (a.roupa){ openCreator(true); return; }
+    faceTo(mm.x + c.w / 2 - .5, mm.y + c.h / 2 - .5);
+    setAcao({ id: a.id, nome: a.nome, ini: Date.now(), dur: a.dur * 1000, mov: id, sobre: a.sobre || 0, deitar: a.deitar || 0, def: a });
+  });
+}
+function social(id, s){
+  const j = jogadores[id]; if (!j) return;
+  if (!j.online){ toast(nomeDe(id) + " não está na casa agora."); return; }
+  const d = disp[id] || { x: j.x, y: j.y }; const ox = Math.round(d.x), oy = Math.round(d.y);
+  const goal = (x, y) => Math.abs(x - ox) + Math.abs(y - oy) === 1;
+  goTo(null, goal, () => {
+    const jj = jogadores[id]; if (!jj) return;
+    faceTo(jj.x, jj.y);
+    setAcao({ id: "s-" + s.id, nome: s.nome + " com " + nomeDe(id), ini: Date.now(), dur: s.dur * 1000, alvo: id, def: { ganho: s.eu, social: s } });
+    ref("eventos/" + id).push({ tipo: s.id, de: pid, at: firebase.database.ServerValue.TIMESTAMP }).catch(() => {});
+    burst(me.px, me.py, s.id === "beijo" || s.id === "abracar" ? "heart" : "note");
+  });
+}
+function faceTo(x, y){
+  const dx = x - me.tx, dy = y - me.ty;
+  me.dir = Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? "right" : "left") : (dy > 0 ? "down" : "up");
+  savePos();
+}
+
+// ===================== construir =====================
+function canPlace(t, x, y, ignore){
+  const c = CAT[t];
+  for (let dy = 0; dy < c.h; dy++) for (let dx = 0; dx < c.w; dx++){
+    const xx = x + dx, yy = y + dy;
+    if (xx < 1 || yy < 1 || xx >= W - 1 || yy >= H - 1 || MAP[yy][xx] !== 0) return false;
+    if (!c.chao && occ[yy][xx] && occ[yy][xx] !== ignore) return false;
+  }
+  if (c.chao){ for (const [id, m] of Object.entries(moveis)){ if (id === ignore || !CAT[m.t] || !CAT[m.t].chao) continue; const o = CAT[m.t];
+    if (x < m.x + o.w && x + c.w > m.x && y < m.y + o.h && y + c.h > m.y) return false; } }
+  if (!c.chao){ for (const [id, j] of Object.entries(jogadores)){ if (!j.online) continue; const d = id === pid && me ? { x: me.tx, y: me.ty } : j; if (d.x >= x && d.x < x + c.w && d.y >= y && d.y < y + c.h) return false; } }
+  return true;
+}
+function buildClick(tx, ty, p){
+  if (tool && tool.kind === "piso"){
+    if (!MAP[ty] || MAP[ty][tx] === 1) return;
+    const cm = comodo(tx, ty);
+    ref("casa/pisos/" + cm).set(tool.idx).then(() => toast(COMODOS[cm] + " com piso novo."));
+    return;
+  }
+  if (tool && (tool.kind === "novo" || tool.kind === "mover")){
+    const t = tool.t;
+    if (!canPlace(t, tx, ty, tool.id)){ toast("Não cabe aí. Tente outro lugar."); return; }
+    if (tool.kind === "novo"){
+      const preco = CAT[t].preco;
+      if (me.dinheiro < preco){ toast("Faltam $" + (preco - Math.floor(me.dinheiro)) + ". Trabalhe no computador pra ganhar mais."); return; }
+      me.dinheiro -= preco; saveNeeds(true);
+      ref("casa/moveis").push({ t, x: tx, y: ty, por: pid }).then(() => toast(CAT[t].nome + " colocado. -$" + preco));
+    } else {
+      ref("casa/moveis/" + tool.id).update({ x: tx, y: ty }).then(() => toast("Móvel no lugar novo."));
+      tool = null; renderBuild();
+    }
+    return;
+  }
+  const f = furnAt(tx, ty) || tapeteAt(tx, ty);
+  if (f){
+    const m = moveis[f], c = CAT[m.t], volta = Math.round(c.preco * .7);
+    openMenu(p, c.nome, [
+      { nome: "Mover", fn: () => { tool = { kind: "mover", t: m.t, id: f }; renderBuild(); toast("Toque no lugar novo."); } },
+      { nome: "Vender", info: "+$" + volta, fn: () => { ref("casa/moveis/" + f).remove().then(() => { me.dinheiro += volta; saveNeeds(true); toast(c.nome + " vendido. +$" + volta); }); } }
+    ]);
+  }
+}
+function tapeteAt(tx, ty){ for (const [id, m] of Object.entries(moveis)){ const c = CAT[m.t]; if (c && c.chao && tx >= m.x && tx < m.x + c.w && ty >= m.y && ty < m.y + c.h) return id; } return null; }
+
+function renderBuild(){
+  $("money2").textContent = me ? "$ " + Math.floor(me.dinheiro) : "";
+  $("tMov").setAttribute("aria-pressed", String(buildTab === "mov")); $("tPiso").setAttribute("aria-pressed", String(buildTab === "piso"));
+  $("cat").hidden = buildTab !== "mov"; $("floors").hidden = buildTab !== "piso";
+  $("buildHint").textContent = tool && tool.kind === "mover" ? "Toque no lugar novo do móvel. Toque no mesmo móvel na lista para cancelar." :
+    buildTab === "piso" ? "Escolha um piso e toque num cômodo para trocar." : "Escolha um móvel e toque na casa para colocar. Toque num móvel que já está lá para mover ou vender.";
+  if (buildTab === "mov"){
+    const cat = $("cat"); cat.innerHTML = "";
+    for (const [t, c] of Object.entries(CAT)){
+      const b = el("button", "item"); b.type = "button";
+      const cv = el("canvas"); cv.width = 64; cv.height = 48;
+      const x = cv.getContext("2d"); x.imageSmoothingEnabled = false;
+      const sc = Math.min(64 / (c.w * T + 4), 48 / (c.h * T + 12));
+      withCtx(x, sc, () => drawFurn(t, (64 / sc - c.w * T) / 2, (48 / sc - c.h * T) / 2 + 5, false, 0));
+      b.append(cv, el("span", null, c.nome), el("span", "pr", "$" + c.preco));
+      b.setAttribute("aria-pressed", String(!!(tool && tool.kind === "novo" && tool.t === t)));
+      b.disabled = !!me && me.dinheiro < c.preco && !(tool && tool.t === t);
+      b.onclick = () => { tool = tool && tool.kind === "novo" && tool.t === t ? null : { kind: "novo", t }; renderBuild(); };
+      cat.append(b);
+    }
+  } else {
+    const fl = $("floors"); fl.innerHTML = "";
+    PISOS.forEach((p, i) => {
+      const b = el("button", "floor"); b.type = "button"; b.title = p.nome; b.setAttribute("aria-label", p.nome);
+      const cv = el("canvas"); cv.width = 32; cv.height = 32; const x = cv.getContext("2d"); x.imageSmoothingEnabled = false;
+      withCtx(x, 1, () => { drawFloorTile(0, 0, p); drawFloorTile(1, 0, p); drawFloorTile(0, 1, p); drawFloorTile(1, 1, p); });
+      b.append(cv); b.setAttribute("aria-pressed", String(!!(tool && tool.kind === "piso" && tool.idx === i)));
+      b.onclick = () => { tool = { kind: "piso", idx: i }; renderBuild(); };
+      fl.append(b);
+    });
+  }
+}
+function setMode(m){
+  mode = m; tool = null; closeMenu();
+  $("mLive").setAttribute("aria-pressed", String(m === "live")); $("mBuild").setAttribute("aria-pressed", String(m === "build"));
+  $("buildPanel").hidden = m !== "build"; $("hud").hidden = m === "build";
+  if (m === "build") renderBuild();
+}
+$("mLive").onclick = () => setMode("live");
+$("mBuild").onclick = () => setMode("build");
+$("tMov").onclick = () => { buildTab = "mov"; tool = null; renderBuild(); };
+$("tPiso").onclick = () => { buildTab = "piso"; tool = null; renderBuild(); };
+
+// ===================== HUD =====================
+function mood(){
+  if (!me) return "";
+  const low = NEEDS.filter(n => me.needs[n.id] < 25);
+  if (low.length) return { fome: "Com fome", energia: "Cansado(a)", diversao: "Entediado(a)", social: "Carente", higiene: "Precisando de um banho" }[low[0].id];
+  const avg = NEEDS.reduce((s, n) => s + me.needs[n.id], 0) / NEEDS.length;
+  return avg > 75 ? "Muito feliz" : avg > 50 ? "De boa" : "Meio pra baixo";
+}
+function renderHud(){
+  if (!me || $("screenGame").hidden) return;
+  const d = me.dados || {};
+  $("meName").textContent = d.nome || "";
+  $("meMood").textContent = mood();
+  $("money").textContent = "$ " + Math.floor(me.dinheiro);
+  const av = $("meAv"), x = av.getContext("2d"); x.imageSmoothingEnabled = false; x.clearRect(0, 0, 24, 24);
+  withCtx(x, 1, () => drawAvatar(d, 12, 22, { dir: "down" }));
+  const nb = $("needs");
+  if (!nb.children.length) for (const n of NEEDS){
+    const w = el("div", "need"); const r = el("div", "row"); r.append(el("span", null, n.nome), el("span", "v"));
+    const bar = el("div", "bar"); const i = el("i"); bar.append(i); w.append(r, bar); w.dataset.id = n.id; nb.append(w);
+  }
+  for (const w of nb.children){
+    const id = w.dataset.id, v = Math.round(me.needs[id]), n = NEEDS.find(q => q.id === id);
+    w.querySelector(".v").textContent = v;
+    const i = w.querySelector("i"); i.style.width = v + "%"; i.style.background = v < 25 ? "var(--bad)" : n.cor;
+  }
+  const st = $("status"); st.innerHTML = "";
+  if (me.acao){
+    st.append(el("span", null, me.acao.nome));
+    const pr = el("div", "prog"); const i = el("i"); i.id = "progBar"; pr.append(i); st.append(pr);
+    const b = el("button", "btn ghost small", "Parar"); b.type = "button"; b.onclick = () => setAcao(null); st.append(b);
+  } else st.append(el("span", "muted", me.path.length ? "Andando..." : "Livre. Toque em algo na casa."));
+}
+function renderPeople(){
+  const box = $("people"); box.innerHTML = "";
+  for (const [id, j] of Object.entries(jogadores)){
+    const c = el("span", "chip" + (j.online ? "" : " off")); const sw = el("span", "sw"); sw.style.background = ROUPAS[j.roupa] || ROUPAS[0];
+    c.append(sw, (j.nome || "Alguém") + (id === pid ? " (você)" : "") + (j.online ? "" : " · fora"));
+    box.append(c);
+  }
+}
+function renderInvite(){
+  const b = $("inviteBox"); b.innerHTML = "";
+  const box = el("div", "linkbox"); box.append(el("code", null, link()));
+  const cp = el("button", "btn small", "Copiar link"); cp.type = "button";
+  cp.onclick = async () => { try { await navigator.clipboard.writeText(link()); toast("Link copiado."); } catch(e){ toast("Segure o dedo no link para copiar."); } };
+  box.append(cp);
+  if (navigator.share){ const sh = el("button", "btn ghost small", "Enviar"); sh.type = "button"; sh.onclick = () => navigator.share({ title: "Casinha", text: "Vem pra nossa casinha!", url: link() }).catch(() => {}); box.append(sh); }
+  b.append(box);
+}
+$("invite").onclick = () => { const p = $("invitePanel"); p.hidden = !p.hidden; if (!p.hidden) p.scrollIntoView({ behavior: "smooth", block: "nearest" }); };
+$("reskin").onclick = () => openCreator(true);
+$("talk").addEventListener("submit", e => {
+  e.preventDefault(); const v = $("say").value.trim().slice(0, 60); if (!v || !me) return;
+  ref("jogadores/" + pid).update({ fala: v, falaAt: firebase.database.ServerValue.TIMESTAMP }); $("say").value = "";
+});
+
+// ===================== partículas =====================
+function burst(x, y, kind){ for (let i = 0; i < 6; i++) particles.push({ x: (x + .5) * T + (Math.random() * 12 - 6), y: (y + 1) * T - 20, vy: -8 - Math.random() * 10, vx: Math.random() * 8 - 4, life: 1.6, kind }); }
+
+// ===================== laço =====================
+let last = performance.now(), hudT = 0, clockSkew = 0;
+function tick(now){
+  const dt = Math.min(.1, (now - last) / 1000); last = now;
+  if (me && !$("screenGame").hidden){ update(dt); draw(now); hudT += dt; if (hudT > .25){ hudT = 0; renderHudLight(); } }
+  requestAnimationFrame(tick);
+}
+function renderHudLight(){
+  if (!me) return;
+  const pb = $("progBar"); if (pb && me.acao) pb.style.width = clamp((Date.now() - me.acao.ini) / me.acao.dur * 100, 0, 100) + "%";
+  for (const w of $("needs").children){ const id = w.dataset.id, v = Math.round(me.needs[id]); w.querySelector(".v").textContent = v; const i = w.querySelector("i"); i.style.width = v + "%"; i.style.background = v < 25 ? "var(--bad)" : NEEDS.find(q => q.id === id).cor; }
+  $("meMood").textContent = mood(); $("money").textContent = "$ " + Math.floor(me.dinheiro);
+  if (mode === "build") $("money2").textContent = "$ " + Math.floor(me.dinheiro);
+}
+
+const SPEED = 4.2;
+function update(dt){
+  // necessidades caem enquanto você está na casa
+  for (const n of NEEDS) me.needs[n.id] = clamp(me.needs[n.id] - n.queda * dt, 0, 100);
+  // andar
+  if (me.path.length){
+    const [nx, ny] = me.path[0];
+    const dx = nx - me.px, dy = ny - me.py, dist = Math.hypot(dx, dy);
+    if (Math.abs(dx) > Math.abs(dy)) me.dir = dx > 0 ? "right" : "left"; else if (dy) me.dir = dy > 0 ? "down" : "up";
+    const stp = SPEED * dt;
+    if (dist <= stp){
+      me.px = nx; me.py = ny; me.tx = nx; me.ty = ny; me.path.shift(); savePos();
+      if (!walkable(nx, ny)){ me.path = []; }
+      if (!me.path.length){ renderHud(); if (me.plano){ const f = me.plano; me.plano = null; f(); } }
+    } else { me.px += dx / dist * stp; me.py += dy / dist * stp; }
+  }
+  // ação em andamento
+  if (me.acao){
+    const a = me.acao, d = a.def || {};
+    let mult = 1;
+    if (d.junto){ for (const [id, j] of Object.entries(jogadores)){ if (id !== pid && j.online && j.acao && j.acao.id === a.id && Math.hypot(j.x - me.tx, j.y - me.ty) < 5){ mult = 1.5; me.needs.social = clamp(me.needs.social + 1.2 * dt, 0, 100); break; } } }
+    for (const [k, v] of Object.entries(d.ganho || {})) me.needs[k] = clamp(me.needs[k] + v * mult * dt / (a.dur / 1000), 0, 100);
+    if (Date.now() - a.ini >= a.dur){
+      if (d.dinheiro){ me.dinheiro += d.dinheiro; toast("+$" + d.dinheiro + " pelo trabalho."); }
+      setAcao(null); saveNeeds(true);
+    }
+  }
+  // outros jogadores
+  for (const [id, j] of Object.entries(jogadores)){
+    if (id === pid) continue;
+    const d = disp[id] || (disp[id] = { x: j.x, y: j.y, moving: false });
+    const dx = j.x - d.x, dy = j.y - d.y, dist = Math.hypot(dx, dy);
+    if (dist > 4) { d.x = j.x; d.y = j.y; d.moving = false; }
+    else if (dist > .01){ const s = Math.min(dist, SPEED * dt); d.x += dx / dist * s; d.y += dy / dist * s; d.moving = true; }
+    else d.moving = false;
+  }
+  for (const id of Object.keys(disp)) if (!jogadores[id]) delete disp[id];
+  // partículas
+  particles = particles.filter(p => (p.life -= dt) > 0);
+  for (const p of particles){ p.x += p.vx * dt; p.y += p.vy * dt; }
+  if (performance.now() - lastSave > 4000){ lastSave = performance.now(); saveNeeds(false); }
+}
+
+function draw(now){
+  ctx = canvas.getContext("2d"); ctx.imageSmoothingEnabled = false;
+  S = canvas.width / (W * T);
+  const tm = Date.now();
+  ctx.fillStyle = "#120E1C"; ctx.fillRect(0, 0, canvas.width, canvas.height);
+  // piso
+  for (let y = 0; y < H; y++) for (let x = 0; x < W; x++){
+    if (MAP[y][x] === 1) continue;
+    const pi = pisos[comodo(x, y)]; drawFloorTile(x, y, PISOS[typeof pi === "number" ? pi : PISO_PADRAO[comodo(x, y)]] || PISOS[0]);
+  }
+  // tapetes primeiro
+  for (const m of Object.values(moveis)) if (CAT[m.t] && CAT[m.t].chao) drawFurn(m.t, m.x * T, m.y * T, false, tm);
+  // paredes
+  for (let y = 0; y < H; y++) for (let x = 0; x < W; x++){
+    if (MAP[y][x] !== 1) continue;
+    const px = x * T, py = y * T;
+    R(px, py, T, T, "#2E2546");
+    if (y + 1 < H && MAP[y + 1][x] !== 1){ R(px, py + 4, T, 12, "#8E7CC3"); R(px, py + 4, T, 1, "#A898D8"); R(px, py + 14, T, 2, "#5E4E8E"); }
+    else R(px + 1, py + 1, T - 2, T - 2, "#3A2F55");
+  }
+  // modo construir: grade
+  if (mode === "build"){
+    ctx.fillStyle = "rgba(255,255,255,.07)";
+    for (let x = 1; x < W; x++) ctx.fillRect(Math.round(x * T * S), 0, 1, canvas.height);
+    for (let y = 1; y < H; y++) ctx.fillRect(0, Math.round(y * T * S), canvas.width, 1);
+  }
+  // objetos ordenados pela base
+  const objs = [];
+  const ativo = {}; for (const j of Object.values(jogadores)) if (j.online && j.acao && j.acao.mov && tm - j.acao.ini < j.acao.dur + 3000) ativo[j.acao.mov] = 1;
+  if (me && me.acao && me.acao.mov) ativo[me.acao.mov] = 1;
+  for (const [id, m] of Object.entries(moveis)){
+    const c = CAT[m.t]; if (!c || c.chao) continue;
+    if (tool && tool.kind === "mover" && tool.id === id) continue;
+    objs.push({ z: (m.y + c.h) * T - 1, f: () => drawFurn(m.t, m.x * T, m.y * T, !!ativo[id], tm) });
+  }
+  const labels = [];
+  for (const [id, j] of Object.entries(jogadores)){
+    if (!j.nome) continue;
+    let x, y, dir = j.dir || "down", step = 0, acao = j.acao;
+    if (id === pid){ if (!me) continue; x = me.px; y = me.py; dir = me.dir; step = me.path.length ? Math.floor(tm / 140) % 2 : 0; acao = me.acao; }
+    else { const d = disp[id]; if (!d) continue; x = d.x; y = d.y; step = d.moving ? Math.floor(tm / 140) % 2 : 0; if (acao && tm - acao.ini > acao.dur + 3000) acao = null; }
+    let cx = (x + .5) * T, by = (y + 1) * T - 2, deitado = false, bracos = false;
+    if (acao && acao.sobre && acao.mov && moveis[acao.mov]){
+      const m = moveis[acao.mov], c = CAT[m.t];
+      if (acao.deitar){ deitado = true; const slot = Object.keys(jogadores).indexOf(id) % 2; cx = m.x * T + (m.t === "casal" ? (slot ? 35 : 13) : 16); by = m.y * T + 15; }
+      else { cx = (m.x + c.w / 2) * T; by = (m.y + c.h) * T - 2; }
+    }
+    if (acao && /dancar/.test(acao.id || "")){ bracos = Math.floor(tm / 250) % 2 === 0; by -= Math.floor(tm / 250) % 2; }
+    if (acao && /cocegas|abracar/.test(acao.id || "")) bracos = true;
+    const off = !j.online && id !== pid;
+    const z = deitado ? (moveis[acao.mov].y + CAT[moveis[acao.mov].t].h) * T : by;
+    objs.push({ z, f: () => { if (off) ctx.globalAlpha = .5; drawAvatar(j, cx, by, { dir, step, deitado, bracos }); ctx.globalAlpha = 1; } });
+    labels.push({ id, j, cx, by: deitado ? by - 2 : by, acao, off, deitado });
+  }
+  objs.sort((a, b) => a.z - b.z).forEach(o => o.f());
+
+  // fantasma do modo construir
+  if (mode === "build" && tool && hover && (tool.kind === "novo" || tool.kind === "mover")){
+    const c = CAT[tool.t], ok = canPlace(tool.t, hover.x, hover.y, tool.id);
+    ctx.globalAlpha = .65; drawFurn(tool.t, hover.x * T, hover.y * T, false, tm); ctx.globalAlpha = 1;
+    ctx.fillStyle = ok ? "rgba(93,202,165,.35)" : "rgba(240,112,122,.4)";
+    ctx.fillRect(Math.round(hover.x * T * S), Math.round(hover.y * T * S), Math.round(c.w * T * S), Math.round(c.h * T * S));
+  }
+  if (mode === "build" && tool && tool.kind === "piso" && hover && MAP[hover.y] && MAP[hover.y][hover.x] !== 1){
+    const cm = comodo(hover.x, hover.y); ctx.fillStyle = "rgba(142,124,240,.25)";
+    for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) if (MAP[y][x] !== 1 && comodo(x, y) === cm) ctx.fillRect(Math.round(x * T * S), Math.round(y * T * S), Math.ceil(T * S), Math.ceil(T * S));
+  }
+
+  // textos em cima de tudo
+  const fs = Math.max(10, Math.round(4.2 * S));
+  ctx.font = "700 " + fs + "px 'Pixelify Sans', monospace"; ctx.textAlign = "center"; ctx.textBaseline = "bottom";
+  for (const L of labels){
+    const sx = L.cx * S, top = (L.by - (L.deitado ? 9 : 22)) * S;
+    if (mode === "live"){
+      const nm = L.j.nome + (L.off ? " · fora" : "");
+      ctx.lineWidth = Math.max(2, S * .9); ctx.strokeStyle = "rgba(18,14,28,.85)"; ctx.strokeText(nm, sx, top);
+      ctx.fillStyle = L.id === pid ? "#FFFFFF" : "#E6DEFF"; ctx.fillText(nm, sx, top);
+    }
+    let icon = null;
+    if (L.off) icon = "zZ";
+    else if (L.acao){ const id = L.acao.id || ""; icon = /dormir|cochilo/.test(id) ? "zZ" : /dancar|som/.test(id) ? "♪" : /^s-(beijo|abracar)/.test(id) ? "♥" : /^s-/.test(id) ? "…" : /trabalhar/.test(id) ? "$" : /cozinhar|lanche|cafe/.test(id) ? "~" : "•"; }
+    if (icon){ ctx.fillStyle = icon === "♥" ? "#F0707A" : icon === "$" ? "#FAC775" : "#CECBF6"; ctx.fillText(icon, sx + 7 * S, top - fs - Math.sin(tm / 300) * S * 1.5); }
+    if (L.id === pid && L.acao){
+      const w = 14 * S, pr = clamp((tm - L.acao.ini) / L.acao.dur, 0, 1);
+      ctx.fillStyle = "rgba(18,14,28,.8)"; ctx.fillRect(sx - w / 2, top + 2, w, Math.max(3, S));
+      ctx.fillStyle = "#8E7CF0"; ctx.fillRect(sx - w / 2, top + 2, w * pr, Math.max(3, S));
+    }
+    if (L.j.fala && L.j.falaAt && tm - L.j.falaAt < 7000 && tm - L.j.falaAt > -60000){
+      const txt = String(L.j.fala); ctx.font = "700 " + fs + "px Nunito, sans-serif";
+      const tw = Math.min(ctx.measureText(txt).width, 70 * S), bh = fs * 1.5, bx = clamp(sx - tw / 2 - 6, 2, canvas.width - tw - 14), byy = top - fs - bh - 4;
+      ctx.fillStyle = "#FFFFFF"; ctx.beginPath(); if (ctx.roundRect) ctx.roundRect(bx, byy, tw + 12, bh, 6); else ctx.rect(bx, byy, tw + 12, bh); ctx.fill();
+      ctx.fillRect(sx - 3, byy + bh - 1, 6, 5);
+      ctx.fillStyle = "#1B1528"; ctx.textAlign = "left"; ctx.fillText(txt, bx + 6, byy + bh - fs * .25, 70 * S); ctx.textAlign = "center";
+      ctx.font = "700 " + fs + "px 'Pixelify Sans', monospace";
+    }
+  }
+  // partículas
+  for (const p of particles){ ctx.globalAlpha = clamp(p.life, 0, 1); ctx.fillStyle = p.kind === "heart" ? "#F0707A" : "#CECBF6"; ctx.fillText(p.kind === "heart" ? "♥" : "♪", p.x * S, p.y * S); }
+  ctx.globalAlpha = 1;
+  // corações de quem está interagindo (visto por todos)
+  for (const L of labels){ if (L.acao && /^s-(beijo|abracar)/.test(L.acao.id || "") && Math.random() < .04) burst(L.cx / T - .5, L.by / T - 1, "heart"); }
+}
+
+window.addEventListener("hashchange", boot);
+document.fonts && document.fonts.load("700 12px 'Pixelify Sans'").catch(() => {});
+boot();
+requestAnimationFrame(tick);
+</script>
+</body>
+</html>
