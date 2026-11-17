@@ -210,6 +210,15 @@ html.travado,html.travado body{overflow:hidden}
   .toolbar .modes button{padding:8px 10px}
 }
 .modes button,#invite,.tabs button,#invitePanel .btn,.linkbox .btn{min-height:44px}
+/* Leva 4: quem está no outro andar e botão de subir/descer, no canto da tela do jogo */
+.andarUI{position:absolute;left:8px;top:8px;z-index:5;display:flex;flex-direction:column;align-items:flex-start;gap:6px;max-width:calc(100% - 16px);pointer-events:none}
+.andarUI>*{pointer-events:auto}
+.achip{display:inline-flex;align-items:center;gap:6px;max-width:100%;min-height:36px;background:rgba(27,21,40,.88);border:1px solid var(--line);border-radius:999px;padding:3px 10px 3px 4px;font-size:.82rem;font-weight:700;color:var(--fg);text-align:left}
+.achip canvas{width:28px;height:24px;image-rendering:pixelated;flex-shrink:0;background:var(--panel-2);border-radius:50%}
+.achip .tx{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
+.achip .seta{color:var(--money);flex-shrink:0}
+.escadaBtn{min-height:44px;box-shadow:0 4px 12px rgba(0,0,0,.35)}
+@media (max-width:520px){.achip{font-size:.76rem;min-height:32px}.andarUI{gap:4px;left:6px;top:6px}}
 @media (prefers-reduced-motion: reduce){*{transition:none!important}}
 </style>
 </head>
@@ -265,6 +274,7 @@ html.travado,html.travado body{overflow:hidden}
       </div>
       <div class="stage" id="stage">
         <canvas id="game" aria-label="Casa. Toque no chão para andar, nos móveis para usar e nas pessoas para interagir."></canvas>
+        <div class="andarUI" id="andarUI" hidden aria-live="polite"></div>
         <div class="banner" id="banner" hidden></div>
       </div>
 
@@ -299,6 +309,7 @@ html.travado,html.travado body{overflow:hidden}
             <button class="btn ghost" type="button" id="bTarefas" aria-label="Tarefas"><span class="ic" aria-hidden="true">✅</span><span class="tx">Tarefas</span></button>
             <button class="btn ghost" type="button" id="bTrofeus" aria-label="Troféus"><span class="ic" aria-hidden="true">🏆</span><span class="tx">Troféus</span></button>
             <button class="btn ghost" type="button" id="bQuintal" aria-label="Quintal" hidden><span class="ic" aria-hidden="true">🐷</span><span class="tx">Quintal</span></button>
+            <button class="btn ghost" type="button" id="bAndar" aria-label="2º andar" hidden><span class="ic" aria-hidden="true">🏠</span><span class="tx">2º andar</span></button>
           </div>
         </div>
       </div>
@@ -323,6 +334,15 @@ const DB_URL = "https://sintonia-a-dois-default-rtdb.firebaseio.com";
 // o mapa ganha linhas de grama cercada abaixo da casa: H passa de H_CASA (13) para H_QUINTAL (18).
 const W = 18, T = 16, HC = 12, H_CASA = 13, H_QUINTAL = 18;
 let H = H_CASA;
+// Leva 4: segundo andar. Cada andar é uma cena do tamanho da casa; o cliente desenha só o andar do próprio jogador.
+// A escada fica no mesmo lugar nos dois andares (canto direito da sala): no térreo ela sobe para o norte,
+// em cima chega num vão com a saída para o norte. No MAP, os quadrados da escada valem 4 (não anda, não constrói).
+let andarAtual = 0, escadaOn = false;
+const ESCADA = { x: 15, y: 2, w: 2, h: 3 };
+const ESC_Z = (ESCADA.y + ESCADA.h) * T - 1;     // base da escada na ordem de desenho
+const PE_ESCADA = [[15, 5], [16, 5]];             // térreo: começo da subida (fica sempre livre)
+const TOPO_ESCADA = [[15, 1], [16, 1]];           // em cima: patamar de onde se desce
+const RESERVA_ANDAR2 = [[14, 1], [15, 1], [16, 1]]; // em cima: passagem até o patamar (sem móvel)
 const $ = id => document.getElementById(id);
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 const store = {
@@ -342,19 +362,35 @@ function toast(m){
 const MAP = [];
 const PORTAS = [[3,6],[7,3],[7,9],[12,8],[13,8]];
 let portaQ = 0; // coluna da porta da cozinha para o quintal (0 = sem quintal)
+// 2º andar: suíte (esq. em cima), banheiro da suíte (esq. embaixo), sala de jogos com o vão da escada (dir. em cima)
+// e varanda (dir. embaixo, com guarda-corpo no lugar da parede de fora)
+const PORTAS2 = [[7, 3], [3, 8], [12, 8], [13, 8]];
 function montarMapa(quintal, porta){
-  H = quintal ? H_QUINTAL : H_CASA; portaQ = quintal ? (porta || 13) : 0;
   MAP.length = 0;
+  if (andarAtual === 1){
+    H = H_CASA; portaQ = 0;
+    for (let y = 0; y < H; y++){ const r = []; for (let x = 0; x < W; x++) r.push(x === 0 || y === 0 || x === W - 1 || y === H - 1 || x === 7 || y === 8 ? 1 : 0); MAP.push(r); }
+    for (const [x, y] of PORTAS2) MAP[y][x] = 2;
+    marcarEscada(); return;
+  }
+  H = quintal ? H_QUINTAL : H_CASA; portaQ = quintal ? (porta || 13) : 0;
   for (let y = 0; y < H; y++){ const r = []; for (let x = 0; x < W; x++){
     const wall = x === 0 || y === 0 || x === W - 1 || y === H - 1 || y === HC || (x === 7 && y < HC) || (y === 6 && x < 7) || (y === 8 && x > 7);
     r.push(wall ? 1 : 0);
   } MAP.push(r); }
   for (const [x, y] of PORTAS) MAP[y][x] = 2;
   if (quintal) MAP[HC][portaQ] = 2;
+  if (escadaOn) marcarEscada();
 }
+function marcarEscada(){ for (let j = 0; j < ESCADA.h; j++) for (let i = 0; i < ESCADA.w; i++) MAP[ESCADA.y + j][ESCADA.x + i] = 4; }
+const naEscada = (x, y) => (escadaOn || andarAtual === 1) && x >= ESCADA.x && x < ESCADA.x + ESCADA.w && y >= ESCADA.y && y < ESCADA.y + ESCADA.h;
 montarMapa(false);
-function comodo(x, y){ if (y > HC) return "quintal"; if (x < 7) return y < 6 ? "quarto" : "banheiro"; if (x === 7) return y < 6 ? "sala" : "cozinha"; return y < 8 ? "sala" : "cozinha"; }
-const COMODOS = { quarto: "Quarto", banheiro: "Banheiro", sala: "Sala", cozinha: "Cozinha", quintal: "Quintal" };
+function comodo(x, y){
+  if (andarAtual === 1){ if (x < 7) return y < 8 ? "suite" : "lavabo"; return y < 8 ? "jogos" : "varanda"; }
+  if (y > HC) return "quintal"; if (x < 7) return y < 6 ? "quarto" : "banheiro"; if (x === 7) return y < 6 ? "sala" : "cozinha"; return y < 8 ? "sala" : "cozinha";
+}
+const COMODOS = { quarto: "Quarto", banheiro: "Banheiro", sala: "Sala", cozinha: "Cozinha", quintal: "Quintal", suite: "Suíte", lavabo: "Banheiro da suíte", jogos: "Sala de jogos", varanda: "Varanda" };
+const COMODOS2 = new Set(["suite", "lavabo", "jogos", "varanda"]);
 
 const PISOS = [
   { nome: "Madeira", a: "#9B7653", b: "#8A6847", tipo: "tabua" },
@@ -364,9 +400,11 @@ const PISOS = [
   { nome: "Carpete rosa", a: "#E7A3B8", b: "#D98FA6", tipo: "carpete" },
   { nome: "Carpete verde", a: "#8DBB8A", b: "#78A675", tipo: "carpete" },
   { nome: "Xadrez", a: "#F1EFE8", b: "#3A3A3A", tipo: "xadrez" },
-  { nome: "Madeira escura", a: "#5E4430", b: "#4E3826", tipo: "tabua" }
+  { nome: "Madeira escura", a: "#5E4430", b: "#4E3826", tipo: "tabua" },
+  { nome: "Deck", a: "#C08A5A", b: "#7A5234", tipo: "deck" } // leva 4 (varanda)
 ];
 const PISO_PADRAO = { quarto: 0, banheiro: 3, sala: 1, cozinha: 6 };
+const PISO_PADRAO2 = { suite: 4, lavabo: 2, jogos: 7, varanda: 8 }; // casa/pisos2
 
 // ===================== catálogo =====================
 const NEEDS = [
@@ -403,10 +441,34 @@ const CAT = {
   rede:       { nome: "Rede", w: 3, h: 1, preco: 220, fora: 1, acoes: [{ id: "rede", nome: "Deitar na rede", dur: 12, ganho: { energia: 30, diversao: 10 }, sobre: 1, deitar: 1 }] },
   piscina:    { nome: "Piscininha", w: 2, h: 2, preco: 300, fora: 1, acoes: [{ id: "piscina", nome: "Brincar na piscina", dur: 10, ganho: { diversao: 35, higiene: 15 }, sobre: 1, junto: 1, juntoSocial: 2 }] },
   balanco:    { nome: "Balanço", w: 2, h: 1, preco: 260, fora: 1, acoes: [{ id: "balancar", nome: "Balançar", dur: 8, ganho: { diversao: 25 }, sobre: 1, junto: 1, juntoSocial: 2 }] },
-  piquenique: { nome: "Mesa de piquenique", w: 3, h: 2, preco: 280, fora: 1, acoes: [{ id: "piquenique", nome: "Fazer um piquenique", dur: 10, ganho: { fome: 25, diversao: 10 }, sobre: 1, junto: 1, juntoMult: 1.6, juntoSocial: 3 }] }
+  piquenique: { nome: "Mesa de piquenique", w: 3, h: 2, preco: 280, fora: 1, acoes: [{ id: "piquenique", nome: "Fazer um piquenique", dur: 10, ganho: { fome: 25, diversao: 10 }, sobre: 1, junto: 1, juntoMult: 1.6, juntoSocial: 3 }] },
+  // leva 4: mais lugares pra sentar
+  poltrona:   { nome: "Poltrona", w: 1, h: 1, preco: 160, acoes: [{ id: "poltrona", nome: "Sentar e relaxar", dur: 8, ganho: { energia: 10, diversao: 10 }, sobre: 1 }] },
+  banheira:   { nome: "Banheira", w: 2, h: 1, preco: 380, acoes: [{ id: "banheira", nome: "Banho de banheira", dur: 12, ganho: { higiene: 85, energia: 10 }, sobre: 1 }] }
 };
-// onde o boneco senta em cada móvel "sobre" (dx por vaga, by = base a partir do topo do móvel, dir = para onde olha)
-const SENTAR = { sofa: { dx: [-9, 9] }, piquenique: { dx: [-10, 10], by: 30, dir: "up" }, piscina: { dx: [-6, 6], by: 22 }, balanco: { dx: [-8, 8], by: 13 } };
+// Onde o boneco senta (leva 4). vagas: uma por pessoa, na ordem de quem está no móvel.
+//   dx = deslocamento a partir do meio do móvel; by = base do boneco (px a partir do topo do quadrado do móvel); dir = para onde olha.
+//   fixas: usa a vaga mesmo sozinho (cadeira da mesa, assento do balanço); sempre: toda ação do móvel é sentada (mesa, computador).
+//   cima: posição de quem senta de costas olhando a TV.  frente: retângulos [x, y, w, h] do móvel redesenhados por cima de quem senta.
+//   mesa: mãos em cima do tampo (y do tampo).  cadeira: puxa uma cadeira de escritório.  empe: fica em pé em cima (chuveiro, piscina).
+const SENTAR = {
+  sofa:       { vagas: [{ dx: -9, by: 15 }, { dx: 9, by: 15 }], cima: 12 },
+  poltrona:   { vagas: [{ dx: 0, by: 15, frente: [[-1, -3, 5, 19], [12, -3, 5, 19]] }] },
+  vaso:       { vagas: [{ dx: 0, by: 16 }] },
+  banheira:   { vagas: [{ dx: 3, by: 13, frente: [[-1, 8, 34, 10]], banho: 1 }] },
+  mesa:       { sempre: 1, fixas: 1, vagas: [{ dx: 0, by: 6, frente: [[-1, 2, 34, 31]], mesa: 3, z: -.7 }, { dx: 0, by: 32, dir: "up" }] },
+  pc:         { sempre: 1, fixas: 1, vagas: [{ dx: 0, by: 21, dir: "up", cadeira: 1 }] },
+  piquenique: { fixas: 1, vagas: [{ dx: -8, by: 7, frente: [[-1, 3, 50, 21]], mesa: 4, z: -.7 }, { dx: 8, by: 30, dir: "up" }] },
+  balanco:    { fixas: 1, vagas: [{ dx: -6, by: 7, cordas: [7, 12] }, { dx: 7, by: 7, cordas: [20, 25] }] },
+  piscina:    { empe: 1, vagas: [{ dx: -6, by: 22 }, { dx: 6, by: 22 }] }
+};
+// móveis que já vêm no 2º andar (andar: 1)
+const MOVEIS_ANDAR2 = [
+  ["casal",2,1],["abajur",1,1],["abajur",5,1],["planta",6,1],["tapete",2,5],["poltrona",1,6],["armario",5,6],
+  ["pia",1,9],["vaso",1,11],["banheira",4,9],["planta",6,11],
+  ["estante",8,1],["tv",10,1],["game",12,1],["tapete",10,2],["sofa",10,4],["pc",15,6],["planta",8,7],["poltrona",13,4],
+  ["rede",9,10],["planta",8,9],["planta",16,9],["canteiro",15,11],["canteiro",16,11]
+];
 // Menus extras por tipo de móvel: (id do móvel, móvel) => [{ nome, info, fn }]. Somam com CAT[t].acoes.
 // Para um móvel novo com menu próprio, basta registrar aqui.
 const MENU_EXTRA = {};
@@ -486,7 +548,7 @@ function sprite(key, w, h, fn, outline){
 }
 
 // quanto cada móvel sobe acima do próprio quadrado (parte alta, ex.: geladeira)
-const TOP = { geladeira: 12, tv: 9, pc: 9, estante: 14, armario: 14, som: 8, planta: 8, abajur: 8, sofa: 6, chuveiro: 10, mesa: 4, casal: 4, solteiro: 4, game: 2, fogao: 5, pia: 4, vaso: 5, tapete: 0, canteiro: 1, pote: 0, churrasqueira: 10, rede: 6, piscina: 2, balanco: 16, piquenique: 3 };
+const TOP = { geladeira: 12, tv: 9, pc: 9, estante: 14, armario: 14, som: 8, planta: 8, abajur: 8, sofa: 6, chuveiro: 10, mesa: 4, casal: 4, solteiro: 4, game: 2, fogao: 5, pia: 4, vaso: 5, tapete: 0, canteiro: 1, pote: 0, churrasqueira: 10, rede: 6, piscina: 2, balanco: 16, piquenique: 3, poltrona: 8, banheira: 7 };
 function furnFrame(t, on, tm, ph){
   if (t === "pote") return petPoteCheio() ? 1 : 0;
   if (t === "piscina") return Math.floor((tm + (ph || 0) * 97) / 520) % 3; // água sempre mexendo
@@ -504,6 +566,17 @@ function furnSprite(t, f){
   return sprite("f:" + t + ":" + f, c.w * T, c.h * T + top, (ox, oy) => drawFurn(t, ox, oy + top, f), !c.chao);
 }
 function blitFurn(t, x, y, f){ const s = furnSprite(t, f); ctx.drawImage(s.c, Math.round(x - 1), Math.round(y - (TOP[t] || 0) - 1)); }
+// redesenha só um pedaço do móvel (r = [x, y, w, h] a partir do topo do quadrado), por cima de quem está sentado
+function blitFurnParte(t, f, x, y, r){ const s = furnSprite(t, f), top = TOP[t] || 0; ctx.drawImage(s.c, r[0] + 1, r[1] + top + 1, r[2], r[3], Math.round(x + r[0]), Math.round(y + r[1]), r[2], r[3]); }
+// cadeira de escritório puxada pra quem senta no computador (vista de trás): pé com rodinhas atrás, encosto na frente
+function cadeiraPc(cx, by, frente){
+  const k = frente ? "cad:f" : "cad:b";
+  const s = sprite(k, 10, 8, (ox, oy) => {
+    if (frente){ rbox(ox + 2, oy + 1, 6, 4, "#6F5CC0"); R(ox + 3, oy + 1, 4, 1, "#9A89E0"); R(ox + 3, oy + 3, 4, 1, "#5546A8"); R(ox + 4, oy + 5, 2, 2, "#5A546C"); }
+    else { R(ox + 4, oy, 2, 3, "#5A546C"); R(ox + 1, oy + 3, 8, 1, "#3A3448"); P(ox, oy + 4, "#2E2638"); P(ox + 9, oy + 4, "#2E2638"); P(ox + 3, oy + 4, "#2E2638"); P(ox + 6, oy + 4, "#2E2638"); }
+  });
+  ctx.drawImage(s.c, cx - 6, frente ? by - 6 : by);
+}
 
 function drawFloorTile(x, y, p){
   const px = x * T, py = y * T;
@@ -529,6 +602,18 @@ function drawFloorTile(x, y, p){
       }
       R(px, yy + 3, T, 1, p.b);
       if (rel < 16) R(px + cut, yy, 1, 3, sh(p.b, -.08));
+    }
+  } else if (p.tipo === "deck"){ // tábuas em pé com fresta, emendas desencontradas e pregos
+    for (let c = 0; c < 4; c++){
+      const xx = px + c * 4, gx = x * 4 + c, o = (gx * 13) % 32, rel = (((o - py) % 32) + 32) % 32;
+      for (const [sy, sh0, bi] of [[0, rel < 16 ? rel : 16, Math.floor((py - o) / 32)], [rel, rel < 16 ? 16 - rel : 0, Math.floor((py - o) / 32) + 1]]){
+        if (sh0 <= 0) continue;
+        const v = (hash(gx, bi, 5) % 7 - 3) * .025;
+        R(xx, py + sy, 3, sh0, sh(p.a, v)); R(xx, py + sy, 1, sh0, sh(p.a, v + .1));
+      }
+      R(xx + 3, py, 1, T, p.b);
+      if (rel < 16){ R(xx, py + rel, 3, 1, sh(p.b, .15)); P(xx + 1, py + (rel + 2) % 16, sh(p.a, -.3)); }
+      const h = hash(gx, y, 6); if (h % 3 === 0) R(xx + 1, py + 3 + (h >> 4) % 9, 1, 2, sh(p.a, -.12));
     }
   } else {
     R(px, py, T, T, p.a);
@@ -878,6 +963,31 @@ function drawFurn(t, x, y, f){
       R(x + 7, y + 23, 2, 2, C.woodDD); R(x + 39, y + 23, 2, 2, C.woodDD);
       rbox(x + 4, y + 25, 40, 5, C.woodD); R(x + 5, y + 25, 38, 1, C.wood); R(x + 6, y + 30, 2, 1, C.woodDD); R(x + 40, y + 30, 2, 1, C.woodDD);
       break; }
+    case "poltrona": {
+      // poltrona mostarda com botões no encosto
+      const c = "#E9A94B", cD = "#C9873A", cDD = "#A66A2A", cL = "#F6CE84";
+      rbox(x + 1, y - 8, 14, 13, cD); R(x + 2, y - 7, 12, 1, cL);
+      R(x + 3, y - 6, 10, 9, c); R(x + 3, y - 6, 10, 1, sh(c, .2)); P(x + 5, y - 3, cDD); P(x + 10, y - 3, cDD); P(x + 8, y, cDD); P(x + 5, y + 1, cDD); P(x + 10, y + 1, cDD);
+      R(x + 3, y + 4, 10, 1, cDD);
+      R(x + 3, y + 5, 10, 6, cL); R(x + 3, y + 5, 10, 1, "#FBE3B0"); R(x + 3, y + 10, 10, 1, c);
+      R(x + 3, y + 11, 10, 3, cD); R(x + 3, y + 13, 10, 1, cDD);
+      for (const ax of [x, x + 12]){ rbox(ax, y - 2, 4, 16, c); R(ax + 1, y - 2, 2, 2, cL); R(ax + 1, y + 11, 2, 2, cDD); }
+      R(x + 1, y + 15, 2, 1, C.woodDD); R(x + 13, y + 15, 2, 1, C.woodDD);
+      break; }
+    case "banheira": {
+      // banheira de pé de leão, com torneira, patinho e espuma quando está em uso
+      const bw = "#FFFFFF", bD = "#D5DEE6", bDD = "#AEBBC8", ag = "#8FD0EE", agD = "#6CB8DE";
+      R(x + 2, y - 7, 2, 4, C.metal); R(x + 2, y - 7, 4, 1, C.metalL); P(x + 5, y - 6, C.metalD); P(x + 1, y - 5, C.coral); P(x + 4, y - 4, C.sky);
+      rbox(x + 1, y - 4, 30, 18, bw); R(x + 2, y - 4, 28, 1, "#FFFFFF"); R(x + 29, y - 2, 1, 14, bD);
+      rbox(x + 3, y - 2, 26, 10, agD); R(x + 4, y - 1, 24, 8, ag); R(x + 4, y - 1, 24, 1, agD);
+      R(x + 7, y + 2, 4, 1, "#C9EEFA"); R(x + 18, y + 4, 5, 1, "#C9EEFA"); P(x + 24, y + 1, "#C9EEFA");
+      if (f){ for (const [a, b] of [[5, 1], [9, 4], [14, 2], [20, 5], [25, 2], [12, 6], [23, 6]]){ R(x + a, y + b, 2, 2, "#FFFFFF"); P(x + a + 1, y + b + 1, "#E6F4FB"); } }
+      R(x + 3, y + 8, 26, 1, bD); R(x + 2, y + 9, 28, 1, "#FFFFFF");
+      R(x + 2, y + 10, 28, 3, "#F4F7FA"); R(x + 2, y + 12, 28, 1, bD); R(x + 3, y + 13, 26, 1, bDD);
+      // patinho na borda
+      R(x + 24, y - 5, 4, 2, C.gold); R(x + 26, y - 7, 2, 2, C.gold); P(x + 28, y - 6, "#F08A3A"); P(x + 27, y - 7, C.ink);
+      for (const fx of [x + 3, x + 26]){ R(fx, y + 14, 3, 1, C.gold); P(fx + 1, y + 15, "#D8963A"); }
+      break; }
     case "tapete": {
       const a = "#DC6A86", b = "#F6CDD6", d = "#B8475F";
       for (let i = 0; i < 13; i++){ P(x + 1, y + 4 + i * 2, C.cream); P(x + 46, y + 4 + i * 2, C.cream); P(x + 2, y + 3 + i * 2, C.creamD); P(x + 45, y + 3 + i * 2, C.creamD); }
@@ -909,6 +1019,8 @@ function drawFx(t, x, y, tm){
     for (let i = 0; i < 2; i++){ const ph = (tm / 1100 + i / 2) % 1; ctx.globalAlpha = .5 * (1 - ph); R(x + 8 + i * 6 + Math.round(Math.sin(tm / 300 + i)), y - 6 - ph * 9, 2, 2, "#FFFFFF"); }
   } else if (t === "piscina"){
     for (let i = 0; i < 4; i++){ const ph = (tm / 650 + i / 4) % 1; ctx.globalAlpha = .9 * (1 - ph); P(x + 9 + i * 5, y + 8 - ph * 7 + (i % 2) * 6, "#E6F8FD"); }
+  } else if (t === "banheira"){
+    for (let i = 0; i < 3; i++){ const ph = (tm / 1500 + i / 3) % 1; ctx.globalAlpha = .55 * (1 - ph); R(x + 6 + i * 9 + Math.round(Math.sin(tm / 420 + i * 2)), y - 6 - ph * 12, 3, 2, "#FFFFFF"); }
   }
   ctx.globalAlpha = 1;
 }
@@ -944,6 +1056,7 @@ function drawAvatarLocal(v, cx, by, dir, frame, pose){
   const quadril = tj === 1 || tj === 2 || tj === 3 ? cor : JEANS;
   const perna = tj === 3 ? cor : tj === 0 || tj === 4 ? JEANS : skin, pernaD = perna === skin ? skD : sh(perna, -.2);
   const manga = tj === 5 ? skin : top, mangaD = tj === 5 ? skD : shD, mangaN = tj === 4 ? 3 : 2;
+  if (pose.indexOf("sit") === 0){ drawSentado(v, cx, by, dir, frame, pose, { skin, hair, cor, top, shL, shD, skD, corD, corL, quadril, perna, pernaD, manga, mangaD, mangaN, shoe, ela, o, tj, st }); return; }
   // pernas
   R(cx - 3, by - 5, 6, 2, quadril);
   if (side){
@@ -1007,6 +1120,107 @@ function drawAvatarLocal(v, cx, by, dir, frame, pose){
     R(cx + a - 2, ty, 2, 1, mangaD); R(cx + a, ty - 2, 1, 3, mangaD); R(cx + a, ty - 5, 1, 3, skin);
     if (tj === 4){ R(cx - a - 1, ty - 4, 1, 2, manga); R(cx + a, ty - 4, 1, 2, mangaD); }
   }
+}
+// ---- sentado (leva 4) ----
+// pose: "sit" + atividade ("eat" garfo, "drink" xícara, "pc" mãos no teclado/controle, "arms" comemorando) + "blink"/"breath".
+// frame: quadro da atividade (0 = mão embaixo; 1 = mão na boca, ou a outra mão no teclado).
+// De frente/de lado, by = chão onde ficam os pés (coxa pra frente, canela, pé). De costas, by = assento (pernas somem na frente).
+function drawSentado(v, cx, by, dir, frame, pose, k){
+  const { skin, hair, cor, top, shL, shD, skD, corD, quadril, perna, manga, mangaD, mangaN, shoe, ela, o, tj, st } = k;
+  const blink = pose.indexOf("blink") >= 0, breath = pose.indexOf("breath") >= 0;
+  const act = pose.indexOf("eat") > 0 ? "eat" : pose.indexOf("drink") > 0 ? "drink" : pose.indexOf("pc") > 0 ? "pc" : pose.indexOf("arms") > 0 ? "arms" : "";
+  const b = breath ? 1 : 0, f = frame ? 1 : 0, ax = 4 + o;
+  const lap = quadril, lapL = sh(lap, .2), lapD = sh(lap, -.26);
+  const m = dir === "right" ? -1 : 1, X = (a, w) => m > 0 ? cx + a : cx - a - w;
+  const cMao = (lado, c) => lado < 0 ? c : (c === manga ? mangaD : c); // braço do lado direito da tela fica na sombra
+  const metal = "#C6D0DA", xic = "#7FB8E8";
+  // tronco de frente ou de costas (5 linhas; o colo cobre o fim)
+  const torso = (ty, d) => {
+    if (ela){ R(cx - 2, ty, 4, 1, top); R(cx - 3, ty + 1, 6, 4, top); }
+    else { R(cx - 3 - o, ty, 6 + 2 * o, 2, top); R(cx - 3, ty + 2, 6, 3, top); if (o) R(cx + 3, ty, 1, 2, shD); }
+    R(cx + 2, ty + 1, 1, 4, shD);
+    if (d === "down"){ R(cx - 1, ty, 2, 1, skD); P(cx - 2, ty, shL); P(cx + 1, ty, shL); P(cx - 2, ty + 2, shL); }
+    else R(cx - 2, ty, 4, 1, shL);
+    if (tj === 1 && d === "down") R(cx - 3, ty + 3, 6, 1, corD); // cinto do vestido
+    else if (tj === 2 && d === "down") P(cx - 1, ty + 1, "#E9D8BE");
+    else if (tj === 3){ // macacão: peitilho e alças
+      R(cx - 3, ty + 3, 6, 2, cor);
+      if (d === "down"){ R(cx - 2, ty + 2, 4, 1, cor); R(cx - 2, ty, 1, 2, cor); R(cx + 1, ty, 1, 2, cor); P(cx - 2, ty + 2, C.gold); P(cx + 1, ty + 2, C.gold); }
+      else { R(cx - 2, ty, 1, 3, cor); R(cx + 1, ty, 1, 3, cor); P(cx - 1, ty + 2, cor); P(cx, ty + 2, cor); }
+    } else if (tj === 4){ // moletom: cordão e bolso / capuz nas costas
+      if (d === "down"){ P(cx - 2, ty, shD); P(cx + 1, ty, shD); P(cx - 1, ty + 1, shoe); P(cx, ty + 2, shoe); R(cx - 2, ty + 3, 4, 1, shD); }
+      else { R(cx - 3, ty, 6, 2, shD); R(cx - 2, ty + 2, 4, 1, shD); R(cx - 2, ty, 4, 1, top); }
+    } else if (tj === 5){ if (!ela){ P(cx - 3 - o, ty, skin); P(cx + 2 + o, ty, skin); } if (d === "down") R(cx - 1, ty, 2, 1, skin); }
+  };
+  // braços pra cima (comemorando), desenhados depois da cabeça como em pé
+  const bracosAlto = ty => {
+    const a = 5 + o;
+    R(cx - a, ty, 2, 1, manga); R(cx - a - 1, ty - 2, 1, 3, manga); R(cx - a - 1, ty - 5, 1, 3, skin);
+    R(cx + a - 2, ty, 2, 1, mangaD); R(cx + a, ty - 2, 1, 3, mangaD); R(cx + a, ty - 5, 1, 3, skin);
+    if (tj === 4){ R(cx - a - 1, ty - 4, 1, 2, manga); R(cx + a, ty - 4, 1, 2, mangaD); }
+  };
+  const cabeca = (hy, d) => { headDraw(cx, hy, d, skin, blink, v, hair); hairDraw(cx, hy, d, st, hair); acessDraw(cx, hy, d, v); };
+
+  if (dir === "up"){ // de costas (olhando a TV, no computador, na cadeira da frente da mesa)
+    const ty = by - 7 + b, hy = by - 16 + b;
+    torso(ty, "up");
+    R(cx - 4, by - 2, 8, 2, lap); R(cx - 4, by - 2, 8, 1, lapD); P(cx - 4, by - 1, lapD); P(cx + 3, by - 1, lapD); P(cx - 1, by - 1, lapL);
+    for (const lado of [-1, 1]){
+      const x0 = lado < 0 ? cx - ax : cx + ax - 1, mc = cMao(lado, manga), pele = lado < 0 ? skin : skD;
+      if (act === "arms") continue;
+      if (act === "pc"){ // antebraços pra frente, até o teclado/controle; as mãos alternam
+        const up = (lado < 0) === !f;
+        R(x0, ty + 1, 1, 2, mc); R(x0, ty - (up ? 1 : 0), 1, up ? 2 : 1, mangaN > 2 ? mc : pele);
+      } else if ((act === "eat" || act === "drink") && lado > 0 && f){ // cotovelo sobe levando o garfo à boca
+        R(x0, ty + 1, 1, 1, mc); P(x0 + 1, ty + 1, mc); P(x0 + 1, ty, mc); P(x0, ty - 1, mangaN > 2 ? mc : pele);
+      } else { R(x0, ty + 1, 1, Math.min(mangaN, 3), mc); if (mangaN < 3) R(x0, ty + 1 + mangaN, 1, 3 - mangaN, pele); }
+    }
+    cabeca(hy, "up");
+    if (act === "arms") bracosAlto(ty);
+    return;
+  }
+  // sentado fica 2px mais baixo que em pé: tronco de 4 linhas, colo de 2, canela de 1 e o pé
+  const ty = by - 7 + b, hy = by - 16 + b, ly = by - 4;
+  if (dir === "left" || dir === "right"){ // de lado: coxa pra frente, canela descendo, pé apontando
+    R(X(-5, 2), by - 2, 2, 1, perna); R(X(-6, 3), by - 1, 3, 1, shoe); P(X(-6, 1), by - 1, sh(shoe, -.15));
+    R(cx - 3, ty, 6, 4, top); P(X(-3, 1), ty, shL);
+    if (tj === 3) R(X(0, 1), ty, 1, 3, cor); else if (tj === 4) R(X(1, 3), ty, 3, 2, shD); else if (tj === 1) R(cx - 3, ty + 3, 6, 1, corD);
+    R(X(-5, 8), ly, 8, 2, lap); R(X(-5, 8), ly, 8, 1, lapL); P(X(-5, 1), ly + 1, lapD); R(X(2, 1), ly, 1, 2, lapD);
+    if (tj === 1) R(X(-5, 1), ly + 2, 1, 1, cor); // vestido cai do joelho
+    const mc = mangaD, pele = skD;
+    if (act === "pc"){ R(X(-1, 2), ty + 1, 2, 2, mc); R(X(-4, 3), ty + 2 + f, 3, 1, mangaN > 2 ? mc : pele); }
+    else if ((act === "eat" || act === "drink") && f){ R(X(-1, 2), ty + 1, 2, 1, mc); R(X(-3, 2), ty, 2, 1, mangaN > 2 ? mc : pele); }
+    else if (act !== "arms"){ R(X(-1, 2), ty + 1, 2, mangaN, mc); if (mangaN < 3) R(X(-1, 2), ty + 1 + mangaN, 2, 3 - mangaN, pele); R(X(-4, 3), ly, 3, 1, skin); }
+    cabeca(hy, dir);
+    if ((act === "eat" || act === "drink") && f){ P(X(-4, 1), hy + 8, skin); if (act === "eat"){ P(X(-5, 1), hy + 7, metal); P(X(-6, 1), hy + 6, metal); } else R(X(-6, 2), hy + 6, 2, 2, xic); }
+    if (act === "arms") bracosAlto(ty);
+    return;
+  }
+  // de frente: canelas curtas, pés pra frente (sola larga), tronco, colo (coxas vindo pra frente), mãos no colo
+  R(cx - 3, by - 2, 2, 1, perna); R(cx + 1, by - 2, 2, 1, perna);
+  R(cx - 4, by - 1, 3, 1, shoe); R(cx + 1, by - 1, 3, 1, shoe); P(cx - 4, by - 1, sh(shoe, -.15)); P(cx + 3, by - 1, sh(shoe, -.15));
+  torso(ty, "down");
+  R(cx - 4, ly, 8, 2, lap); R(cx - 4, ly, 8, 1, lapL); P(cx - 1, ly + 1, lapD); P(cx, ly + 1, lapD); P(cx - 4, ly + 1, lapD); P(cx + 3, ly + 1, lapD);
+  if (tj === 1){ R(cx - 4, ly + 2, 8, 1, cor); R(cx - 3, ly + 2, 6, 1, corD); } // vestido cobre os joelhos
+  else if (tj === 2){ R(cx - 4, ly + 1, 8, 1, cor); R(cx - 4, ly + 2, 8, 1, corD); } // saia rodada por cima dos joelhos
+  for (const lado of [-1, 1]){
+    if (act === "arms") continue;
+    const x0 = lado < 0 ? cx - ax : cx + ax - 1, mc = cMao(lado, manga), pele = lado < 0 ? skin : skD;
+    if (lado > 0 && f && (act === "eat" || act === "drink")){ R(x0, ty + 1, 1, 1, mc); continue; } // esse sobe até a boca (depois da cabeça)
+    R(x0, ty + 1, 1, Math.min(mangaN, 3), mc); if (mangaN < 3) R(x0, ty + 1 + mangaN, 1, 3 - mangaN, pele);
+    const hx = x0 - lado, hyy = act === "pc" ? ly - ((lado < 0) === !f ? 1 : 0) : ly;
+    P(hx, hyy, skin);
+    if (lado > 0 && act === "eat" && !f){ P(hx, hyy - 1, metal); P(hx, hyy - 2, metal); }
+    if (lado > 0 && act === "drink" && !f) R(hx - 1, hyy - 2, 2, 2, xic);
+  }
+  cabeca(hy, "down");
+  if ((act === "eat" || act === "drink") && f){
+    const x0 = cx + ax - 1;
+    P(x0, ty, mangaN > 2 ? mangaD : skD); P(x0, hy + 8, skin); P(x0 - 1, hy + 8, skin);
+    if (act === "eat"){ P(x0 - 2, hy + 7, metal); P(x0 - 3, hy + 7, "#F6D25A"); }
+    else { R(x0 - 3, hy + 7, 2, 2, xic); P(x0 - 3, hy + 7, "#D6ECFA"); P(x0 - 1, hy + 8, sh(xic, -.25)); }
+  }
+  if (act === "arms") bracosAlto(ty);
 }
 function headDraw(cx, hy, dir, skin, closed, v, hair){
   const dark = hexRGB(skin)[0] < 170, skD = sh(skin, -.14), eye = dark ? "#1E1220" : "#3A2433", bl = "rgba(238,96,110,.5)", mo = sh(skin, -.4);
@@ -1125,9 +1339,15 @@ function pixHeart(x, y, c){ x = Math.round(x); y = Math.round(y); R(x, y, 2, 1, 
 function pixNote(x, y, c){ x = Math.round(x); y = Math.round(y); R(x + 2, y, 1, 4, c); R(x + 3, y, 2, 1, c); R(x, y + 3, 3, 2, c); }
 
 // ---- paredes, janelas e luz ----
-const WP = { quarto: ["#BEACEA", "#AC98DE", "listra"], banheiro: ["#C8E8ED", "#A6D4DF", "azulejo"], sala: ["#F2D0AC", "#E3B98E", "losango"], cozinha: ["#F7E3A8", "#EBCB80", "xadrez"] };
+const WP = { quarto: ["#BEACEA", "#AC98DE", "listra"], banheiro: ["#C8E8ED", "#A6D4DF", "azulejo"], sala: ["#F2D0AC", "#E3B98E", "losango"], cozinha: ["#F7E3A8", "#EBCB80", "xadrez"],
+  // leva 4 (2º andar): suíte florida, banheiro de pastilha verde, sala de jogos azul-noite com estrelinhas, fachada da varanda
+  suite: ["#F5DCE6", "#E8BFD0", "floral"], lavabo: ["#CDEBE0", "#A3D6C4", "pastilha"], jogos: ["#3F4B7E", "#36416E", "estrelas"], varanda: ["#F4E6CF", "#DCC6A6", "fachada"] };
 const JANELAS = new Set(["2,0", "13,0", "14,0", "4,0"]);
 const DECOR = { "3,0": "coracao", "9,0": "paisagem", "12,0": "paisagem2", "5,6": "espelho", "2,6": "toalha", "10,8": "relogio" }; // (9,8): quadro de troféus, desenhado ao vivo (leva 2)
+const JANELAS2 = new Set(["2,0", "4,0", "13,0", "15,0"]);
+const DECOR2 = { "3,0": "coracao", "12,0": "poster", "1,8": "espelho", "6,8": "toalha", "10,8": "arandela", "15,8": "arandela" };
+const janelas = () => andarAtual === 1 ? JANELAS2 : JANELAS;
+const decorAtual = () => andarAtual === 1 ? DECOR2 : DECOR;
 const CAP = "#7B6276", CAP_L = "#9C8499", CAP_D = "#5B4659", LINE = "#2D1C30";
 const VX = 7; // coluna da parede interna vertical (desenhada mais fina)
 // modo de teste: ?hora=NN (0–23) troca o relógio real
@@ -1140,7 +1360,7 @@ function darkness(h){ if (h >= 8 && h < 17) return 0; if (h >= 17 && h < 20) ret
 
 const isWallAt = (x, y) => x < 0 || y < 0 || x >= W || y >= H || MAP[y][x] === 1;
 const isFace = (x, y) => y >= 0 && y + 1 < H && x >= 0 && x < W && MAP[y][x] === 1 && MAP[y + 1][x] !== 1;
-function pisoDe(cm){ const pi = pisos[cm]; return PISOS[typeof pi === "number" ? pi : PISO_PADRAO[cm]] || PISOS[0]; }
+function pisoDe(cm){ const de2 = COMODOS2.has(cm), pi = (de2 ? pisos2 : pisos)[cm]; return PISOS[typeof pi === "number" ? pi : (de2 ? PISO_PADRAO2 : PISO_PADRAO)[cm]] || PISOS[0]; }
 
 // frente da parede: topo, papel de parede e rodapé
 function drawFace(px, py, room){
@@ -1160,6 +1380,22 @@ function drawFace(px, py, room){
     P(px + 7, py + 6, b); P(px + 15, py + 6, b);
     R(px, py + 8, T, 1, "#D9A877"); R(px, py + 9, T, 4, "#FFF1DC"); R(px, py + 9, T, 1, "#FFFAF0");
     for (let i = 3; i < T; i += 8){ R(px + i, py + 10, 1, 3, "#EAD3B2"); R(px + i + 1, py + 10, 1, 3, "#FFFAF0"); }
+  } else if (wp[2] === "floral"){ // florzinhas em cima, lambri branco embaixo
+    for (let i = 1; i < T - 2; i += 5){ const k = (px >> 4) + i, fy = py + 4 + (k % 2 ? 1 : 3), c0 = k % 2 ? "#E58FB5" : "#B99BE6";
+      P(px + i + 1, fy, c0); P(px + i, fy + 1, c0); P(px + i + 2, fy + 1, c0); P(px + i + 1, fy + 2, c0); P(px + i + 1, fy + 1, "#F6C667"); }
+    R(px, py + 9, T, 1, "#C99AB0"); R(px, py + 10, T, 3, "#FFF6F9"); R(px, py + 10, T, 1, "#FFFFFF");
+    for (let i = 3; i < T; i += 8) R(px + i, py + 11, 1, 2, "#EAD3DE");
+  } else if (wp[2] === "pastilha"){ // pastilhas de vidro verde-água com uma faixa
+    for (let j = 0; j < 9; j += 2) for (let i = (j >> 1) % 2; i < T; i += 2) P(px + i, py + 4 + j, b);
+    R(px, py + 8, T, 1, "#6FBFA4"); for (let i = 1; i < T; i += 3) P(px + i, py + 8, "#E9F8F2");
+  } else if (wp[2] === "estrelas"){ // azul-noite, estrelinhas e faixa neon
+    for (let i = 0; i < T; i += 8) R(px + i, py + 4, 4, 5, b);
+    const h = hash(px, py, 3); P(px + 2 + h % 11, py + 5 + (h >> 4) % 3, "#FCE9B8");
+    if (h % 3 === 0){ const sx = px + 3 + (h >> 7) % 9, sy = py + 6; P(sx, sy - 1, "#FFF6D6"); R(sx - 1, sy, 3, 1, "#FFF6D6"); P(sx, sy + 1, "#FFF6D6"); }
+    R(px, py + 9, T, 1, "#E8607A"); R(px, py + 10, T, 1, "#7FD0F5"); R(px, py + 11, T, 2, "#2C3560");
+  } else if (wp[2] === "fachada"){ // lado de fora: tábuas de revestimento
+    for (let j = 0; j < 9; j += 3){ R(px, py + 4 + j, T, 1, sh(a, .14)); R(px, py + 6 + j, T, 1, b); }
+    R(px, py + 12, T, 1, sh(b, -.12));
   } else {
     for (let i = 1; i < T; i += 4){ P(px + i, py + 5, b); P(px + i + 2, py + 7, b); }
     R(px, py + 8, T, 1, "#E09A6A"); for (let i = 0; i < T; i += 4) R(px + i, py + 8, 2, 1, "#FFF6DF");
@@ -1171,8 +1407,32 @@ function drawFace(px, py, room){
   R(px, py + 13, T, 1, "#D2A06C"); R(px, py + 14, T, 1, "#A5754B"); R(px, py + 15, T, 1, "#6B4429");
 }
 
+// guarda-corpo da varanda (2º andar): corrimão de madeira e balaústres brancos; entre eles aparece a vista lá embaixo
+function drawGradil(x, y){
+  const px = x * T, py = y * T, md = "#F4EEE6", mdD = "#CFC3B4";
+  const lateral = (h) => { // lado direito, visto de cima
+    R(px + 6, py, 2, h, "rgba(20,45,30,.3)");
+    R(px + 1, py, 5, h, LINE); R(px + 2, py, 3, h, C.wood); R(px + 2, py, 1, h, C.woodL); R(px + 4, py, 1, h, C.woodD);
+  };
+  if (x === W - 1 && y < HC){ lateral(T); return; }
+  const x1 = x === W - 1 ? 6 : T;
+  R(px, py + 11, x1, 2, "rgba(20,45,30,.32)");
+  R(px, py, x1, 1, LINE); R(px, py + 1, x1, 2, C.wood); R(px, py + 1, x1, 1, C.woodL); R(px, py + 3, x1, 1, C.woodDD);
+  for (let i = (x === 8 ? 2 : 1); i < x1; i += 3){ R(px + i, py + 4, 1, 5, md); P(px + i, py + 4, "#FFFFFF"); P(px + i, py + 8, mdD); }
+  R(px, py + 9, x1, 1, C.woodD); R(px, py + 10, x1, 1, LINE);
+  if (x === 8){ R(px, py, 1, 11, LINE); R(px + 1, py + 1, 1, 9, C.woodD); } // encontra a parede do banheiro
+  if (x === W - 1){ lateral(4); rbox(px + 1, py, 6, 11, C.woodD); R(px + 2, py + 1, 4, 1, C.woodL); P(px + 3, py + 3, C.gold); } // pilar do canto
+}
+// porta de vidro de correr para a varanda (2º andar)
+function drawPortaVidro(x, y){
+  const px = x * T, py = y * T, esq = x === PORTAS2[2][0];
+  drawDoor(x, y, true);
+  const gx = px + (esq ? 2 : 9);
+  R(gx, py + 3, 5, 11, "#A5754B"); R(gx + 1, py + 4, 3, 9, "rgba(196,232,250,.75)"); R(gx + 1, py + 4, 1, 4, "#FFFFFF"); P(gx + 2, py + 9, "#FFFFFF");
+}
 function drawWallTile(x, y){
   const px = x * T, py = y * T;
+  if (andarAtual === 1 && x >= 8 && (y === HC || (x === W - 1 && y >= 9))){ drawGradil(x, y); return; } // varanda
   if (y > HC){ drawCerca(x, y); return; } // cerca do quintal
   if (y === HC){ // parede de baixo: topo fino, o resto é jardim
     const x0 = x === 0 ? 9 : 0, x1 = x === W - 1 ? 7 : T, w = x1 - x0;
@@ -1218,7 +1478,8 @@ function drawNarrowWall(x, y){
   }
 }
 // portas: batente de madeira e soleira
-function drawDoor(x, y){
+function drawDoor(x, y, vidro){
+  if (!vidro && andarAtual === 1 && y === 8 && x > VX){ drawPortaVidro(x, y); return; }
   const px = x * T, py = y * T, wd = "#A5754B", wl = "#D2A06C", wdd = "#6B4429";
   if (x === VX){
     clipRect(px, py, 4, T, () => drawFloorTile(x, y, pisoDe(comodo(x - 1, y))));
@@ -1327,18 +1588,77 @@ function drawGarden(est, chuva){
     for (const ty of [4, 8]){ poca(1, ty * T + 12, 6, 3); poca((W - 1) * T + 9, ty * T + 2, 6, 3); }
   }
 }
+// ---- 2º andar (leva 4): vista lá de cima, varanda e vão da escada ----
+// copa de árvore vista de cima, nas cores da estação
+function copaArvore(cx, cy, r, h, gp, est){
+  const [a0, a1, a2, a3] = gp.arb;
+  for (let dy = -r; dy <= r; dy++){ const hw = Math.round(Math.sqrt(r * r - dy * dy)); R(cx - hw, cy + dy, hw * 2, 1, dy > r * .45 ? a2 : a0); }
+  for (let dy = -r + 1; dy < 1; dy++){ const hw = Math.round(Math.sqrt(Math.max(0, (r - 2) * (r - 2) - dy * dy)) * .55); if (hw > 0) R(cx - hw - Math.round(r * .25), cy + dy, hw, 1, a1); }
+  for (let i = 0; i < r; i++){ const q = hash(h, i, 71), ax = cx - r + 1 + q % (r * 2 - 1), ay = cy - r + 1 + (q >> 6) % (r * 2 - 1); if (Math.hypot(ax - cx, ay - cy) < r - 1) P(ax, ay, i % 3 ? a2 : a3); }
+  if (est === "primavera" || est === "verao") for (let i = 0; i < 3; i++){ const q = hash(h, i, 72); P(cx - r + 2 + q % (r * 2 - 3), cy - r + 2 + (q >> 5) % r, gp.bot[i % 2]); }
+  if (gp.geada) R(cx - Math.round(r * .5), cy - r, Math.round(r), 1, "#EEF4F2");
+}
+// fundo do 2º andar: o jardim fica lá embaixo (escuro) e as copas das árvores chegam na altura da janela
+function drawVistaAlta(est, chuva){
+  const gp = GRAMAS[est] || GRAMAS.primavera, chao = sh(gp.gD, -.32);
+  R(0, 0, W * T, H * T, chao);
+  for (let i = 0; i < 260; i++){ const q = hash(i, 7, 33); P(q % (W * T), (q >> 9) % (H * T), i % 2 ? sh(chao, .14) : sh(chao, -.14)); }
+  for (let k = 0; k < 8; k++){ const q = hash(k, 1, 44); copaArvore(2 + q % 4, k * 27 + q % 10, 6 + q % 3, q, gp, est); }
+  for (let k = 0; k < 8; k++){ const q = hash(k, 2, 44); copaArvore(W * T - 3 - q % 4, k * 27 + 12 + q % 10, 6 + q % 3, q, gp, est); }
+  for (let k = 0; k < 10; k++){ const q = hash(k, 3, 44); copaArvore(k * 31 + 6 + q % 10, H * T + 2 + q % 3, 8 + q % 4, q, gp, est); }
+  if (chuva){ ctx.fillStyle = "rgba(30,50,90,.16)"; ctx.fillRect(0, 0, W * T, H * T); }
+}
+const ehVaranda = (x, y) => x > VX && x < W - 1 && y > 8 && y < HC;
+// varanda: folhas no outono, geada no inverno, pétalas na primavera; com chuva, deck molhado e poças
+function drawVaranda(est, chuva){
+  const gp = GRAMAS[est] || GRAMAS.primavera;
+  for (let y = 9; y < HC; y++) for (let x = VX + 1; x < W - 1; x++){
+    const px = x * T, py = y * T;
+    for (let i = 0; i < 3; i++){
+      const q = hash(x, y, 80 + i), fx = px + 1 + q % 14, fy = py + 1 + (q >> 5) % 14;
+      if (gp.folhas && q % 3 < 2){ const c = gp.flores[(q >> 9) % gp.flores.length]; R(fx, fy, 2, 1, c); P(fx + (q >> 12) % 2, fy + 1, sh(c, -.2)); }
+      else if (gp.geada && q % 3 === 0){ P(fx, fy, "#EEF4F8"); P(fx + 1, fy, "#DDE7EA"); }
+      else if (est === "primavera" && q % 4 === 0) P(fx, fy, gp.flores[(q >> 9) % gp.flores.length]);
+    }
+  }
+  if (chuva){
+    ctx.fillStyle = "rgba(30,50,90,.14)"; ctx.fillRect((VX + 1) * T, 9 * T, (W - VX - 2) * T, 3 * T);
+    for (let y = 9; y < HC; y++) for (let x = VX + 1; x < W - 1; x++){ const q = hash(x, y, 79); if (q % 3) continue;
+      const px = x * T + 2 + q % 6, py = y * T + 3 + (q >> 4) % 8, w = 6 + q % 3; R(px + 1, py, w - 2, 3, "#8FA7C4"); R(px, py + 1, w, 1, "#8FA7C4"); R(px + 1, py, w - 3, 1, "#B7CBE0"); }
+  }
+}
+// vão da escada no 2º andar (plano, vai no fundo): degraus descendo e sumindo no escuro
+function drawVao(x, y){
+  R(x, y, 32, 48, "#1E1828");
+  R(x, y, 3, 48, "#3A3050"); R(x + 29, y, 3, 48, "#2A2240");
+  for (let i = 0; i < 6; i++){
+    const yy = y + i * 7, k = Math.min(1, i / 4.5), pis = mix(C.woodL, "#231B30", k), pc = mix("#9A89E0", "#231B30", k);
+    R(x + 3, yy, 26, 5, pis); R(x + 3, yy, 26, 1, mix("#F4D8B0", "#231B30", k)); R(x + 3, yy + 5, 26, 2, mix(C.woodDD, "#1A1424", k));
+    R(x + 9, yy, 14, 5, pc); R(x + 9, yy + 5, 14, 2, mix("#4E3F92", "#1A1424", k)); P(x + 9, yy + 5, mix(C.gold, "#231B30", k)); P(x + 22, yy + 5, mix(C.gold, "#231B30", k));
+  }
+  R(x, y, 32, 1, "rgba(255,240,210,.35)"); // quina do piso na saída
+}
 const SKY_CHUVA = { dia: ["#8796AE", "#B9C3D0"], tarde: ["#7F7896", "#B7AABA"], manha: ["#8D88A8", "#C2B9C6"] };
-function drawWindow(px, py, hr, x, est, chuva){
+function drawWindow(px, py, hr, x, est, chuva, alto){
   const kind = skyKind(hr), [s0, s1] = chuva && SKY_CHUVA[kind] ? SKY_CHUVA[kind] : SKY[kind], gp = GRAMAS[est] || GRAMAS.primavera;
   R(px + 1, py + 4, 14, 1, "#8C5E3A");
   R(px + 3, py + 4, 11, 9, C.cream);
   for (let j = 0; j < 7; j++) R(px + 4, py + 5 + j, 9, 1, mix(s0, s1, j / 6));
   if (kind === "noite"){ if (x % 2 && !chuva){ R(px + 9, py + 6, 2, 2, "#FFF6D6"); P(px + 10, py + 6, mix(s0, s1, .2)); } }
-  else if (kind === "tarde" || kind === "manha"){ if (!chuva) R(px + 9, py + 9, 3, 2, "#FFE9A8"); R(px + 4, py + 11, 9, 1, mix(s1, "#FFFFFF", .3)); }
+  else if (kind === "tarde" || kind === "manha"){ if (!chuva) R(px + 9, py + 9, 3, 2, "#FFE9A8"); if (!alto) R(px + 4, py + 11, 9, 1, mix(s1, "#FFFFFF", .3)); }
   else {
     if (est === "verao" && !chuva && x % 2 === 0){ R(px + 10, py + 6, 2, 2, "#FFE45C"); P(px + 9, py + 6, "#FFF3A8"); } // sol forte
-    R(px + 4, py + 11, 9, 1, gp.gL); P(px + 6, py + 10, gp.gL); P(px + 7, py + 10, gp.gL); P(px + 11, py + 10, gp.g);
-    if (est === "outono"){ P(px + 5, py + 10, "#E08A3C"); P(px + 10, py + 11, "#C9612F"); }
+    if (!alto){
+      R(px + 4, py + 11, 9, 1, gp.gL); P(px + 6, py + 10, gp.gL); P(px + 7, py + 10, gp.gL); P(px + 11, py + 10, gp.g);
+      if (est === "outono"){ P(px + 5, py + 10, "#E08A3C"); P(px + 10, py + 11, "#C9612F"); }
+    }
+  }
+  if (alto){ // 2º andar: topo das árvores lá fora, nas cores da estação (silhueta à noite)
+    const noite = kind === "noite", c0 = noite ? "#1C2440" : chuva ? sh(gp.arb[0], -.18) : gp.arb[0], c1 = noite ? "#26304F" : chuva ? gp.arb[0] : gp.arb[1];
+    R(px + 4, py + 11, 9, 1, c0); R(px + 4, py + 10, 4, 1, c0); R(px + 9, py + 10, 4, 1, c0); R(px + 5, py + 9, 2, 1, c0); R(px + 10, py + 9, 2, 1, c0);
+    P(px + 5, py + 9, c1); P(px + 10, py + 9, c1); P(px + 4, py + 10, c1);
+    if (!noite && (est === "primavera" || est === "outono")) P(px + 11, py + 10, gp.bot[0]);
+    if (!noite && gp.geada) R(px + 5, py + 9, 2, 1, "#EEF4F2");
   }
   R(px + 8, py + 5, 1, 7, C.cream); R(px + 4, py + 8, 9, 1, C.cream);
   R(px + 3, py + 4, 11, 1, "#FFFFFF"); R(px + 13, py + 5, 1, 8, C.creamD);
@@ -1364,29 +1684,79 @@ function drawDecor(kind, px, py, hr){
     P(cx + Math.round(Math.sin(am) * 2), cy - Math.round(Math.cos(am) * 2), "#8D9BAA"); P(cx + Math.round(Math.sin(am)), cy - Math.round(Math.cos(am)), "#8D9BAA");
     P(cx + Math.round(Math.sin(ah)), cy - Math.round(Math.cos(ah)), C.ink); P(cx, cy, C.ink);
   }
+  else if (kind === "poster"){ // pôster de videogame com um bichinho de pixel
+    R(px + 3, py + 4, 10, 9, "#2D1C30"); R(px + 4, py + 5, 8, 7, "#5246B0"); R(px + 4, py + 5, 8, 1, "#6F5CC0");
+    const g = "#7FD0F5"; R(px + 6, py + 7, 4, 2, g); P(px + 6, py + 6, g); P(px + 9, py + 6, g); P(px + 5, py + 8, g); P(px + 10, py + 8, g); P(px + 6, py + 9, g); P(px + 9, py + 9, g);
+    P(px + 7, py + 7, "#2D1C30"); P(px + 8, py + 7, "#2D1C30"); R(px + 5, py + 11, 6, 1, "#E8607A"); P(px + 11, py + 6, "#FCE9B8");
+  }
+  else if (kind === "arandela"){ // luminária de parede da varanda (acende à noite)
+    R(px + 7, py + 4, 2, 2, "#5A546C"); rbox(px + 5, py + 6, 6, 6, "#FCE9B8"); R(px + 6, py + 7, 4, 4, "#FFF6D6"); R(px + 6, py + 7, 1, 4, "#FFFFFF"); R(px + 5, py + 12, 6, 1, "#5A546C");
+  }
   else if (kind === "prateleira"){
     R(px + 2, py + 10, 12, 1, "#8C5E3A"); R(px + 2, py + 11, 12, 1, "rgba(40,20,20,.2)");
     R(px + 3, py + 7, 3, 3, C.coral); R(px + 3, py + 6, 3, 1, C.cream); R(px + 7, py + 6, 2, 4, C.mint); P(px + 7, py + 5, C.cream); P(px + 8, py + 5, C.cream); R(px + 10, py + 7, 3, 3, C.gold); R(px + 10, py + 6, 3, 1, "#8C5E3A");
   }
 }
 
+// escada do térreo (leva 4), vista de cima: sobe para o norte, com passadeira, corrimões dos dois lados
+// subindo acima do quadrado e pilares com bolinha no pé. x, y = canto de cima do vão (32 x 48)
+const ESC_ALTO = 4;
+function drawEscada(x, y){
+  for (let i = 0; i < 6; i++){
+    const yy = y + 48 - (i + 1) * 8, k = i / 5;
+    const pis = mix(C.wood, C.woodL, .15 + k * .7), esp = mix(C.woodDD, C.woodD, k);
+    R(x + 4, yy, 24, 5, pis); R(x + 4, yy, 24, 1, sh(pis, .2)); R(x + 4, yy + 4, 24, 1, sh(pis, -.08));
+    R(x + 4, yy + 5, 24, 3, esp); R(x + 4, yy + 5, 24, 1, sh(esp, -.25));
+    const pc = mix("#5546A8", "#9A89E0", k * .8);
+    R(x + 9, yy, 14, 5, pc); R(x + 9, yy, 14, 1, sh(pc, .3)); R(x + 9, yy + 5, 14, 3, sh(pc, -.32)); P(x + 9, yy + 5, C.gold); P(x + 22, yy + 5, C.gold);
+    if (i % 2 === 0) P(x + 15 + (i % 3), yy + 2, sh(pc, .18));
+  }
+  // corrimões (laterais), subindo um pouco acima do vão
+  for (const sx of [x, x + 28]){
+    R(sx, y - ESC_ALTO, 4, 48 + ESC_ALTO - 8, C.woodD); R(sx + 1, y - ESC_ALTO, 1, 48 + ESC_ALTO - 8, C.woodL); R(sx + 3, y - ESC_ALTO, 1, 48 + ESC_ALTO - 8, C.woodDD);
+    for (let j = y - ESC_ALTO + 3; j < y + 38; j += 4) P(sx + 2, j, C.wood);
+  }
+  // o alto da escada (degraus e corrimões) some na sombra do andar de cima
+  for (const [a, h, al] of [[-ESC_ALTO, 4, .7], [0, 4, .55], [4, 5, .32], [9, 6, .14]]){ ctx.globalAlpha = al; R(x, y + a, 32, h, "#1E1630"); }
+  ctx.globalAlpha = 1;
+  // pilares do pé, com bolinha dourada
+  for (const sx of [x - 1, x + 27]){ rbox(sx, y + 37, 6, 11, C.woodD); R(sx + 1, y + 38, 4, 1, C.woodL); R(sx + 1, y + 44, 4, 1, C.woodDD); rbox(sx + 1, y + 33, 4, 4, C.gold); P(sx + 2, y + 34, "#FCE9B8"); }
+}
+// guarda-corpo em volta do vão no 2º andar (oeste e sul; o leste é a parede)
+function drawGuardaCorpo(x, y){
+  const md = "#F4EEE6", mdD = "#CFC3B4";
+  R(x, y - 8, 4, 48, C.woodD); R(x + 1, y - 8, 1, 48, C.woodL); R(x + 3, y - 8, 1, 48, C.woodDD); rbox(x, y - 10, 4, 3, C.woodD);
+  R(x + 2, y + 47, 30, 1, "rgba(35,18,40,.25)");
+  for (let i = x + 5; i < x + 31; i += 3){ R(i, y + 40, 1, 7, md); P(i, y + 40, "#FFFFFF"); P(i, y + 46, mdD); }
+  R(x + 2, y + 38, 30, 2, C.wood); R(x + 2, y + 38, 30, 1, C.woodL); R(x + 2, y + 40, 30, 1, C.woodDD); R(x + 2, y + 46, 30, 1, C.woodD);
+  rbox(x - 1, y + 35, 6, 13, C.woodD); R(x, y + 36, 4, 1, C.woodL); rbox(x, y + 32, 4, 4, C.gold); P(x + 1, y + 33, "#FCE9B8");
+}
+function escadaSprite(){
+  return andarAtual === 1 ? sprite("escada:1", 33, 58, (ox, oy) => drawGuardaCorpo(ox + 1, oy + 10)) : sprite("escada:0", 34, 59, (ox, oy) => drawEscada(ox + 1, oy + ESC_ALTO + 2));
+}
+function blitEscada(){
+  const s = escadaSprite(), x = ESCADA.x * T, y = ESCADA.y * T;
+  if (andarAtual === 1) ctx.drawImage(s.c, x - 2, y - 11); else ctx.drawImage(s.c, x - 2, y - ESC_ALTO - 3);
+}
 // fundo (jardim, pisos, paredes, portas, janelas): desenhado uma vez e guardado
 const bg = document.createElement("canvas"); bg.width = W * T; bg.height = H * T;
 let bgKey = null;
 function ensureBg(hr){
   const est = estacao(), chuva = climaAgora(), mes = mesAgora();
-  const key = [pisos.quarto, pisos.banheiro, pisos.sala, pisos.cozinha, H, portaQ, Math.floor(hr * 12), est, chuva || "", mes === 6 ? 6 : 0].join(",");
+  const cima = andarAtual === 1;
+  const key = [pisos.quarto, pisos.banheiro, pisos.sala, pisos.cozinha, pisos2.suite, pisos2.lavabo, pisos2.jogos, pisos2.varanda, andarAtual, escadaOn ? 1 : 0, H, portaQ, Math.floor(hr * 12), est, chuva || "", mes === 6 ? 6 : 0].join(",");
   if (key === bgKey) return;
   bgKey = key;
   const b = bg.getContext("2d"); b.imageSmoothingEnabled = false;
   withCtx(b, 1, () => {
-    drawGarden(est, chuva);
+    if (cima) drawVistaAlta(est, chuva); else drawGarden(est, chuva);
     for (let y = 0; y < H; y++) for (let x = 0; x < W; x++){
       if (MAP[y][x] === 1 || y > HC) continue; // quintal: a grama já veio do drawGarden
       if (y === HC){ drawPortaQuintal(x, y); continue; }
       drawFloorTile(x, y, pisoDe(comodo(x, y)));
       if (MAP[y][x] === 2) drawDoor(x, y);
     }
+    if (cima) drawVaranda(est, chuva);
     for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) if (MAP[y][x] === 1) drawWallTile(x, y);
     // sombras suaves das paredes no piso
     const s1 = "rgba(35,18,40,.2)", s2 = "rgba(35,18,40,.1)";
@@ -1402,17 +1772,18 @@ function ensureBg(hr){
       if (y > 0 && y - 1 !== HC && isFace(x, y - 1) && x !== VX){ R(px, py, T, 2, s1); R(px, py + 2, T, 2, s2); }
       if (x === 1 && y < HC){ R(px, py, 2, T, s1); R(px + 2, py, 1, T, s2); }
     }
+    if (cima) drawVao(ESCADA.x * T, ESCADA.y * T);
     const kind = skyKind(hr);
-    for (const k of JANELAS){
+    for (const k of janelas()){
       const [x, y] = k.split(",").map(Number), px = x * T, py = y * T;
-      drawWindow(px, py, hr, x, est, chuva);
+      drawWindow(px, py, hr, x, est, chuva, cima);
       if (kind !== "noite"){ // luz da janela no chão (fraquinha quando chove, forte no verão)
         const c = chuva ? "rgba(210,225,255,.1)" : kind === "dia" ? (est === "verao" ? "rgba(255,246,190,.3)" : "rgba(255,248,210,.2)") : kind === "tarde" ? "rgba(255,190,120,.22)" : "rgba(255,210,200,.18)";
         for (let r = 0; r < 20; r++){ if (r === 9 || r === 10) continue; const o = Math.floor(r / 3); R(px + 4 + o, py + T + 3 + r, 4, 1, c); R(px + 9 + o, py + T + 3 + r, 4, 1, c); }
       }
     }
-    for (const [k, kindD] of Object.entries(DECOR)){ const [x, y] = k.split(",").map(Number); if (isFace(x, y)) drawDecor(kindD, x * T, y * T, hr); }
-    if (portaQ) drawPedras(); else drawPlaca(PLACA.x * T, PLACA.y * T);
+    for (const [k, kindD] of Object.entries(decorAtual())){ const [x, y] = k.split(",").map(Number); if (isFace(x, y)) drawDecor(kindD, x * T, y * T, hr); }
+    if (!cima){ if (portaQ) drawPedras(); else drawPlaca(PLACA.x * T, PLACA.y * T); }
     if (mes === 6) drawBandeirinhas();
   });
 }
@@ -1429,7 +1800,7 @@ function drawBandeirinhas(){
 // brilhos animados das janelas (nuvem, reflexo, estrelas)
 function drawWindowAnim(tm, hr){
   const kind = skyKind(hr), chuva = climaAgora();
-  for (const k of JANELAS){
+  for (const k of janelas()){
     const [x, y] = k.split(",").map(Number), px = x * T, py = y * T;
     if (chuva){ // nuvem carregada passando
       const cxp = Math.floor((tm / 2600 + x * 5) % 18) - 5;
@@ -1457,6 +1828,8 @@ function salaFromHash(){ const h = decodeURIComponent(location.hash.replace(/^#/
 let sala = null, fdb = null, salaRef = null, listeners = [];
 let pid = null;
 let moveis = {}, pisos = {}, jogadores = {};
+// leva 4: todosMoveis = casa/moveis inteiro; moveis = só os do andar que estou vendo (m.andar ausente = térreo)
+let todosMoveis = {}, pisos2 = {}, moveisCarregados = false;
 let occ = [];
 let me = null;            // estado local do meu boneco
 let disp = {};            // posições exibidas dos outros
@@ -1475,7 +1848,12 @@ function rebuildOcc(){
   }
   rebuildPetTiles();
 }
-const walkable = (x, y) => x >= 0 && y >= 0 && x < W && y < H && MAP[y][x] !== 1 && !occ[y][x];
+function aplicarMoveis(){
+  moveis = {};
+  for (const [id, m] of Object.entries(todosMoveis)) if (m && (m.andar || 0) === andarAtual) moveis[id] = m;
+  rebuildOcc();
+}
+const walkable = (x, y) => x >= 0 && y >= 0 && x < W && y < H && MAP[y][x] !== 1 && MAP[y][x] !== 4 && !occ[y][x];
 
 function bfs(sx, sy, isGoal){
   const prev = new Map(), k = (x, y) => y * W + x, q = [[sx, sy]]; prev.set(k(sx, sy), null);
@@ -1507,7 +1885,10 @@ function stop(){
   // leva 2
   jogos = {}; stats = {}; conquistas = {}; cofre = {}; diario = {};
   jogosCarregados = statsCarregados = conqCarregadas = cofreCarregado = false; bannerKey = null; $("banner").hidden = true;
-  if (portaQ){ montarMapa(false); tamanhoCena(); }
+  // leva 4
+  todosMoveis = {}; pisos2 = {}; cofre2 = {}; cofre2Carregado = moveisCarregados = andar2Tentou = false; andarUISig = "";
+  if (portaQ || andarAtual || escadaOn){ andarAtual = 0; escadaOn = false; montarMapa(false); tamanhoCena(); }
+  if ($("andarUI")) $("andarUI").hidden = true;
 }
 
 function showScreen(id){ for (const s of ["screenRoom", "screenCreator", "screenGame"]) $(s).hidden = s !== id; }
@@ -1538,11 +1919,20 @@ function boot(){
 
   on(fdb.ref(".info/serverTimeOffset"), "value", s => { srvOff = s.val() || 0; });
   on(ref("casa/moveis"), "value", s => {
-    moveis = s.val() || {}; rebuildOcc();
-    if (Object.keys(moveis).length) garantirCasa();
+    todosMoveis = s.val() || {}; moveisCarregados = true; aplicarMoveis();
+    if (Object.keys(todosMoveis).length) garantirCasa();
     if (me && !walkable(me.tx, me.ty) && !me.acao){ const [x, y] = freeSpot(); me.tx = x; me.ty = y; me.px = x; me.py = y; me.path = []; savePos(); }
     if (mode === "build") renderBuild();
+    prepararAndar2();
   });
+  // leva 4: 2º andar (cofrinho próprio, independente do quintal) e pisos de lá de cima
+  on(ref("casa/cofre2"), "value", s => {
+    const tinha = temAndar2(), carregado = cofre2Carregado; cofre2 = s.val() || {}; cofre2Carregado = true;
+    if (temAndar2() !== tinha) aplicarAndar2(carregado && !tinha && !!me);
+    else if (me && andarAtual === 1 && !temAndar2()) trocarAndar(0, true); // estava lá em cima, mas a casa não tem 2º andar
+    refreshPanel("andar2"); checarConquistas(); renderAndarUI();
+  });
+  on(ref("casa/pisos2"), "value", s => { pisos2 = s.val() || {}; });
   // leva 1: dados compartilhados da casa
   on(ref("casa/pet"), "value", s => {
     const ant = pet; pet = s.val(); petCarregado = true;
@@ -1577,12 +1967,18 @@ function boot(){
     conqCarregadas = true; checarConquistas(); refreshPanel("trofeus");
   });
   on(ref("jogadores"), "value", s => {
-    jogadores = s.val() || {};
+    const ant = jogadores; jogadores = s.val() || {};
+    // leva 4: quem chega no meu andar sai da escada andando (em vez de aparecer do nada)
+    for (const [id, j] of Object.entries(jogadores)){
+      if (id === pid || !ant[id] || (ant[id].andar || 0) === (j.andar || 0)) continue;
+      if ((j.andar || 0) === andarAtual && j.x >= ESCADA.x - 1 && j.x < ESCADA.x + ESCADA.w + 1) disp[id] = { x: clamp(j.x, ESCADA.x, ESCADA.x + ESCADA.w - 1), y: andarAtual ? ESCADA.y : ESCADA.y + ESCADA.h - 1, moving: true };
+      else delete disp[id];
+    }
     const mine = jogadores[pid];
     if (!mine){ if (!me && $("screenCreator").hidden) openCreator(); }
     else if (!me) startMe(mine);
     else { me.dados = mine; }
-    renderPeople(); renderHud(); refreshPanel("tarefas"); refreshPanel("jogo");
+    renderPeople(); renderHud(); refreshPanel("tarefas"); refreshPanel("jogo"); renderAndarUI();
   });
   on(fdb.ref(".info/connected"), "value", s => { if (s.val() && me) setOnline(); });
 }
@@ -1594,12 +1990,15 @@ function setOnline(){
 }
 
 function startMe(d){
-  me = { dados: d, px: d.x, py: d.y, tx: d.x, ty: d.y, path: [], dir: d.dir || "down", acao: null, plano: null, needs: Object.assign({}, d.needs || {}), dinheiro: d.dinheiro || 0 };
+  me = { dados: d, px: d.x, py: d.y, tx: d.x, ty: d.y, path: [], dir: d.dir || "down", acao: null, plano: null, needs: Object.assign({}, d.needs || {}), dinheiro: d.dinheiro || 0, andar: d.andar === 1 ? 1 : 0 };
   for (const n of NEEDS) if (typeof me.needs[n.id] !== "number") me.needs[n.id] = 80;
+  // leva 4: volta pro andar em que estava (se o 2º andar sumir, cofre2 manda de volta pro térreo)
+  if (me.andar === 1 && cofre2Carregado && !temAndar2()) me.andar = 0;
+  if (me.andar !== andarAtual){ andarAtual = me.andar; remontar(); aplicarMoveis(); tamanhoCena(); }
   if (!walkable(me.tx, me.ty)){ const [x, y] = freeSpot(); me.tx = me.px = x; me.ty = me.py = y; }
   showScreen("screenGame");
   setOnline();
-  ref("jogadores/" + pid).update({ acao: null, x: me.tx, y: me.ty });
+  ref("jogadores/" + pid).update({ acao: null, x: me.tx, y: me.ty, andar: me.andar });
   on(ref("eventos/" + pid), "child_added", s => {
     const ev = s.val(); s.ref.remove().catch(() => {});
     if (!ev || Date.now() - (ev.at || 0) > 60000) return;
@@ -1611,7 +2010,7 @@ function startMe(d){
     tarefaCheck({ id: "s-" + ev.tipo }); // quem recebe também cumpre "dançar/conversar com alguém"
   });
   limparTarefasVelhas(d);
-  resize(); renderHud(); renderInvite(); avisoMural();
+  resize(); renderHud(); renderInvite(); avisoMural(); prepararAndar2(); garantirCasa();
 }
 
 function savePos(){ if (me) ref("jogadores/" + pid).update({ x: me.tx, y: me.ty, dir: me.dir }).catch(() => {}); }
@@ -1627,7 +2026,7 @@ function setAcao(a){
   const prev = me.acao;
   if (prev && prev !== a && !prev.acabou && prev.def && prev.def.cancel) prev.def.cancel();
   me.acao = a;
-  ref("jogadores/" + pid + "/acao").set(a ? { id: a.id, nome: a.nome, ini: a.ini, dur: a.dur, mov: a.mov || null, alvo: a.alvo || null, sobre: a.sobre || 0, deitar: a.deitar || 0, tela: a.tela || null, cima: a.cima || 0, jogo: a.jogo || null } : null).catch(() => {});
+  ref("jogadores/" + pid + "/acao").set(a ? { id: a.id, nome: a.nome, ini: a.ini, dur: a.dur, mov: a.mov || null, alvo: a.alvo || null, sobre: a.sobre || 0, deitar: a.deitar || 0, tela: a.tela || null, cima: a.cima || 0, jogo: a.jogo || null, esc: a.esc || 0 } : null).catch(() => {});
   renderHud();
 }
 
@@ -1747,7 +2146,7 @@ function worldFromEvent(e){
 function playerAt(wx, wy, folga){
   let best = null, bd = 12 + (folga || 0);
   for (const [id, j] of Object.entries(jogadores)){
-    if (id === pid || !disp[id]) continue;
+    if (id === pid || !disp[id] || (j.andar || 0) !== andarAtual) continue;
     const d = disp[id], cx = (d.x + .5) * T, cy = (d.y + 1) * T - 2;
     const dd = Math.hypot(wx - cx, (wy - (cy - 8)) * .8);
     if (dd < bd){ bd = dd; best = id; }
@@ -1774,7 +2173,8 @@ canvas.addEventListener("click", e => {
   const other = playerAt(p.x, p.y, toque ? 4 : 0);
   if (other) return socialMenu(other, p);
   if (petAt(p.x, p.y, toque ? 5 : 0)) return petMenu(p);
-  const ativos = HOTSPOTS.filter(h => !h.ativo || h.ativo());
+  if (naEscada(tx, ty)) return irEscada(); // leva 4: toque na escada sobe ou desce
+  const ativos = HOTSPOTS.filter(h => (h.andar || 0) === andarAtual && (!h.ativo || h.ativo()));
   const hs = ativos.find(h => h.x === tx && h.y === ty);
   if (hs) return hs.fn();
   const f = furnAt(tx, ty);
@@ -1835,6 +2235,8 @@ function goTo(_unused, isGoal, after){
 }
 function useFurn(id, a){
   const m = moveis[id]; if (!m) return;
+  // leva 4: assistir TV é sentado no sofá da frente (de costas, olhando a tela), se tiver um
+  if (m.t === "tv" && a.id === "tv"){ const s = sofaDaTv(m); if (s) return useFurn(s, Object.assign({}, a, { tela: id, cima: 1, sobre: 1 })); }
   goTo(null, adjTo(m), () => {
     const mm = moveis[id]; if (!mm) return;
     const c = CAT[mm.t];
@@ -1846,6 +2248,7 @@ function useFurn(id, a){
 function social(id, s){
   const j = jogadores[id]; if (!j) return;
   if (!j.online){ toast(nomeDe(id) + " não está na casa agora."); return; }
+  if ((j.andar || 0) !== andarAtual){ toast(nomeDe(id) + " está " + ondeTxt(j.andar || 0) + "."); return; }
   const d = disp[id] || { x: j.x, y: j.y }; const ox = Math.round(d.x), oy = Math.round(d.y);
   const goal = (x, y) => Math.abs(x - ox) + Math.abs(y - oy) === 1;
   goTo(null, goal, () => {
@@ -1864,19 +2267,46 @@ function faceTo(x, y){
 }
 
 // ===================== construir =====================
+const naLista = (l, x, y) => l.some(([a, b]) => a === x && b === y);
+// a escada tem que continuar alcançável: caminho da porta (7,3) até o pé (térreo) ou o patamar (em cima), sem passar por móvel
+function escadaAlcanca(ignorar, bloq){
+  const alvo = andarAtual === 1 ? TOPO_ESCADA : PE_ESCADA, vis = new Set([3 * W + 7]), q = [[7, 3]];
+  while (q.length){
+    const [x, y] = q.shift(); if (naLista(alvo, x, y)) return true;
+    for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]){
+      const nx = x + dx, ny = y + dy, k = ny * W + nx;
+      if (nx < 0 || ny < 0 || nx >= W || ny >= H || vis.has(k)) continue;
+      const v = MAP[ny][nx]; if (v === 1 || v === 4 || (occ[ny][nx] && occ[ny][nx] !== ignorar) || (bloq && bloq.has(k))) continue;
+      vis.add(k); q.push([nx, ny]);
+    }
+  }
+  return false;
+}
+function fechaEscada(t, x, y, ignore){
+  const c = CAT[t]; if (c.chao || !(escadaOn || andarAtual === 1)) return false;
+  const bloq = new Set(); for (let dy = 0; dy < c.h; dy++) for (let dx = 0; dx < c.w; dx++) bloq.add((y + dy) * W + x + dx);
+  return escadaAlcanca(ignore) && !escadaAlcanca(ignore, bloq);
+}
 function canPlace(t, x, y, ignore){
-  const c = CAT[t];
+  const c = CAT[t], cima = andarAtual === 1;
   for (let dy = 0; dy < c.h; dy++) for (let dx = 0; dx < c.w; dx++){
     const xx = x + dx, yy = y + dy;
     if (xx < 1 || yy < 1 || xx >= W - 1 || yy >= H - 1 || MAP[yy][xx] !== 0) return false;
     if (!c.chao && occ[yy][xx] && occ[yy][xx] !== ignore) return false;
+    if (cima){ // 2º andar: externos só na varanda (piscininha só no quintal); patamar da escada fica livre
+      if (c.fora && (t === "piscina" || comodo(xx, yy) !== "varanda")) return false;
+      if (!c.chao && naLista(RESERVA_ANDAR2, xx, yy)) return false;
+      continue;
+    }
     if (c.fora ? yy <= HC : (!c.livre && yy > HC)) return false; // externo só no quintal; móveis de dentro só em casa
     if (portaQ && xx === portaQ && (yy === HC - 1 || yy === HC + 1) && !c.chao) return false; // passagem da porta do quintal
     if (c.fora && y === HC + 1 && (TOP[t] || 0) > 6) return false; // alto colado na parede de baixo invadiria a cozinha
+    if (escadaOn && !c.chao && naLista(PE_ESCADA, xx, yy)) return false; // pé da escada fica livre
   }
   if (c.chao){ for (const [id, m] of Object.entries(moveis)){ if (id === ignore || !CAT[m.t] || !CAT[m.t].chao) continue; const o = CAT[m.t];
     if (x < m.x + o.w && x + c.w > m.x && y < m.y + o.h && y + c.h > m.y) return false; } }
-  if (!c.chao){ for (const [id, j] of Object.entries(jogadores)){ if (!j.online) continue; const d = id === pid && me ? { x: me.tx, y: me.ty } : j; if (d.x >= x && d.x < x + c.w && d.y >= y && d.y < y + c.h) return false; } }
+  if (!c.chao){ for (const [id, j] of Object.entries(jogadores)){ if (!j.online || (id === pid && me ? me.andar : j.andar || 0) !== andarAtual) continue; const d = id === pid && me ? { x: me.tx, y: me.ty } : j; if (d.x >= x && d.x < x + c.w && d.y >= y && d.y < y + c.h) return false; } }
+  if (fechaEscada(t, x, y, ignore)) return false; // leva 4: não fecha o caminho da escada
   return true;
 }
 function buildClick(tx, ty, p){
@@ -1884,18 +2314,27 @@ function buildClick(tx, ty, p){
     if (!MAP[ty] || MAP[ty][tx] === 1) return;
     const cm = comodo(tx, ty);
     if (cm === "quintal"){ toast("O quintal é de grama."); return; }
-    ref("casa/pisos/" + cm).set(tool.idx).then(() => toast(COMODOS[cm] + " com piso novo."));
+    ref((COMODOS2.has(cm) ? "casa/pisos2/" : "casa/pisos/") + cm).set(tool.idx).then(() => toast(COMODOS[cm] + " com piso novo."));
     return;
   }
+  if (!tool && naEscada(tx, ty)){ toast("A escada fica fixa aí."); return; }
   if (tool && (tool.kind === "novo" || tool.kind === "mover")){
-    const t = tool.t;
-    if (CAT[t].fora && !temQuintal()){ toast("Esse é pro quintal. Juntem $" + QUINTAL_PRECO + " no cofrinho pra liberar."); return; }
-    if (!canPlace(t, tx, ty, tool.id)){ toast(CAT[t].fora && ty <= HC ? "Esse vai lá fora, no quintal." : !CAT[t].fora && !CAT[t].livre && ty > HC ? "Esse móvel é de dentro de casa." : "Não cabe aí. Tente outro lugar."); return; }
+    const t = tool.t, cima = andarAtual === 1;
+    if (CAT[t].fora && !cima && !temQuintal()){ toast("Esse é pro quintal. Juntem $" + QUINTAL_PRECO + " no cofrinho pra liberar."); return; }
+    if (cima && t === "piscina"){ toast("A piscininha só cabe no quintal."); return; }
+    if (!canPlace(t, tx, ty, tool.id)){
+      toast(naEscada(tx, ty) || (cima ? naLista(RESERVA_ANDAR2, tx, ty) : escadaOn && naLista(PE_ESCADA, tx, ty)) ? "Aí é a passagem da escada." :
+        MAP[ty] && MAP[ty][tx] === 0 && fechaEscada(t, tx, ty, tool.id) ? "Aí fecha o caminho até a escada." :
+        cima ? (CAT[t].fora && comodo(tx, ty) !== "varanda" ? "Esse vai lá fora, na varanda." : "Não cabe aí. Tente outro lugar.") :
+        CAT[t].fora && ty <= HC ? "Esse vai lá fora, no quintal." : !CAT[t].fora && !CAT[t].livre && ty > HC ? "Esse móvel é de dentro de casa." : "Não cabe aí. Tente outro lugar.");
+      return;
+    }
     if (tool.kind === "novo"){
       const preco = CAT[t].preco;
       if (me.dinheiro < preco){ toast("Faltam $" + (preco - Math.floor(me.dinheiro)) + ". Trabalhe no computador pra ganhar mais."); return; }
       me.dinheiro -= preco; saveNeeds(true);
-      ref("casa/moveis").push({ t, x: tx, y: ty, por: pid }).then(() => toast(CAT[t].nome + " na casa. -$" + preco));
+      const novo = { t, x: tx, y: ty, por: pid }; if (cima) novo.andar = 1;
+      ref("casa/moveis").push(novo).then(() => toast(CAT[t].nome + (cima ? " lá em cima" : " na casa") + ". -$" + preco));
     } else {
       ref("casa/moveis/" + tool.id).update({ x: tx, y: ty }).then(() => toast("Móvel no lugar novo."));
       tool = null; renderBuild();
@@ -1917,8 +2356,8 @@ function renderBuild(){
   $("money2").textContent = me ? "$ " + Math.floor(me.dinheiro) : "";
   $("tMov").setAttribute("aria-pressed", String(buildTab === "mov")); $("tPiso").setAttribute("aria-pressed", String(buildTab === "piso"));
   $("cat").hidden = buildTab !== "mov"; $("floors").hidden = buildTab !== "piso";
-  $("buildHint").textContent = tool && tool.kind === "mover" ? "Toque no lugar novo do móvel. Toque no mesmo móvel na lista para cancelar." :
-    buildTab === "piso" ? "Escolha um piso e toque num cômodo para trocar." : "Escolha um móvel e toque na casa para colocar. Toque num móvel que já está lá para mover ou vender.";
+  $("buildHint").textContent = (andarAtual === 1 ? "2º andar. " : "") + (tool && tool.kind === "mover" ? "Toque no lugar novo do móvel. Toque no mesmo móvel na lista para cancelar." :
+    buildTab === "piso" ? "Escolha um piso e toque num cômodo para trocar." : "Escolha um móvel e toque na casa para colocar. Toque num móvel que já está lá para mover ou vender.");
   if (buildTab === "mov"){
     const cat = $("cat"); cat.innerHTML = "";
     for (const [t, c] of Object.entries(CAT)){
@@ -1927,8 +2366,8 @@ function renderBuild(){
       const x = cv.getContext("2d"); x.imageSmoothingEnabled = false;
       const spr = furnSprite(t, 0), sc = Math.min(128 / spr.c.width, 96 / spr.c.height, 4);
       x.drawImage(spr.c, Math.round((128 - spr.c.width * sc) / 2), Math.round((96 - spr.c.height * sc) / 2), Math.round(spr.c.width * sc), Math.round(spr.c.height * sc));
-      const semQuintal = c.fora && !temQuintal();
-      b.append(cv, el("span", null, c.nome), el("span", "pr", "$" + c.preco + (semQuintal ? " · quintal" : "")));
+      const semQuintal = c.fora && (andarAtual === 1 ? t === "piscina" : !temQuintal());
+      b.append(cv, el("span", null, c.nome), el("span", "pr", "$" + c.preco + (semQuintal ? " · quintal" : c.fora && andarAtual === 1 ? " · varanda" : "")));
       b.setAttribute("aria-pressed", String(!!(tool && tool.kind === "novo" && tool.t === t)));
       b.disabled = semQuintal || (!!me && me.dinheiro < c.preco && !(tool && tool.t === t));
       if (semQuintal) b.title = "Precisa do quintal";
@@ -1995,7 +2434,8 @@ function renderPeople(){
   const box = $("people"); box.innerHTML = "";
   for (const [id, j] of Object.entries(jogadores)){
     const c = el("span", "chip" + (j.online ? "" : " off")); const sw = el("span", "sw"); sw.style.background = ROUPAS[j.roupa] || ROUPAS[0];
-    c.append(sw, (j.nome || "Alguém") + (id === pid ? " (você)" : "") + (j.online ? "" : " · fora"));
+    const outroAndar = id !== pid && j.online && me && (j.andar || 0) !== andarAtual; // leva 4
+    c.append(sw, (j.nome || "Alguém") + (id === pid ? " (você)" : "") + (j.online ? (outroAndar ? " · " + ondeTxt(j.andar || 0) : "") : " · fora"));
     box.append(c);
   }
 }
@@ -2078,7 +2518,7 @@ function barra(v, cor){ const b = el("div", "bar"), i = el("i"); i.style.width =
 // começa uma ação do meu boneco. a.antes() (opcional, pode ser promessa) decide se começa;
 // a.fim({ junto }) roda ao terminar; a.cancel() roda se parar antes; a.junto = 1 (mesma ação) ou função(acaoDoOutro)
 function startAcao(a, mov, alvo){
-  const go = () => setAcao({ id: a.id, nome: a.nome, ini: Date.now(), dur: a.dur * 1000, mov: mov || null, alvo: alvo || null, sobre: a.sobre || 0, deitar: a.deitar || 0, tela: a.tela || null, cima: a.cima || 0, jogo: a.jogo || null, def: a });
+  const go = () => setAcao({ id: a.id, nome: a.nome, ini: Date.now(), dur: a.dur * 1000, mov: mov || null, alvo: alvo || null, sobre: a.sobre || 0, deitar: a.deitar || 0, tela: a.tela || null, cima: a.cima || 0, jogo: a.jogo || null, esc: a.esc || 0, def: a });
   if (!a.antes) return go();
   Promise.resolve(a.antes()).then(ok => { if (ok) go(); });
 }
@@ -2087,7 +2527,7 @@ function acharLugar(t){ for (let y = 1; y < H - 1; y++) for (let x = 1; x < W - 
 
 // casa já existe: cria o que faltar (itens da leva 1 em casas antigas, bichinho)
 function garantirCasa(){
-  if (casaPronta) return; casaPronta = true;
+  if (casaPronta || andarAtual !== 0) return; casaPronta = true; // migração usa o mapa do térreo
   ref("casa/leva1").transaction(cur => cur ? undefined : true).then(r => {
     if (!r.committed) return;
     for (const [t, x, y] of EXTRAS_LEVA1){ const pos = canPlace(t, x, y) ? [x, y] : acharLugar(t); if (pos) ref("casa/moveis").push({ t, x: pos[0], y: pos[1] }); }
@@ -2265,8 +2705,9 @@ function petIrAte(acao){
   const pv = petEstado(srvNow()), tx = Math.round(pv.x), ty = Math.round(pv.y);
   goTo(null, (x, y) => Math.abs(x - tx) + Math.abs(y - ty) <= 1, () => { faceTo(tx, ty); startAcao(acao); });
 }
-function petDarComida(){ const pt = primeiro("pote"); if (pt) useFurn(pt, ACAO_POTE); else petIrAte({ id: "pet-comida", nome: "Dando comida", dur: 3, ganho: {}, fim: () => petCuidar("comeu") }); }
-function petFazerCarinho(){ petIrAte({ id: "pet-carinho", nome: "Fazendo carinho em " + petNome(), dur: 3, ganho: {}, fim: () => petCuidar("carinho") }); }
+const petLonge = () => { if (andarAtual === 0) return false; toast(petNome() + " está lá embaixo. Desça a escada pra cuidar."); return true; }; // leva 4
+function petDarComida(){ if (petLonge()) return; const pt = primeiro("pote"); if (pt) useFurn(pt, ACAO_POTE); else petIrAte({ id: "pet-comida", nome: "Dando comida", dur: 3, ganho: {}, fim: () => petCuidar("comeu") }); }
+function petFazerCarinho(){ if (petLonge()) return; petIrAte({ id: "pet-carinho", nome: "Fazendo carinho em " + petNome(), dur: 3, ganho: {}, fim: () => petCuidar("carinho") }); }
 function petMenu(p){
   if (!pet) return;
   openMenu(p, petNome() + (petTriste() ? " está tristinho" : ""), [
@@ -2453,12 +2894,12 @@ function cozinhar(fogaoId, rk){
       const n = r.porcoes + (info.junto ? 1 : 0);
       if (info.junto) statMais("pratosJuntos");
       ref("casa/pratos").push({ receita: rk, porcoes: n, por: pid, at: TS(), junto: info.junto ? 1 : 0 }).catch(() => {});
-      toast(r.nome + " na mesa: " + n + " porções" + (info.junto ? " (uma a mais por cozinharem juntos)." : ".") + (primeiro("mesa") ? "" : " Coloque uma mesa pra servir."));
+      toast(r.nome + " na mesa: " + n + " porções" + (info.junto ? " (uma a mais por cozinharem juntos)." : ".") + (Object.values(todosMoveis).some(m => m && m.t === "mesa") ? "" : " Coloque uma mesa pra servir."));
     }
   });
 }
 const ACAO_AJUDAR = { id: "coz-ajuda", nome: "Ajudando na cozinha", dur: 10, ganho: { diversao: 12 }, junto: ja => /^coz-/.test(ja.id), juntoSocial: 3 };
-function alguemCozinhando(){ return Object.entries(jogadores).find(([id, j]) => id !== pid && j.online && j.acao && /^coz-/.test(j.acao.id) && j.acao.id !== "coz-ajuda" && Date.now() - j.acao.ini < j.acao.dur + 2000); }
+function alguemCozinhando(){ return Object.entries(jogadores).find(([id, j]) => id !== pid && j.online && (j.andar || 0) === andarAtual && j.acao && /^coz-/.test(j.acao.id) && j.acao.id !== "coz-ajuda" && Date.now() - j.acao.ini < j.acao.dur + 2000); }
 MENU_EXTRA.fogao = id => {
   const it = [{ nome: "Cozinhar uma receita", info: "Despensa", fn: () => openCozinha({ fogao: id }) }];
   const c = alguemCozinhando(); if (c) it.unshift({ nome: "Ajudar " + nomeDe(c[0]), info: "Mais rápido", fn: () => useFurn(id, ACAO_AJUDAR) });
@@ -2633,7 +3074,7 @@ function addCasaObjs(objs, tm){
       });
     } });
   }
-  addPetObj(objs, tm);
+  if (andarAtual === 0) addPetObj(objs, tm); else petView = null; // o bichinho mora no térreo
 }
 // textos em alta resolução da leva 1 (ícones do bichinho e aviso do mural)
 function drawCasaLabels(mctx, K, fs, tm){
@@ -2641,7 +3082,7 @@ function drawCasaLabels(mctx, K, fs, tm){
     const icon = petView.pose === "sleep" ? "zZ" : petView.pose === "jump" ? "♥" : null;
     if (icon){ mctx.fillStyle = icon === "♥" ? "#F0707A" : "#CECBF6"; mctx.fillText(icon, (petView.cx + 7) * K, (petView.by - 12) * K - Math.sin(tm / 300) * K * 1.5); }
   }
-  if (mode === "live" && muralNovos()){ mctx.fillStyle = "#FAC775"; mctx.fillText("!", (MURAL.x * T + 8) * K, (MURAL.y * T + 3) * K - Math.abs(Math.sin(tm / 250)) * K * 2); }
+  if (mode === "live" && andarAtual === 0 && muralNovos()){ mctx.fillStyle = "#FAC775"; mctx.fillText("!", (MURAL.x * T + 8) * K, (MURAL.y * T + 3) * K - Math.abs(Math.sin(tm / 250)) * K * 2); }
 }
 
 // =====================================================================
@@ -2689,7 +3130,8 @@ const CONQUISTAS = [
   { id: "jogo20", nome: "Rivais de sofá", txt: "20 partidas jogadas.", st: "partidas", meta: 20 },
   { id: "dupla1", nome: "Dia em dupla", txt: "Fizeram as tarefas no mesmo dia.", st: "diasDupla", meta: 1 },
   { id: "pet20", nome: "Xodó do bichinho", txt: "20 carinhos no bichinho.", st: "carinhos", meta: 20 },
-  { id: "quintal", nome: "Quintal nosso", txt: "Juntaram dinheiro e compraram o quintal.", meta: 1, val: () => cofre.liberado ? 1 : 0 }
+  { id: "quintal", nome: "Quintal nosso", txt: "Juntaram dinheiro e compraram o quintal.", meta: 1, val: () => cofre.liberado ? 1 : 0 },
+  { id: "andar2", nome: "Casa de dois andares", txt: "Juntaram dinheiro e construíram o 2º andar.", meta: 1, val: () => cofre2.liberado ? 1 : 0 }
 ];
 const conqValor = c => c.val ? c.val() : (stats[c.st] || 0);
 const conqTentou = {};
@@ -2752,7 +3194,7 @@ const TAREFAS = [
   { id: "cozinhar", nome: "Cozinhar um prato", dica: "No fogão", ok: a => /^coz-/.test(a.id) && a.id !== "coz-ajuda" },
   { id: "carinho", nome: "Fazer carinho no bichinho", dica: "Toque no bichinho", ok: a => a.id === "pet-carinho" },
   { id: "comida", nome: "Dar comida pro bichinho", dica: "No pote do bichinho", ok: a => a.id === "pet-comida" },
-  { id: "banho", nome: "Tomar banho", dica: "No chuveiro", ok: a => a.id === "banho" },
+  { id: "banho", nome: "Tomar banho", dica: "No chuveiro ou na banheira", ok: a => a.id === "banho" || a.id === "banheira" },
   { id: "dancar", nome: "Dançar com alguém", dica: "Toque em alguém ou dancem no som", ok: a => a.id === "s-dancar" || (a.id === "dancar" && !!a.junto) },
   { id: "ler", nome: "Ler um livro", dica: "Na estante", ok: a => a.id === "ler" },
   { id: "tv", nome: "Assistir TV", dica: "Na TV", ok: a => a.id === "tv" },
@@ -2893,10 +3335,10 @@ const setCh = (s, i, c) => s.slice(0, i) + c + s.slice(i + 1);
 function jogoAtivoDe(p){ return Object.entries(jogos).find(([, g]) => ATIVO(g) && (g.a === p || g.b === p)); }
 function jogarItens(mov){
   const at = jogoAtivoDe(pid);
-  if (at) return [{ nome: "Voltar pro jogo", info: JOGO_TIPOS[at[1].tipo], fn: () => abrirJogo(at[0]) }];
+  if (at) return [{ nome: "Voltar pro jogo", info: JOGO_TIPOS[at[1].tipo], fn: () => { abrirJogo(at[0]); if (!(me.acao && me.acao.jogo === at[0]) && moveis[at[1].mov]) irJogar(at[0]); } }];
   const outros = Object.entries(jogadores).filter(([id, j]) => id !== pid && j.online && j.nome);
   if (!outros.length) return [{ nota: 1, nome: "Chame alguém pra jogar junto." }];
-  return outros.slice(0, 3).map(([id]) => ({ nome: "Jogar com " + nomeDe(id), info: "Velha ou memória", fn: () => escolherJogo(mov, id) }));
+  return outros.slice(0, 3).map(([id, j]) => ({ nome: "Jogar com " + nomeDe(id), info: (j.andar || 0) !== andarAtual ? "Está " + ondeTxt(j.andar || 0) : "Velha ou memória", fn: () => escolherJogo(mov, id) }));
 }
 function escolherJogo(mov, outro){
   openPanel("escolher", "Jogar com " + nomeDe(outro), corpo => {
@@ -2930,7 +3372,12 @@ function sofaDaTv(m){
   return ids.sort()[0] || null;
 }
 function irJogar(id){
-  const g = jogos[id]; if (!g || !moveis[g.mov]) return;
+  const g = jogos[id]; if (!g) return;
+  if (!moveis[g.mov]){ // leva 4: a TV/PC do jogo está no outro andar; o jogo funciona pelo painel mesmo assim
+    const mm = todosMoveis[g.mov];
+    if (mm) toast("A " + (mm.t === "pc" ? "tela do computador" : "TV") + " desse jogo fica " + ondeTxt(mm.andar || 0) + ". Dá pra jogar daqui, ou " + ((mm.andar || 0) > andarAtual ? "suba" : "desça") + " pra jogar juntinho.");
+    return;
+  }
   const m = moveis[g.mov], sofa = m.t === "tv" ? sofaDaTv(m) : null;
   useFurn(sofa || g.mov, {
     id: "minigame", nome: JOGO_TIPOS[g.tipo] + " com " + nomeDe(outroDe(g)), dur: 3600, ganho: {}, tela: g.mov, cima: sofa ? 1 : 0, sobre: sofa ? 1 : 0, jogo: id,
@@ -3206,6 +3653,8 @@ function renderLeva2Hud(){
   setTxt("bTrofeus", "Troféus " + CONQUISTAS.filter(c => conquistas[c.id]).length + "/" + CONQUISTAS.length);
   const bq = $("bQuintal"); bq.hidden = !cofreCarregado || temQuintal();
   setTxt("bQuintal", "Quintal $" + (cofre.total || 0));
+  $("bAndar").hidden = !cofre2Carregado || temAndar2();
+  setTxt("bAndar", "2º andar $" + (cofre2.total || 0));
   refreshPanel("tarefas");
 }
 $("bTarefas").onclick = () => openTarefas();
@@ -3264,7 +3713,8 @@ function drawChuva(tm, tipo){
   const garoa = tipo === "garoa", Ww = W * T, Hh = H * T, cor = garoa ? "rgba(228,238,255,.55)" : "rgba(212,230,255,.78)", len = garoa ? 2 : 4;
   ctx.save(); ctx.beginPath();
   ctx.rect(0, 0, 9, Hh); ctx.rect(Ww - 9, 0, 9, Hh); ctx.rect(0, HC * T + 7, Ww, Hh - HC * T - 7);
-  const jan = [...JANELAS].map(w => w.split(",").map(Number));
+  if (andarAtual === 1) ctx.rect((VX + 1) * T, 9 * T, (W - VX - 1) * T, 3 * T + 7); // varanda é aberta
+  const jan = [...janelas()].map(w => w.split(",").map(Number));
   for (const [x, y] of jan) ctx.rect(x * T + 4, y * T + 5, 9, 7);
   ctx.clip();
   ctx.fillStyle = cor;
@@ -3282,6 +3732,7 @@ function drawChuva(tm, tipo){
   if (!garoa){ // respingos
     const passo = Math.floor(tm / 170), y0 = HC * T + 9, alt = Hh - y0 - 3;
     for (let i = 0; i < (portaQ ? 14 : 6); i++){ const h = hash(passo, i, 9), x = h % Ww, y = y0 + (h >> 8) % Math.max(4, portaQ ? alt : 6); ctx.fillRect(x - 1, y, 1, 1); ctx.fillRect(x + 1, y, 1, 1); ctx.fillRect(x, y - 1, 1, 1); }
+    if (andarAtual === 1) for (let i = 0; i < 7; i++){ const h = hash(passo, i, 19), x = (VX + 1) * T + 2 + h % ((W - VX - 2) * T - 4), y = 9 * T + 3 + (h >> 8) % (3 * T - 5); ctx.fillRect(x - 1, y, 1, 1); ctx.fillRect(x + 1, y, 1, 1); ctx.fillRect(x, y - 1, 1, 1); }
   }
   ctx.restore();
 }
@@ -3307,6 +3758,197 @@ function renderClima(){
   climaVisto = c;
 }
 
+// =====================================================================
+// LEVA 4: poses sentadas e segundo andar
+//   casa/cofre2 = { total, por: {pid: $}, liberado: ts, liberouPor }   cofrinho do 2º andar ($1500), separado do quintal
+//   casa/andar2pronto = ts      feito uma vez (transação): tira móveis de cima da escada e mobilia o 2º andar
+//   casa/pisos2/<cômodo>        pisos lá de cima (suite, lavabo, jogos, varanda)
+//   casa/moveis/<id>/andar = 1  móvel do 2º andar (sem o campo = térreo: casas antigas não mudam)
+//   jogadores/<pid>/andar = 0|1 andar do boneco; cada aparelho desenha só o andar do próprio jogador
+// =====================================================================
+const ANDAR2_PRECO = 1500;
+let cofre2 = {}, cofre2Carregado = false, andar2Tentou = false, andarUISig = "";
+const temAndar2 = () => !!cofre2.liberado;
+const ondeTxt = a => a > andarAtual ? "lá em cima" : "lá embaixo";
+function remontar(){ montarMapa(temQuintal(), cofre.porta); }
+// roda fn vendo o andar n (mapa e móveis) e volta. Nada de gravar no banco aqui dentro (os ouvintes rodariam no andar errado)
+function noAndar(n, fn){
+  if (andarAtual === n) return fn();
+  const a = andarAtual; andarAtual = n; remontar(); aplicarMoveis();
+  try { return fn(); } finally { andarAtual = a; remontar(); aplicarMoveis(); }
+}
+function aplicarAndar2(festa){
+  escadaOn = temAndar2();
+  if (!escadaOn && andarAtual === 1 && me){ trocarAndar(0, true); return; }
+  remontar(); rebuildOcc(); tamanhoCena();
+  if (me && !walkable(me.tx, me.ty) && !me.acao){ const [x, y] = freeSpot(); me.tx = me.px = x; me.ty = me.py = y; me.path = []; savePos(); }
+  if (mode === "build") renderBuild();
+  if (festa){ toastEspecial("2º andar pronto!", "A escada fica no canto da sala. Subam pra conhecer!"); confete(); }
+  prepararAndar2();
+}
+// troca o andar que eu vejo e onde estou. Chega saindo da escada (ou direto, sem animar)
+function trocarAndar(n, semAnimar){
+  if (!me || (n === 1 && !temAndar2())) return;
+  closeMenu(); tool = null;
+  andarAtual = n; me.andar = n; remontar(); aplicarMoveis(); tamanhoCena(); disp = {};
+  const [ex, ey, sx, sy] = chegadaEscada(n);
+  me.tx = ex; me.ty = ey; me.plano = null; me.dir = n ? "up" : "down";
+  if (semAnimar){ me.px = ex; me.py = ey; me.path = []; } else { me.px = sx; me.py = sy; me.path = [[ex, ey]]; }
+  ref("jogadores/" + pid).update({ andar: n, x: ex, y: ey, dir: me.dir }).catch(() => {});
+  renderPeople(); renderHud(); if (mode === "build") renderBuild(); andarUISig = ""; renderAndarUI();
+  garantirCasa(); prepararAndar2();
+  if (n === 1 && !store.get("casinha-andar2-" + sala)){ store.set("casinha-andar2-" + sala, "1"); toast("Bem-vindo(a) ao 2º andar: suíte, sala de jogos e varanda."); }
+}
+// onde se chega: patamar (em cima) ou pé da escada (embaixo); e de onde sai andando (o degrau da ponta)
+function chegadaEscada(n){
+  const cand = n ? TOPO_ESCADA.concat([[14, 1], [14, 2]]) : PE_ESCADA.concat([[14, 5], [14, 4]]);
+  const gente = (x, y) => Object.entries(jogadores).some(([id, j]) => id !== pid && j.online && (j.andar || 0) === n && j.x === x && j.y === y);
+  const p = cand.find(([x, y]) => walkable(x, y) && !gente(x, y)) || cand.find(([x, y]) => walkable(x, y)) || freeSpot();
+  return [p[0], p[1], clamp(p[0], ESCADA.x, ESCADA.x + ESCADA.w - 1), n ? ESCADA.y : ESCADA.y + ESCADA.h - 1];
+}
+function pertoDaEscada(){
+  if (!me || !temAndar2()) return false;
+  const alvos = andarAtual ? TOPO_ESCADA.concat([[14, 1], [14, 2], [14, 3], [14, 4]]) : PE_ESCADA;
+  return alvos.some(([x, y]) => Math.abs(x - me.tx) + Math.abs(y - me.ty) <= 2);
+}
+// anda até a escada e sobe/desce (no modo construir, troca de andar direto)
+function irEscada(){
+  if (!me || !temAndar2() || (me.acao && me.acao.id === "escada")) return;
+  const sobe = andarAtual === 0;
+  if (mode === "build"){ trocarAndar(sobe ? 1 : 0, true); return; }
+  closeMenu();
+  goTo(null, (x, y) => naLista(sobe ? PE_ESCADA : TOPO_ESCADA, x, y), () => {
+    me.dir = sobe ? "up" : "down"; savePos();
+    startAcao({ id: "escada", nome: sobe ? "Subindo a escada" : "Descendo a escada", dur: 1.3, ganho: {}, esc: sobe ? 1 : -1, fim: () => trocarAndar(sobe ? 1 : 0) });
+  });
+}
+// uma vez por casa, quando o 2º andar é liberado: libera a escada no térreo e mobilia lá em cima
+function prepararAndar2(){
+  if (andar2Tentou || !me || !temAndar2() || !moveisCarregados || andarAtual !== 0) return;
+  andar2Tentou = true;
+  ref("casa/andar2pronto").transaction(cur => cur ? undefined : srvNow()).then(r => {
+    if (!r.committed) return;
+    liberarEscada(); mobiliarAndar2();
+  }).catch(() => { andar2Tentou = false; });
+}
+// lugar livre mais perto de (x0, y0), primeiro no mesmo cômodo; tapete não vai pra baixo de outro móvel
+function lugarPerto(t, x0, y0){
+  const c = CAT[t], cm = comodo(x0, y0), cands = [];
+  for (let y = 1; y < H - 1; y++) for (let x = 1; x < W - 1; x++){
+    if (!canPlace(t, x, y)) continue;
+    if (c.chao){ let livre = true; for (let dy = 0; dy < c.h; dy++) for (let dx = 0; dx < c.w; dx++) if (occ[y + dy][x + dx] || MAP[y + dy][x + dx] !== 0) livre = false; if (!livre) continue; }
+    cands.push([x, y, (comodo(x, y) === cm ? 0 : 1000) + Math.hypot(x - x0, y - y0)]);
+  }
+  cands.sort((a, b) => a[2] - b[2]);
+  return cands.length ? [cands[0][0], cands[0][1]] : null;
+}
+// térreo: o que estiver em cima da escada (ou no pé dela) vai pra um lugar livre. Nunca apaga; se não couber embaixo, sobe
+function liberarEscada(){
+  const muda = [];
+  for (const [id, m] of Object.entries(moveis)){
+    const c = CAT[m.t]; if (!c) continue;
+    let naEsc = false, noPe = false;
+    for (let dy = 0; dy < c.h; dy++) for (let dx = 0; dx < c.w; dx++){ if (naEscada(m.x + dx, m.y + dy)) naEsc = true; if (naLista(PE_ESCADA, m.x + dx, m.y + dy)) noPe = true; }
+    if (!naEsc && (c.chao || !noPe)) continue; // tapete no pé da escada pode ficar
+    let pos = lugarPerto(m.t, m.x, m.y), up = false;
+    if (!pos){ pos = noAndar(1, () => lugarPerto(m.t, 8, 6)); up = !!pos; }
+    if (!pos) continue;
+    delete moveis[id]; if (!up) moveis[id] = Object.assign({}, m, { x: pos[0], y: pos[1] }); rebuildOcc();
+    muda.push([id, up ? { x: pos[0], y: pos[1], andar: 1 } : { x: pos[0], y: pos[1] }]);
+  }
+  // se o pé da escada ficou cercado (móvel colado nele), muda os vizinhos até abrir caminho
+  for (let tent = 0; tent < 4 && !escadaAlcanca(); tent++){
+    const viz = PE_ESCADA.flatMap(([x, y]) => [[x - 1, y], [x + 1, y], [x, y + 1]]).map(([x, y]) => occ[y] && occ[y][x]).find(k => k && moveis[k] && !CAT[moveis[k].t].chao);
+    if (!viz) break;
+    const m = moveis[viz]; delete moveis[viz]; rebuildOcc();
+    const pos = lugarPerto(m.t, m.x, m.y);
+    if (!pos){ moveis[viz] = m; rebuildOcc(); break; }
+    moveis[viz] = Object.assign({}, m, { x: pos[0], y: pos[1] }); rebuildOcc();
+    muda.push([viz, { x: pos[0], y: pos[1] }]);
+  }
+  for (const [id, u] of muda) ref("casa/moveis/" + id).update(u).catch(() => {});
+  if (muda.length) toast(muda.length === 1 ? "Um móvel saiu da frente da escada." : muda.length + " móveis saíram da frente da escada.");
+}
+function mobiliarAndar2(){
+  const novos = noAndar(1, () => {
+    const out = [];
+    MOVEIS_ANDAR2.forEach(([t, x, y], i) => {
+      const pos = canPlace(t, x, y) ? [x, y] : lugarPerto(t, x, y); if (!pos) return;
+      moveis["_n" + i] = { t, x: pos[0], y: pos[1], andar: 1 }; rebuildOcc();
+      out.push({ t, x: pos[0], y: pos[1], andar: 1 });
+    });
+    return out;
+  });
+  for (const m of novos) ref("casa/moveis").push(m).catch(() => {});
+}
+// ---- cofrinho do 2º andar (igual ao do quintal, em casa/cofre2) ----
+function porNoCofre2(v){
+  if (temAndar2()) return;
+  v = Math.min(v, ANDAR2_PRECO - (cofre2.total || 0)); if (v <= 0) return;
+  if (!gastar(v, "o cofrinho")) return;
+  let aceito = 0;
+  txn("casa/cofre2", cur => {
+    cur = cur || {}; aceito = 0; if (cur.liberado) return;
+    const t = cur.total || 0; aceito = Math.min(v, ANDAR2_PRECO - t); if (aceito <= 0) return;
+    cur.total = t + aceito; cur.por = cur.por || {}; cur.por[pid] = (cur.por[pid] || 0) + aceito;
+    if (cur.total >= ANDAR2_PRECO) Object.assign(cur, { liberado: srvNow(), liberouPor: pid });
+    return cur;
+  }).then(ok => {
+    const volta = v - (ok ? aceito : 0); if (volta > 0) ganhar(volta);
+    if (ok && !temAndar2()) toast("$" + aceito + " no cofrinho do 2º andar. Faltam $" + (ANDAR2_PRECO - (cofre2.total || 0)) + ".");
+    else if (!ok) toast("Não deu pra guardar agora. O dinheiro voltou.");
+  });
+}
+function openAndar2(){
+  openPanel("andar2", "Cofrinho do 2º andar", corpo => {
+    const intro = el("p", "muted"), prog = el("div", "need"), row = el("div", "row"), lab = el("span"), val = el("span");
+    row.append(lab, val); const barBox = el("div"); prog.append(row, barBox);
+    const din = el("p", "money"), bts = el("div", "hbtns"), lista = el("div", "list");
+    corpo.append(intro, prog, din, bts, el("h3", null, "Quem já pôs"), lista);
+    const upd = () => {
+      const total = cofre2.total || 0, falta = ANDAR2_PRECO - total;
+      intro.textContent = temAndar2() ? "2º andar pronto! A escada fica no canto da sala: toque nela pra subir. Lá em cima tem suíte com banheira, sala de jogos e varanda com vista."
+        : "Juntem $" + ANDAR2_PRECO + " e a casa ganha um 2º andar: escada na sala, suíte com banheira, sala de jogos e uma varanda com vista. Cada um põe o quanto puder.";
+      lab.textContent = temAndar2() ? "Pago" : "Guardado"; val.textContent = "$" + total + " de $" + ANDAR2_PRECO;
+      barBox.textContent = ""; barBox.append(barra(Math.min(100, total / ANDAR2_PRECO * 100), "#FAC775"));
+      din.textContent = me ? "Você tem $ " + Math.floor(me.dinheiro) : "";
+      bts.textContent = ""; bts.hidden = temAndar2();
+      for (const v of [50, 100, 200]){ if (v >= falta) continue; const b = btn("+$" + v, "btn ghost", () => porNoCofre2(v)); b.disabled = !me || me.dinheiro < v; bts.append(b); }
+      if (falta > 0){ const b = btn("Completar $" + falta, "btn", () => porNoCofre2(falta)); b.disabled = !me || me.dinheiro < falta; bts.append(b); }
+      lista.textContent = "";
+      const por = Object.entries(cofre2.por || {}).sort((a, b) => b[1] - a[1]);
+      if (!por.length) lista.append(el("p", "muted", "Ninguém ainda. Que tal começar?"));
+      for (const [p, v] of por){ const r = el("div", "rowi"); r.append(el("strong", null, p === pid ? "Você" : nomeDe(p)), el("span", "money", "$" + v)); lista.append(r); }
+    };
+    upd(); return upd;
+  });
+}
+$("bAndar").onclick = () => openAndar2();
+// canto da tela: quem está no outro andar (toque leva até a escada) e o botão Subir/Descer quando estou perto
+function renderAndarUI(){
+  const box = $("andarUI"); if (!box) return;
+  const outros = me ? Object.entries(jogadores).filter(([id, j]) => id !== pid && j.online && j.nome && (j.andar || 0) !== andarAtual) : [];
+  const agora = Date.now(), lista = outros.map(([id, j]) => [id, j.nome, j.andar || 0, j.fala && j.falaAt && agora - j.falaAt < 7000 && agora - j.falaAt > -60000 ? String(j.fala).slice(0, 60) : ""]);
+  const subindo = !!(me && me.acao && me.acao.id === "escada"), botao = !!me && temAndar2() && !subindo && (mode === "build" || pertoDaEscada());
+  const sig = JSON.stringify([lista, botao, andarAtual, mode]);
+  if (sig === andarUISig) return; andarUISig = sig;
+  box.textContent = "";
+  for (const [id, nome, a, fala] of lista){
+    const b = btn("", "achip", () => irEscada());
+    const cv = el("canvas"); cv.width = 16; cv.height = 14; const x = cv.getContext("2d"); x.imageSmoothingEnabled = false;
+    x.drawImage(avatarSprite(jogadores[id], "down", 0, "stand").c, 1, 2, 16, 14, 0, 0, 16, 14);
+    const onde = ondeTxt(a);
+    b.append(cv, el("span", "tx", nome + " está " + onde + (fala ? ": “" + fala + "”" : "")), el("span", "seta", a > andarAtual ? "⬆" : "⬇"));
+    b.setAttribute("aria-label", nome + " está " + onde + (fala ? " e disse: " + fala : "") + ". Toque para ir até a escada.");
+    box.append(b);
+  }
+  if (botao){
+    const txt = mode === "build" ? (andarAtual ? "⬇ Ver o térreo" : "⬆ Ver o 2º andar") : andarAtual ? "⬇ Descer" : "⬆ Subir";
+    const b = btn(txt, "btn small escadaBtn", () => irEscada()); box.append(b);
+  }
+  box.hidden = !box.children.length;
+}
+
 // ===================== laço =====================
 let last = performance.now(), hudT = 0, clockSkew = 0;
 function tick(now){
@@ -3320,7 +3962,7 @@ function renderHudLight(){
   for (const w of $("needs").children){ const id = w.dataset.id, v = Math.round(me.needs[id]); w.querySelector(".v").textContent = v; const i = w.querySelector("i"); i.style.width = v + "%"; i.style.background = v < 25 ? "var(--bad)" : NEEDS.find(q => q.id === id).cor; }
   $("meMood").textContent = mood(); $("money").textContent = "$ " + Math.floor(me.dinheiro);
   if (mode === "build") $("money2").textContent = "$ " + Math.floor(me.dinheiro);
-  renderHouseCard(); renderLeva2Hud(); renderClima();
+  renderHouseCard(); renderLeva2Hud(); renderClima(); renderAndarUI();
 }
 
 const SPEED = 4.2;
@@ -3346,7 +3988,7 @@ function update(dt){
     if (d.junto){
       // junto = 1: outra pessoa perto fazendo a mesma ação; ou uma função que aceita a ação do outro
       const igual = typeof d.junto === "function" ? d.junto : (ja => ja.id === a.id);
-      const par = Object.entries(jogadores).find(([id, j]) => id !== pid && j.online && j.acao && igual(j.acao) && Date.now() - (j.acao.ini || 0) < (j.acao.dur || 0) + 3000 && Math.hypot(j.x - me.tx, j.y - me.ty) < 5);
+      const par = Object.entries(jogadores).find(([id, j]) => id !== pid && j.online && (j.andar || 0) === andarAtual && j.acao && igual(j.acao) && Date.now() - (j.acao.ini || 0) < (j.acao.dur || 0) + 3000 && Math.hypot(j.x - me.tx, j.y - me.ty) < 5);
       if (par){
         mult = d.juntoMult || 1.5; me.needs.social = clamp(me.needs.social + (d.juntoSocial || 1.2) * dt, 0, 100);
         if (!a.junto){ a.junto = par[0]; if (d.aoJuntar) d.aoJuntar(a, par[0]); }
@@ -3398,8 +4040,8 @@ function draw(now){
   drawWindowAnim(tm, hr);
   const clima = climaAgora(), est = estacao(), natal = mesAgora() === 12;
   if (natal) drawPiscaPisca(tm);
-  drawMural(tm);
-  drawQuadroTrofeus(tm);
+  if (andarAtual === 0){ drawMural(tm); drawQuadroTrofeus(tm); }
+  if (andarAtual === 0 && escadaOn){ const ex = ESCADA.x * T, ey = (ESCADA.y + ESCADA.h) * T; R(ex + 1, ey - 1, ESCADA.w * T, 2, "rgba(35,18,40,.24)"); R(ex + ESCADA.w * T, ESCADA.y * T + 4, 1, ESCADA.h * T - 4, "rgba(35,18,40,.18)"); }
   // tapetes
   for (const m of Object.values(moveis)) if (CAT[m.t] && CAT[m.t].chao){ R(m.x * T + 4, m.y * T + CAT[m.t].h * T - 2, CAT[m.t].w * T - 8, 1, "rgba(35,18,40,.18)"); blitFurn(m.t, m.x * T, m.y * T, 0); }
   // sombras dos móveis (em degraus, para ficarem suaves)
@@ -3426,7 +4068,10 @@ function draw(now){
   }
   addCasaObjs(objs, tm); // leva 1: plantas, pratos na mesa e bichinho
   addJogoObjs(objs, tm); // leva 2: tabuleiro na tela da TV/PC
+  if (escadaOn || andarAtual === 1) objs.push({ z: ESC_Z, f: blitEscada }); // leva 4: escada / guarda-corpo do vão
   const labels = [], lights = [];
+  if (andarAtual === 1){ for (const [k, d] of Object.entries(DECOR2)) if (d === "arandela"){ const [x, y] = k.split(",").map(Number); lights.push([x * T + 8, y * T + 9, 30, "255,214,150", .95]); } }
+  else if (escadaOn) lights.push([(ESCADA.x + 1) * T, ESCADA.y * T + 2, 22, "255,214,160", .45]); // luz que desce lá de cima
   for (const [id, m] of Object.entries(moveis)){
     if (m.t === "abajur") lights.push([m.x * T + 8, m.y * T - 2, 58, "255,206,130", 1]);
     if (ativo[id] && m.t === "tv") lights.push([m.x * T + 16, m.y * T + 2, 38, "140,190,255", .8 + .2 * Math.sin(tm / 110) * Math.sin(tm / 370)]);
@@ -3437,43 +4082,93 @@ function draw(now){
   }
   for (const [id, j] of Object.entries(jogadores)){
     if (!j.nome) continue;
+    if (id !== pid && (j.andar || 0) !== andarAtual) continue; // leva 4: cada um vê só o próprio andar
     let x, y, dir = j.dir || "down", moving = false, acao = j.acao;
     if (id === pid){ if (!me) continue; x = me.px; y = me.py; dir = me.dir; moving = me.path.length > 0; acao = me.acao; }
     else { const d = disp[id]; if (!d) continue; x = d.x; y = d.y; moving = d.moving; if (acao && tm - acao.ini > acao.dur + 3000) acao = null; }
-    let cx = Math.round((x + .5) * T), by = Math.round((y + 1) * T - 3), pose = "stand", frame = moving ? Math.floor(tm / 115) % 4 : 0, deitado = false, sentado = false, movT = null;
-    if (!moving && Math.floor((tm + (id.charCodeAt(2) || 0) * 97) / 800) % 2) pose = "breath"; // respirando parado
+    let cx = Math.round((x + .5) * T), by = Math.round((y + 1) * T - 3), pose = "stand", frame = moving ? Math.floor(tm / 115) % 4 : 0;
+    let deitado = false, sobre = false, sentado = false, movT = null, mv = null, vg = null, slot = 0, esc = null;
+    const respira = !moving && Math.floor((tm + (id.charCodeAt(2) || 0) * 97) / 800) % 2 === 1; // respirando parado
     if (!blinkUntil[id] || tm > blinkUntil[id] + 3500 + (id.charCodeAt(1) % 7) * 300) blinkUntil[id] = tm + 140;
-    if (tm < blinkUntil[id] && !moving) pose = pose === "breath" ? "blinkbreath" : "blink";
-    if (acao && acao.sobre && acao.mov && moveis[acao.mov]){
-      const m = moveis[acao.mov], c = CAT[m.t]; movT = m.t;
-      if (acao.deitar){ deitado = true; pose = "lie"; const slot = Object.keys(jogadores).indexOf(id) % 2; cx = m.x * T + (m.t === "casal" ? (slot ? 35 : 13) : m.t === "rede" ? 24 : 16); by = m.y * T + (m.t === "rede" ? 8 : 21); }
+    const pisca = tm < blinkUntil[id] && !moving;
+    pose = (pisca ? "blink" : "") + (respira ? "breath" : "") || "stand";
+    const aid = acao ? (acao.id || "") : "";
+    const m0 = acao && acao.mov ? moveis[acao.mov] : null, se0 = m0 ? SENTAR[m0.t] : null;
+    if (m0 && (acao.sobre || (se0 && se0.sempre))){
+      const c = CAT[m0.t]; mv = m0; movT = m0.t; sobre = true;
+      // vaga: ordem entre quem está no mesmo móvel (dois no sofá não ficam um em cima do outro)
+      const aqui = Object.keys(jogadores).filter(k => { const aa = k === pid ? (me && me.acao) : jogadores[k].acao; return aa && aa.mov === acao.mov && (k === pid || jogadores[k].online); });
+      const nv = se0 && se0.vagas ? se0.vagas.length : 2;
+      slot = Math.max(0, aqui.indexOf(id)) % nv;
+      if (acao.deitar){ deitado = true; pose = "lie"; const s2 = Object.keys(jogadores).indexOf(id) % 2; cx = m0.x * T + (m0.t === "casal" ? (s2 ? 35 : 13) : m0.t === "rede" ? 24 : 16); by = m0.y * T + (m0.t === "rede" ? 8 : 21); }
       else {
-        // vaga: ordem entre quem está no mesmo móvel (dois no sofá não ficam um em cima do outro)
-        sentado = true; const se = SENTAR[m.t] || {};
-        const aqui = Object.keys(jogadores).filter(k => { const aa = k === pid ? (me && me.acao) : jogadores[k].acao; return aa && aa.mov === acao.mov && (k === pid || jogadores[k].online); });
-        const slot = Math.max(0, aqui.indexOf(id)) % 2;
-        cx = Math.round((m.x + c.w / 2) * T) + (se.dx && aqui.length > 1 ? se.dx[slot] : 0); by = se.by != null ? m.y * T + se.by : (m.y + c.h) * T - 3; dir = acao.cima ? "up" : se.dir || "down";
+        vg = se0 ? se0.vagas[slot] : null;
+        const usa = vg && (se0.fixas || aqui.length > 1);
+        cx = Math.round((m0.x + c.w / 2) * T) + (usa ? vg.dx : 0);
+        by = vg ? m0.y * T + (acao.cima && se0.cima ? se0.cima : vg.by) : (m0.y + c.h) * T - 3;
+        if (vg && !se0.empe){
+          sentado = true; dir = acao.cima ? "up" : vg.dir || "down";
+          if (m0.t === "balanco"){ const fb = furnFrame("balanco", true, tm, 0), d = fb === 1 ? -1 : fb === 2 ? 1 : 0; cx += slot ? -d : d; } // vai e volta com o assento
+        } else vg = null; // em pé em cima (chuveiro, piscina)
       }
     }
-    const aid = acao ? (acao.id || "") : "";
-    if (/dancar/.test(aid)){ pose = Math.floor(tm / 260) % 2 ? "arms" : "stand"; frame = Math.floor(tm / 260) % 2 ? 1 : 3; }
-    if (/^s-(cocegas|abracar|beijo)/.test(aid)) pose = "arms";
-    if (aid === "minigame" && Math.floor((tm + id.charCodeAt(1) * 131) / 900) % 5 === 0) pose = "arms"; // comemora de vez em quando
+    if (sentado){
+      // atividade sentada: comer/piquenique leva o garfo à boca, café a xícara, computador e jogo nas mãos; comemora de vez em quando
+      let act = aid === "comer" || aid === "piquenique" ? "eat" : aid === "cafe" ? "drink" : aid === "minigame" || movT === "pc" ? "pc" : "";
+      if (aid === "minigame" && Math.floor((tm + id.charCodeAt(1) * 131) / 900) % 5 === 0) act = "arms";
+      frame = act === "pc" ? Math.floor((tm + id.charCodeAt(1) * 53) / 170) % 2 : act === "eat" || act === "drink" ? (Math.floor((tm + id.charCodeAt(1) * 211) / 650) % 3 === 2 ? 1 : 0) : 0;
+      pose = "sit" + act + (pisca ? "blink" : "") + (respira && !act ? "breath" : "");
+    } else if (!deitado){
+      if (/dancar/.test(aid)){ pose = Math.floor(tm / 260) % 2 ? "arms" : "stand"; frame = Math.floor(tm / 260) % 2 ? 1 : 3; }
+      if (/^s-(cocegas|abracar|beijo)/.test(aid)) pose = "arms";
+      if (aid === "minigame" && Math.floor((tm + id.charCodeAt(1) * 131) / 900) % 5 === 0) pose = "arms"; // comemora de vez em quando
+    }
+    // leva 4: subindo ou descendo a escada (anda pelos degraus e some no alto, ou afunda no vão)
+    if (aid === "escada" && acao.esc){
+      const p = clamp((tm - acao.ini) / acao.dur, 0, 1), sobe = acao.esc > 0, xm = (ESCADA.x + ESCADA.w / 2) * T;
+      cx = Math.round(cx + (xm - cx) * Math.min(1, p * 3));
+      by = Math.round(by + (sobe ? -1 : 1) * (p * 3.2 * T + p * (sobe ? 6 : 10)));
+      dir = sobe ? "up" : "down"; frame = Math.floor(tm / 115) % 4; pose = "stand";
+      esc = { a: p > .55 ? Math.max(0, 1 - (p - .55) / .45) : 1, corte: sobe ? 0 : (ESCADA.y + ESCADA.h) * T };
+    }
     const off = !j.online && id !== pid;
-    if (off){ pose = "blink"; }
-    // sentado ou deitado: o boneco fica por cima do móvel
-    const z = deitado || sentado ? (moveis[acao.mov].y + CAT[moveis[acao.mov].t].h) * T : by;
+    if (off) pose = sentado ? "sitblink" : "blink";
+    // sentado ou deitado: o boneco fica por cima do móvel (quem senta atrás da mesa vem antes do tampo)
+    let z = deitado || sobre ? (mv.y + CAT[mv.t].h) * T + (vg && vg.z || 0) : by;
+    if (andarAtual === 0 && escadaOn && (esc || naEscada(Math.floor(x + .5), Math.floor(y + .5)))) z = Math.max(z, ESC_Z + 1);
+    if (andarAtual === 1 && (esc || naEscada(Math.floor(x + .5), Math.floor(y + .5)))) z = Math.min(z, ESC_Z - .5);
+    const pele = PELES[visual(j).pele];
     objs.push({ z, f: () => {
-      if (!deitado && !sentado){ R(cx - 3, by - 1, 6, 1, "rgba(35,18,40,.22)"); R(cx - 5, by, 10, 1, "rgba(35,18,40,.3)"); R(cx - 4, by + 1, 8, 1, "rgba(35,18,40,.2)"); }
+      if (esc){ ctx.save(); if (esc.corte){ ctx.beginPath(); ctx.rect(0, 0, W * T, esc.corte); ctx.clip(); } ctx.globalAlpha = esc.a; }
+      if (!deitado && !sobre && !esc){ R(cx - 3, by - 1, 6, 1, "rgba(35,18,40,.22)"); R(cx - 5, by, 10, 1, "rgba(35,18,40,.3)"); R(cx - 4, by + 1, 8, 1, "rgba(35,18,40,.2)"); }
       if (off) ctx.globalAlpha = .55;
+      if (vg && vg.cadeira) cadeiraPc(cx, by, false);
       blitAvatar(j, cx, by, dir, frame, pose);
+      if (vg && vg.cadeira) cadeiraPc(cx, by, true);
+      if (vg){
+        const mx = mv.x * T, my = mv.y * T;
+        if (vg.banho){ // espuma até o peito
+          ctx.globalAlpha = .9; R(cx - 6, my + 6, 12, 3, "#8FD0EE"); ctx.globalAlpha = off ? .55 : 1;
+          for (const [a, b] of [[-6, 5], [-4, 6], [-1, 5], [2, 6], [4, 5], [-3, 4], [5, 7]]){ R(cx + a, my + b, 2, 1, "#FFFFFF"); P(cx + a, my + b + 1, "#E6F4FB"); }
+        }
+        if (vg.frente){ const fr = furnFrame(mv.t, true, tm, mv.x * 3 + mv.y * 5); for (const r of vg.frente) blitFurnParte(mv.t, fr, mx, my, r); }
+        if (vg.mesa){ // mãos em cima do tampo (a do garfo sobe até a boca)
+          const ty = my + vg.mesa, levanta = /eat|drink/.test(pose) && frame === 1;
+          for (const hx of levanta ? [cx - 4] : [cx - 4, cx + 2]){ R(hx - 1, ty - 1, 4, 3, "#2D1C30"); R(hx, ty - 1, 2, 2, pele); P(hx + (hx < cx ? 1 : 0), ty - 1, sh(pele, .2)); R(hx - 1, ty + 2, 4, 1, "rgba(35,18,40,.25)"); }
+        }
+        if (vg.cordas){ // cordas do balanço por cima, com as mãos segurando
+          const fb = furnFrame("balanco", true, tm, 0), d = (fb === 1 ? -1 : fb === 2 ? 1 : 0) * (slot ? -1 : 1);
+          for (const rx of vg.cordas){ R(mx + rx + d, by - 8, 1, my + 3 - (by - 8), C.creamD); P(mx + rx + d, by - 6, pele); }
+        }
+      }
       if (deitado && movT === "rede"){ R(cx - 8, by - 2, 16, 2, C.rose); R(cx - 7, by - 3, 14, 1, "#F9C9D6"); R(cx - 8, by, 16, 1, "#D97A96"); }
       else if (deitado){ R(cx - 7, by - 2, 14, 2, C.cream); R(cx - 6, by - 3, 12, 1, "#FFFFFF"); R(cx - 7, by, 14, 1, C.creamD); }
-      if (sentado && movT === "piscina"){ ctx.globalAlpha = .82; R(cx - 7, by - 6, 14, 5, "#8FD6EE"); ctx.globalAlpha = 1; R(cx - 6, by - 6, 12, 1, "#E6F8FD"); }
+      if (sobre && !sentado && !deitado && movT === "piscina"){ ctx.globalAlpha = .82; R(cx - 7, by - 6, 14, 5, "#8FD6EE"); ctx.globalAlpha = 1; R(cx - 6, by - 6, 12, 1, "#E6F8FD"); }
       ctx.globalAlpha = 1;
+      if (esc) ctx.restore();
     } });
-    lights.push([cx, by - 9, 16, "255,236,214", .55]);
-    labels.push({ id, j, cx, by, acao, off, deitado });
+    if (!esc || esc.a > .3) lights.push([cx, by - 9, 16, "255,236,214", .55]);
+    labels.push({ id, j, cx, by: sentado ? by + 2 : by, acao, off, deitado, some: esc && esc.a < .6 });
   }
   objs.sort((a, b) => a.z - b.z).forEach(o => o.f());
 
@@ -3501,7 +4196,7 @@ function draw(now){
   let dk = darkness(hr); if (clima) dk = Math.min(.5, dk + (clima === "garoa" ? .08 : .15));
   const k = dk * 2;
   if (k > 0){
-    if (k > .5) for (const w of JANELAS){ const [wx, wy] = w.split(",").map(Number); lights.push([wx * T + 9, wy * T + 26, 24, "150,175,255", .45]); }
+    if (k > .5) for (const w of janelas()){ const [wx, wy] = w.split(",").map(Number); lights.push([wx * T + 9, wy * T + 26, 24, "150,175,255", .45]); }
     const warm = clima ? [186, 196, 224] : hr < 12 ? [255, 214, 214] : [255, 198, 156], night = [116, 110, 182];
     const A = k < .5 ? [255, 255, 255] : warm, B = k < .5 ? warm : night, t = k < .5 ? k * 2 : (k - .5) * 2;
     const l = lc.getContext("2d");
@@ -3540,6 +4235,7 @@ function draw(now){
   const fs = Math.round(clamp(4.6 * K, 12 * dpr, 17 * dpr));
   mctx.font = "700 " + fs + "px 'Pixelify Sans', monospace"; mctx.textAlign = "center"; mctx.textBaseline = "bottom";
   for (const L of labels){
+    if (L.some) continue;
     const sx = L.cx * K, top = (L.by - (L.deitado ? 12 : 27)) * K;
     if (mode === "live"){
       const nm = L.j.nome + (L.off ? " · fora" : "");
