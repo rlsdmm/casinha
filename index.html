@@ -146,6 +146,45 @@ textarea{font:inherit;color:inherit;border:1.5px solid var(--line);background:va
 .seg .btn[aria-pressed=true]{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
 
 .toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(16px + env(safe-area-inset-bottom,0px));background:var(--fg);color:var(--bg);padding:10px 16px;border-radius:999px;font-weight:800;font-size:.9rem;max-width:calc(100% - 32px);z-index:20;text-align:center}
+/* Leva 2: toast de conquista, convite de jogo, minigames, tarefas, troféus */
+.toast.gold{display:flex;align-items:center;gap:10px;text-align:left;border-radius:14px;background:linear-gradient(180deg,#FCE9B8,#F6C667);color:#3A2433;border:2px solid #B8862E;box-shadow:0 8px 24px rgba(0,0,0,.4);padding:8px 14px 8px 10px;width:max-content}
+.toast.gold canvas{width:36px;height:36px;image-rendering:pixelated;flex-shrink:0}
+.toast.gold strong{display:block;font-family:var(--pixel);font-size:1rem}
+.toast.gold span{display:block;font-weight:700;font-size:.85rem}
+.stage{width:100%;margin-inline:auto}
+.banner.jogo{right:10px;top:auto;bottom:10px;display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;padding:6px 6px 6px 12px;font-size:.9rem}
+.banner.jogo .bb{display:flex;gap:6px}
+.banner.jogo .btn{min-height:44px}
+.placar{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.pl{display:flex;align-items:center;gap:8px;background:var(--bg);border:1.5px solid var(--line);border-radius:12px;padding:6px 10px;min-width:0}
+.pl.vez{border-color:var(--accent);box-shadow:0 0 0 2px rgba(142,124,240,.35)}
+.pl canvas{width:36px;height:44px;image-rendering:pixelated;flex-shrink:0}
+.pl .tx{display:flex;flex-direction:column;min-width:0}
+.pl strong{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pl small{color:var(--muted);font-weight:700}
+.jstatus{font-weight:800;text-align:center;min-height:1.45em}
+.velha{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;width:100%;max-width:300px;margin:0 auto}
+.velha button{aspect-ratio:1;min-height:64px;border-radius:12px;border:2px solid var(--line);background:var(--bg);font:700 2.6rem/1 var(--pixel);padding:0}
+.velha .x{color:#F08A7A} .velha .o{color:#7FD0F5}
+.velha .win{background:var(--panel-2);border-color:var(--money)}
+.memo{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;width:100%;max-width:360px;margin:0 auto}
+.memo button{aspect-ratio:4/5;min-height:56px;border-radius:12px;border:2px solid var(--line);background:repeating-linear-gradient(45deg,#3E3260 0 6px,#4A3D72 6px 12px);display:grid;place-items:center;padding:0;font:700 1.4rem var(--pixel);color:var(--muted)}
+.memo button.up{background:#FFF4E0}
+.memo button.a{border-color:#F08A7A;background:#FBE3DE} .memo button.b{border-color:#7FD0F5;background:#DDF1FC}
+.memo canvas{width:62%;height:auto;image-rendering:pixelated}
+.velha button:disabled,.memo button:disabled{cursor:default}
+.escolha{display:flex;flex-direction:column;align-items:flex-start;gap:2px;text-align:left;min-height:64px}
+.escolha small{font-weight:600;color:var(--muted)}
+.chk{width:28px;height:28px;border-radius:50%;border:2px solid var(--line);display:grid;place-items:center;font-weight:800;flex-shrink:0;color:var(--accent-ink)}
+.rowi.feita .chk{background:var(--good);border-color:var(--good)}
+.rowi.feita strong{text-decoration:line-through;text-decoration-thickness:2px;color:var(--muted)}
+.trofs{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:8px}
+.trof{display:flex;gap:10px;align-items:center;background:var(--bg);border:1.5px solid var(--line);border-radius:12px;padding:8px 10px;min-height:64px}
+.trof.on{border-color:#B8862E;background:linear-gradient(180deg,#3A2E1E,var(--bg))}
+.trof canvas{width:36px;height:36px;image-rendering:pixelated;flex-shrink:0}
+.trof .tx{display:flex;flex-direction:column;gap:3px;min-width:0;flex:1}
+.trof small{color:var(--muted)}
+.trof.off strong{color:var(--muted)}
 @media (prefers-reduced-motion: reduce){*{transition:none!important}}
 </style>
 </head>
@@ -224,6 +263,9 @@ textarea{font:inherit;color:inherit;border:1.5px solid var(--line);background:va
             <button class="btn ghost" type="button" id="bMural">Mural</button>
             <button class="btn ghost" type="button" id="bDespensa">Despensa</button>
             <button class="btn ghost" type="button" id="bPet">Bichinho</button>
+            <button class="btn ghost" type="button" id="bTarefas">Tarefas</button>
+            <button class="btn ghost" type="button" id="bTrofeus">Troféus</button>
+            <button class="btn ghost" type="button" id="bQuintal" hidden>Quintal</button>
           </div>
         </div>
       </div>
@@ -244,7 +286,10 @@ textarea{font:inherit;color:inherit;border:1.5px solid var(--line);background:va
 <script>
 "use strict";
 const DB_URL = "https://sintonia-a-dois-default-rtdb.firebaseio.com";
-const W = 18, H = 13, T = 16;
+// Mapa: a casa ocupa as linhas 0..HC (HC = parede de baixo). Com quintal comprado (leva 2),
+// o mapa ganha linhas de grama cercada abaixo da casa: H passa de H_CASA (13) para H_QUINTAL (18).
+const W = 18, T = 16, HC = 12, H_CASA = 13, H_QUINTAL = 18;
+let H = H_CASA;
 const $ = id => document.getElementById(id);
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 const store = {
@@ -252,17 +297,31 @@ const store = {
   set(k, v){ try { v == null ? localStorage.removeItem(k) : localStorage.setItem(k, v); } catch(e){} }
 };
 function el(tag, cls, text){ const e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; }
-let toastT; function toast(m){ const t = $("toast"); t.textContent = m; t.hidden = false; clearTimeout(toastT); toastT = setTimeout(() => t.hidden = true, 3000); }
+// toasts comuns esperam o toast especial (conquista) sumir antes de aparecer
+let toastT, especialAte = 0;
+function toast(m){
+  const espera = especialAte - Date.now();
+  if (espera > 0){ setTimeout(() => toast(m), espera + 50); return; }
+  const t = $("toast"); t.className = "toast"; t.textContent = m; t.hidden = false; clearTimeout(toastT); toastT = setTimeout(() => t.hidden = true, 3000);
+}
 
 // ===================== mapa =====================
 const MAP = [];
-for (let y = 0; y < H; y++){ MAP.push([]); for (let x = 0; x < W; x++){
-  let wall = x === 0 || y === 0 || x === W - 1 || y === H - 1 || x === 7 || (y === 6 && x < 7) || (y === 8 && x > 7);
-  MAP[y].push(wall ? 1 : 0);
-}}
-for (const [x, y] of [[3,6],[7,3],[7,9],[12,8],[13,8]]) MAP[y][x] = 2; // portas
-function comodo(x, y){ if (x < 7) return y < 6 ? "quarto" : "banheiro"; if (x === 7) return y < 6 ? "sala" : "cozinha"; return y < 8 ? "sala" : "cozinha"; }
-const COMODOS = { quarto: "Quarto", banheiro: "Banheiro", sala: "Sala", cozinha: "Cozinha" };
+const PORTAS = [[3,6],[7,3],[7,9],[12,8],[13,8]];
+let portaQ = 0; // coluna da porta da cozinha para o quintal (0 = sem quintal)
+function montarMapa(quintal, porta){
+  H = quintal ? H_QUINTAL : H_CASA; portaQ = quintal ? (porta || 13) : 0;
+  MAP.length = 0;
+  for (let y = 0; y < H; y++){ const r = []; for (let x = 0; x < W; x++){
+    const wall = x === 0 || y === 0 || x === W - 1 || y === H - 1 || y === HC || (x === 7 && y < HC) || (y === 6 && x < 7) || (y === 8 && x > 7);
+    r.push(wall ? 1 : 0);
+  } MAP.push(r); }
+  for (const [x, y] of PORTAS) MAP[y][x] = 2;
+  if (quintal) MAP[HC][portaQ] = 2;
+}
+montarMapa(false);
+function comodo(x, y){ if (y > HC) return "quintal"; if (x < 7) return y < 6 ? "quarto" : "banheiro"; if (x === 7) return y < 6 ? "sala" : "cozinha"; return y < 8 ? "sala" : "cozinha"; }
+const COMODOS = { quarto: "Quarto", banheiro: "Banheiro", sala: "Sala", cozinha: "Cozinha", quintal: "Quintal" };
 
 const PISOS = [
   { nome: "Madeira", a: "#9B7653", b: "#8A6847", tipo: "tabua" },
@@ -297,16 +356,24 @@ const CAT = {
   mesa:      { nome: "Mesa", w: 2, h: 2, preco: 120, acoes: [{ id: "cafe", nome: "Tomar um café", dur: 6, ganho: { fome: 10, energia: 12 }, junto: 1 }] },
   chuveiro:  { nome: "Chuveiro", w: 1, h: 1, preco: 200, acoes: [{ id: "banho", nome: "Tomar banho", dur: 10, ganho: { higiene: 80 }, sobre: 1 }] },
   vaso:      { nome: "Vaso sanitário", w: 1, h: 1, preco: 100, acoes: [{ id: "banheiro", nome: "Usar o banheiro", dur: 5, ganho: { higiene: 20 }, sobre: 1 }] },
-  pc:        { nome: "Computador", w: 2, h: 1, preco: 300, acoes: [{ id: "trabalhar", nome: "Trabalhar", dur: 15, ganho: { diversao: -10, energia: -8 }, dinheiro: 90 }, { id: "videos", nome: "Ver vídeos", dur: 8, ganho: { diversao: 20 } }] },
+  pc:        { nome: "Computador", w: 2, h: 1, preco: 300, acoes: [] }, // trabalhar, vídeos, tarefas e jogos: MENU_EXTRA.pc (leva 2)
   estante:   { nome: "Estante", w: 2, h: 1, preco: 150, acoes: [{ id: "ler", nome: "Ler um livro", dur: 10, ganho: { diversao: 25 } }] },
   som:       { nome: "Som", w: 1, h: 1, preco: 180, acoes: [{ id: "dancar", nome: "Dançar", dur: 10, ganho: { diversao: 30, energia: -5 }, junto: 1 }] },
-  planta:    { nome: "Planta", w: 1, h: 1, preco: 40, acoes: [{ id: "regar", nome: "Regar", dur: 3, ganho: { diversao: 5 } }] },
+  planta:    { nome: "Planta", w: 1, h: 1, preco: 40, livre: 1, acoes: [{ id: "regar", nome: "Regar", dur: 3, ganho: { diversao: 5 } }] },
   armario:   { nome: "Guarda-roupa", w: 2, h: 1, preco: 200, acoes: [{ id: "roupa", nome: "Trocar de roupa", dur: 1, ganho: {}, roupa: 1 }] },
   abajur:    { nome: "Abajur", w: 1, h: 1, preco: 60, acoes: [] },
   tapete:    { nome: "Tapete", w: 3, h: 2, preco: 80, acoes: [], chao: 1 },
-  canteiro:  { nome: "Canteiro", w: 1, h: 1, preco: 60, acoes: [] },  // horta: ver JARDIM (menu extra)
-  pote:      { nome: "Pote do bichinho", w: 1, h: 1, preco: 30, acoes: [] } // ver PET (menu extra)
+  canteiro:  { nome: "Canteiro", w: 1, h: 1, preco: 60, livre: 1, acoes: [] },  // horta: ver JARDIM (menu extra)
+  pote:      { nome: "Pote do bichinho", w: 1, h: 1, preco: 30, livre: 1, acoes: [] }, // ver PET (menu extra)
+  // leva 2: área externa. fora = só no quintal; livre = pode dentro e fora; o resto só dentro de casa
+  churrasqueira: { nome: "Churrasqueira", w: 2, h: 1, preco: 350, fora: 1, acoes: [{ id: "churrasco", nome: "Fazer churrasco ($15)", dur: 12, ganho: { fome: 50, diversao: 15 }, junto: 1, juntoMult: 1.4, juntoSocial: 3, antes: () => gastar(15, "a carne"), cancel: () => ganhar(15) }] },
+  rede:       { nome: "Rede", w: 3, h: 1, preco: 220, fora: 1, acoes: [{ id: "rede", nome: "Deitar na rede", dur: 12, ganho: { energia: 30, diversao: 10 }, sobre: 1, deitar: 1 }] },
+  piscina:    { nome: "Piscininha", w: 2, h: 2, preco: 300, fora: 1, acoes: [{ id: "piscina", nome: "Brincar na piscina", dur: 10, ganho: { diversao: 35, higiene: 15 }, sobre: 1, junto: 1, juntoSocial: 2 }] },
+  balanco:    { nome: "Balanço", w: 2, h: 1, preco: 260, fora: 1, acoes: [{ id: "balancar", nome: "Balançar", dur: 8, ganho: { diversao: 25 }, sobre: 1, junto: 1, juntoSocial: 2 }] },
+  piquenique: { nome: "Mesa de piquenique", w: 3, h: 2, preco: 280, fora: 1, acoes: [{ id: "piquenique", nome: "Fazer um piquenique", dur: 10, ganho: { fome: 25, diversao: 10 }, sobre: 1, junto: 1, juntoMult: 1.6, juntoSocial: 3 }] }
 };
+// onde o boneco senta em cada móvel "sobre" (dx por vaga, by = base a partir do topo do móvel, dir = para onde olha)
+const SENTAR = { sofa: { dx: [-9, 9] }, piquenique: { dx: [-10, 10], by: 30, dir: "up" }, piscina: { dx: [-6, 6], by: 22 }, balanco: { dx: [-8, 8], by: 13 } };
 // Menus extras por tipo de móvel: (id do móvel, móvel) => [{ nome, info, fn }]. Somam com CAT[t].acoes.
 // Para um móvel novo com menu próprio, basta registrar aqui.
 const MENU_EXTRA = {};
@@ -382,9 +449,12 @@ function sprite(key, w, h, fn, outline){
 }
 
 // quanto cada móvel sobe acima do próprio quadrado (parte alta, ex.: geladeira)
-const TOP = { geladeira: 12, tv: 9, pc: 9, estante: 14, armario: 14, som: 8, planta: 8, abajur: 8, sofa: 6, chuveiro: 10, mesa: 4, casal: 4, solteiro: 4, game: 2, fogao: 5, pia: 4, vaso: 5, tapete: 0, canteiro: 1, pote: 0 };
+const TOP = { geladeira: 12, tv: 9, pc: 9, estante: 14, armario: 14, som: 8, planta: 8, abajur: 8, sofa: 6, chuveiro: 10, mesa: 4, casal: 4, solteiro: 4, game: 2, fogao: 5, pia: 4, vaso: 5, tapete: 0, canteiro: 1, pote: 0, churrasqueira: 10, rede: 6, piscina: 2, balanco: 16, piquenique: 3 };
 function furnFrame(t, on, tm, ph){
   if (t === "pote") return petPoteCheio() ? 1 : 0;
+  if (t === "piscina") return Math.floor((tm + (ph || 0) * 97) / 520) % 3; // água sempre mexendo
+  if (t === "rede" || t === "balanco") return on ? 1 + Math.floor(tm / (t === "rede" ? 700 : 380)) % 2 : 0;
+  if (t === "churrasqueira") return on ? 1 + Math.floor(tm / 200) % 2 : 0;
   if (t === "planta") return [0, 1, 0, 2][Math.floor((tm + (ph || 0) * 233) / 650) % 4]; // balanço leve
   if (!on) return 0;
   if (t === "tv") return 1 + Math.floor(tm / 900) % 4;
@@ -682,6 +752,95 @@ function drawFurn(t, x, y, f){
       R(x + 4, y + 9, 8, 1, sh(C.coral, -.18));
       pixHeart(x + 6, y + 10, "#FFF4E0");
       break;
+    case "churrasqueira": {
+      const bk = "#C2604A", bkD = "#9C4634", bkL = "#DB8466", mo = "#E9CDB0";
+      // chaminé
+      box(x + 22, y - 7, 7, 7, bk); R(x + 22, y - 7, 7, 1, bkL); R(x + 22, y - 4, 7, 1, mo);
+      rbox(x + 21, y - 10, 9, 3, "#5A546C"); R(x + 22, y - 10, 7, 1, "#77708A");
+      // corpo de tijolinho
+      box(x + 1, y - 2, 30, 17, bk); R(x + 1, y - 2, 30, 1, bkL);
+      for (let j = 0; j < 3; j++){
+        const yy = y + 2 + j * 4; R(x + 1, yy, 30, 1, mo);
+        for (let i = (j % 2) * 4 + 3; i < 29; i += 8) R(x + 1 + i, yy + 1, 1, 3, mo);
+        R(x + 2, yy + 1, 28, 1, bkL);
+      }
+      R(x + 1, y + 14, 30, 1, bkD);
+      // grelha
+      R(x + 2, y - 4, 19, 6, "#2E2638"); R(x + 2, y - 4, 19, 1, "#4A4258");
+      for (let i = 0; i < 6; i++) R(x + 4 + i * 3, y - 3, 1, 4, "#77708A");
+      if (f){
+        for (const [a, b] of [[5, 0], [11, 1], [16, 0], [8, 1]]) P(x + a, y + b, f === 1 ? "#F2A65A" : "#FFD27A");
+        rbox(x + 4, y - 3, 6, 3, "#A8502E"); R(x + 5, y - 3, 4, 1, "#D07A4A");
+        rbox(x + 12, y - 2, 6, 3, "#B85A30"); R(x + 13, y - 2, 4, 1, "#E08A58");
+      }
+      // boca da lenha
+      R(x + 5, y + 6, 14, 7, "#3A2433"); R(x + 5, y + 6, 14, 1, bkD);
+      R(x + 7, y + 10, 10, 2, C.woodD); R(x + 8, y + 10, 4, 1, C.wood);
+      if (f){ R(x + 8, y + 9, 8, 1, "#F2A65A"); P(x + 10, y + 8, "#FFD27A"); P(x + 13, y + 8, "#F2A65A"); }
+      // bancada de lado
+      rbox(x + 22, y + 1, 8, 4, C.wood); R(x + 23, y + 1, 6, 1, C.woodL); P(x + 25, y + 2, C.metal); P(x + 26, y + 2, C.metal);
+      R(x + 2, y + 15, 3, 1, bkD); R(x + 27, y + 15, 3, 1, bkD);
+      break; }
+    case "rede": {
+      const bal = f === 1 ? 1 : 0;
+      // postes
+      for (const px of [x + 1, x + 44]){ R(px, y - 6, 3, 20, C.woodD); R(px, y - 6, 1, 20, C.wood); R(px - 1, y + 13, 5, 2, C.woodDD); R(px, y - 7, 3, 1, C.woodL); }
+      // cordas
+      R(x + 4, y - 4, 4, 1, C.creamD); R(x + 40, y - 4, 4, 1, C.creamD); P(x + 5, y - 3, C.creamD); P(x + 42, y - 3, C.creamD);
+      // pano listrado, caindo no meio
+      const cores = [C.rose, "#F9C9D6", C.cream, C.mint, C.cream, "#D97A96"];
+      for (let i = 0; i < 32; i++){
+        const sag = Math.round(Math.sin(Math.PI * i / 31) * 5) + (i > 4 && i < 27 ? bal : 0);
+        for (let j = 0; j < 6; j++) P(x + 8 + i, y - 4 + sag + j, cores[j]);
+        if (i % 3 === 1) P(x + 8 + i, y + 2 + sag, C.creamD);
+      }
+      // sombra no chão
+      R(x + 12, y + 13, 24, 1, "rgba(35,18,40,.22)"); R(x + 16, y + 14, 16, 1, "rgba(35,18,40,.14)");
+      break; }
+    case "piscina": {
+      const ring = "#6FB3E8", ringD = "#4E8FC8", ringL = "#A8D8F6", agua = "#8FD6EE", aguaD = "#6CC2E2";
+      rbox(x + 1, y - 2, 30, 33, ring);
+      R(x + 3, y - 2, 26, 1, ringL); R(x + 1, y + 2, 1, 24, ringL); R(x + 3, y + 30, 26, 1, ringD); R(x + 30, y + 2, 1, 24, ringD);
+      // listras do bote
+      for (const [a, b, w, h] of [[8, -2, 4, 4], [20, -2, 4, 4], [1, 10, 4, 4], [27, 10, 4, 4], [8, 27, 4, 4], [20, 27, 4, 4]]) R(x + a, y + b, w, h, C.rose);
+      // água
+      rbox(x + 5, y + 2, 22, 25, aguaD); R(x + 6, y + 3, 20, 23, agua); R(x + 6, y + 3, 20, 2, aguaD);
+      const o = f || 0;
+      R(x + 8 + o, y + 8, 4, 1, "#E6F8FD"); R(x + 18 - o, y + 13, 5, 1, "#E6F8FD"); R(x + 9, y + 20 + (o % 2), 3, 1, "#E6F8FD"); P(x + 22, y + 22 - o, "#E6F8FD");
+      // patinho
+      const dx = x + 17 + (o === 1 ? 1 : 0), dy = y + 18;
+      R(dx, dy + 1, 6, 3, C.gold); R(dx + 4, dy - 1, 3, 3, C.gold); P(dx + 7, dy, "#F08A3A"); P(dx + 5, dy, C.ink); R(dx + 1, dy + 1, 2, 1, "#FCE9B8"); R(dx, dy + 4, 6, 1, aguaD);
+      break; }
+    case "balanco": {
+      const mt = "#E8735F", mtD = "#B8524A", mtL = "#F4A08E", bal = f === 1 ? -1 : f === 2 ? 1 : 0;
+      // pernas e trave
+      for (const px of [x + 1, x + 28]){ R(px, y - 14, 3, 29, mt); R(px, y - 14, 1, 29, mtL); R(px + 2, y - 14, 1, 29, mtD); R(px - 1, y + 14, 5, 1, mtD); }
+      rbox(x, y - 17, 32, 4, mtD); R(x + 1, y - 17, 30, 1, mtL); P(x + 9, y - 15, C.metal); P(x + 22, y - 15, C.metal);
+      // dois assentos
+      for (const [sx, d] of [[x + 6, bal], [x + 19, -bal]]){
+        R(sx + 1, y - 14, 1, 17 + (d ? 0 : 0), C.creamD); R(sx + 6, y - 14, 1, 17, C.creamD);
+        rbox(sx + d, y + 3, 8, 3, C.wood); R(sx + 1 + d, y + 3, 6, 1, C.woodL); R(sx + 1 + d, y + 6, 6, 1, "rgba(35,18,40,.2)");
+      }
+      R(x + 4, y + 12, 24, 1, "rgba(35,18,40,.18)");
+      break; }
+    case "piquenique": {
+      // banco de trás
+      rbox(x + 4, y - 3, 40, 5, C.woodD); R(x + 5, y - 3, 38, 1, C.wood);
+      // tampo de tábuas
+      rbox(x + 2, y + 3, 44, 18, C.wood); R(x + 3, y + 4, 42, 1, C.woodL);
+      R(x + 3, y + 9, 42, 1, C.woodD); R(x + 3, y + 15, 42, 1, C.woodD);
+      R(x + 3, y + 21, 42, 2, C.woodDD);
+      // toalha xadrez
+      for (let j = 0; j < 4; j++) for (let i = 0; i < 6; i++) R(x + 13 + i * 3, y + 6 + j * 3, 3, 3, (i + j) % 2 ? "#E8607A" : "#FFF4E0");
+      R(x + 13, y + 18, 18, 1, "#C9466A");
+      // melancia, cesta e suco
+      R(x + 5, y + 7, 6, 3, "#E8445E"); R(x + 5, y + 10, 6, 1, "#F4E9B8"); R(x + 5, y + 11, 6, 1, "#5DB070"); P(x + 7, y + 8, C.ink); P(x + 9, y + 8, C.ink);
+      rbox(x + 34, y + 7, 9, 7, "#C9965E"); R(x + 35, y + 9, 7, 1, "#A87A44"); R(x + 35, y + 11, 7, 1, "#A87A44"); R(x + 36, y + 5, 5, 1, "#8C5E3A"); P(x + 35, y + 6, "#8C5E3A"); P(x + 41, y + 6, "#8C5E3A"); P(x + 37, y + 8, "#E8445E");
+      R(x + 6, y + 14, 3, 4, C.gold); R(x + 6, y + 14, 3, 1, "#FFFFFF"); P(x + 9, y + 15, C.gold);
+      // pés e banco da frente
+      R(x + 7, y + 23, 2, 2, C.woodDD); R(x + 39, y + 23, 2, 2, C.woodDD);
+      rbox(x + 4, y + 25, 40, 5, C.woodD); R(x + 5, y + 25, 38, 1, C.wood); R(x + 6, y + 30, 2, 1, C.woodDD); R(x + 40, y + 30, 2, 1, C.woodDD);
+      break; }
     case "tapete": {
       const a = "#DC6A86", b = "#F6CDD6", d = "#B8475F";
       for (let i = 0; i < 13; i++){ P(x + 1, y + 4 + i * 2, C.cream); P(x + 46, y + 4 + i * 2, C.cream); P(x + 2, y + 3 + i * 2, C.creamD); P(x + 45, y + 3 + i * 2, C.creamD); }
@@ -708,6 +867,11 @@ function drawFx(t, x, y, tm){
     for (let i = 0; i < 2; i++){ const ph = (tm / 1400 + i / 2) % 1; ctx.globalAlpha = .7 * (1 - ph); P(x + 6 + Math.round(Math.sin(tm / 350 + i * 3)), y + 13 - ph * 7, "#FFFFFF"); P(x + 25 + Math.round(Math.sin(tm / 330 + i * 3 + 1)), y + 6 - ph * 7, "#FFFFFF"); }
   } else if (t === "pia"){
     ctx.globalAlpha = .8; P(x + 6 + Math.floor(tm / 120) % 3, y + 1, "#FFFFFF"); P(x + 9 - Math.floor(tm / 150) % 2, y + 2, "#FFFFFF");
+  } else if (t === "churrasqueira"){
+    for (let i = 0; i < 4; i++){ const ph = (tm / 1500 + i / 4) % 1; ctx.globalAlpha = .65 * (1 - ph); R(x + 24 + Math.round(Math.sin(tm / 380 + i * 1.7) * 1.5), y - 12 - ph * 14, 3, 2, "#E6E2EE"); }
+    for (let i = 0; i < 2; i++){ const ph = (tm / 1100 + i / 2) % 1; ctx.globalAlpha = .5 * (1 - ph); R(x + 8 + i * 6 + Math.round(Math.sin(tm / 300 + i)), y - 6 - ph * 9, 2, 2, "#FFFFFF"); }
+  } else if (t === "piscina"){
+    for (let i = 0; i < 4; i++){ const ph = (tm / 650 + i / 4) % 1; ctx.globalAlpha = .9 * (1 - ph); P(x + 9 + i * 5, y + 8 - ph * 7 + (i % 2) * 6, "#E6F8FD"); }
   }
   ctx.globalAlpha = 1;
 }
@@ -821,7 +985,7 @@ function pixNote(x, y, c){ x = Math.round(x); y = Math.round(y); R(x + 2, y, 1, 
 // ---- paredes, janelas e luz ----
 const WP = { quarto: ["#BEACEA", "#AC98DE", "listra"], banheiro: ["#C8E8ED", "#A6D4DF", "azulejo"], sala: ["#F2D0AC", "#E3B98E", "losango"], cozinha: ["#F7E3A8", "#EBCB80", "xadrez"] };
 const JANELAS = new Set(["2,0", "13,0", "14,0", "4,0"]);
-const DECOR = { "3,0": "coracao", "9,0": "paisagem", "12,0": "paisagem2", "5,6": "espelho", "2,6": "toalha", "10,8": "relogio", "9,8": "prateleira" };
+const DECOR = { "3,0": "coracao", "9,0": "paisagem", "12,0": "paisagem2", "5,6": "espelho", "2,6": "toalha", "10,8": "relogio" }; // (9,8): quadro de troféus, desenhado ao vivo (leva 2)
 const CAP = "#7B6276", CAP_L = "#9C8499", CAP_D = "#5B4659", LINE = "#2D1C30";
 const VX = 7; // coluna da parede interna vertical (desenhada mais fina)
 // modo de teste: ?hora=NN (0–23) troca o relógio real
@@ -867,7 +1031,8 @@ function drawFace(px, py, room){
 
 function drawWallTile(x, y){
   const px = x * T, py = y * T;
-  if (y === H - 1){ // parede de baixo: topo fino, o resto é jardim
+  if (y > HC){ drawCerca(x, y); return; } // cerca do quintal
+  if (y === HC){ // parede de baixo: topo fino, o resto é jardim
     const x0 = x === 0 ? 9 : 0, x1 = x === W - 1 ? 7 : T, w = x1 - x0;
     R(px + x0, py, w, 7, CAP); R(px + x0, py + 1, w, 1, CAP_L); R(px + x0, py + 5, w, 1, CAP_D);
     R(px + x0, py, w, 1, LINE); R(px + x0, py + 6, w, 1, LINE);
@@ -875,6 +1040,7 @@ function drawWallTile(x, y){
     if (x === 0){ R(px + 9, py, 1, 7, LINE); R(px + 10, py, 5, 1, CAP); P(px + 10, py, CAP_L); P(px + 10, py + 1, CAP_L); P(px + 14, py, CAP_D); }
     if (x === W - 1){ R(px + 6, py, 1, 7, LINE); R(px + 1, py, 5, 1, CAP); P(px + 1, py, CAP_L); P(px + 5, py, CAP_D); P(px + 5, py + 1, CAP_D); R(px + 7, py, 2, 8, "rgba(20,45,30,.28)"); }
     if (x === VX){ R(px + 5, py, 6, 1, CAP); P(px + 5, py, CAP_L); P(px + 10, py, CAP_D); }
+    if (portaQ && (x === 0 || x === W - 1)) cercaLateral(x === 0 ? px + 10 : px + 1, py, 7); // cerca do quintal encosta no canto da casa
     return;
   }
   if (x === 0 || x === W - 1){ // paredes de fora, à esquerda e à direita
@@ -925,17 +1091,67 @@ function drawDoor(x, y){
     if (isWallAt(x + 1, y)){ R(px + 14, py + 4, 2, 12, wd); R(px + 13, py + 4, 1, 12, wdd); R(px + 15, py + 4, 1, 12, "#8C5E3A"); }
   }
 }
+// ---- quintal (leva 2) ----
+const PLACA = { x: 13, y: HC }; // placa "vende-se" no jardim antes de comprar o quintal (clicável)
+// cerca branca de estacas: embaixo (horizontal) e nas laterais do quintal
+const CERCA = "#F4EEE6", CERCA_D = "#CFC3B4";
+// trecho vertical de cerca (visto de cima), de y0 até o fim do quadrado
+function cercaLateral(cx, py, y0){
+  y0 = y0 || 0; const b = CERCA, bD = CERCA_D, h = T - y0;
+  R(cx + 5, py + y0, 2, h, "rgba(20,45,30,.28)");
+  R(cx, py + y0, 5, h, LINE); R(cx + 1, py + y0, 3, h, b); R(cx + 3, py + y0, 1, h, bD);
+  for (const j of [1, 9]){ if (j < y0) continue; R(cx - 1, py + j, 7, 5, LINE); R(cx, py + j + 1, 5, 3, b); R(cx, py + j + 1, 5, 1, "#FFFFFF"); R(cx + 4, py + j + 2, 1, 2, bD); }
+}
+function drawCerca(x, y){
+  const px = x * T, py = y * T, b = CERCA, bD = CERCA_D, sombra = "rgba(20,45,30,.28)";
+  const lateral = cx => cercaLateral(cx, py);
+  if (y < H - 1){ lateral(x === 0 ? px + 10 : px + 1); return; }
+  const x0 = x === 0 ? 9 : 0, x1 = x === W - 1 ? 8 : T, w = x1 - x0;
+  R(px + x0, py + 13, w, 2, sombra);
+  for (const ry of [4, 8]){ R(px + x0, py + ry - 1, w, 1, LINE); R(px + x0, py + ry, w, 2, b); R(px + x0, py + ry + 1, w, 1, bD); R(px + x0, py + ry + 2, w, 1, LINE); }
+  for (let i = x0 + (x === 0 ? 0 : 1); i + 4 <= x1; i += 5){
+    R(px + i, py + 1, 4, 12, LINE); R(px + i + 1, py, 2, 1, LINE);
+    R(px + i + 1, py + 1, 2, 11, b); P(px + i + 1, py + 1, "#FFFFFF"); R(px + i + 2, py + 3, 1, 9, bD);
+  }
+  if (x === 0) lateral(px + 10);
+  if (x === W - 1) lateral(px + 1);
+}
+// porta da cozinha para o quintal, na parede de baixo (topo fino de 7px)
+function drawPortaQuintal(x, y){
+  const px = x * T, py = y * T;
+  clipRect(px, py, T, 7, () => drawFloorTile(x, y, pisoDe("cozinha")));
+  R(px, py, 2, 7, CAP_D); R(px + 2, py, 1, 7, LINE); R(px + 14, py, 2, 7, CAP_D); R(px + 13, py, 1, 7, LINE);
+  R(px, py, 3, 1, LINE); R(px + 13, py, 3, 1, LINE);
+  R(px + 3, py + 5, 10, 2, "#A5754B"); R(px + 3, py + 5, 10, 1, "#D2A06C"); R(px, py + 7, T, 1, LINE);
+  // tapetinho de entrada na grama
+  rbox(px + 2, py + 9, 12, 6, C.coral); R(px + 3, py + 10, 10, 1, "#F4A08E"); R(px + 4, py + 12, 8, 1, sh(C.coral, -.15));
+  for (let i = 3; i < 13; i += 2) P(px + i, py + 15, C.cream);
+}
+function drawPedras(){
+  for (let j = 1; j <= 2; j++){
+    const px = portaQ * T, py = (HC + j) * T;
+    for (const [a, b] of [[3, 3], [8, 10]]){ rbox(px + a, py + b, 6, 4, "#C9C2B8"); R(px + a + 1, py + b, 4, 1, "#E4DFD8"); R(px + a + 1, py + b + 4, 4, 1, "rgba(20,45,30,.25)"); }
+  }
+}
+function drawPlaca(px, py){
+  R(px + 7, py + 10, 2, 6, C.woodD); R(px + 6, py + 15, 4, 1, "rgba(20,45,30,.3)");
+  R(px + 2, py + 2, 12, 9, LINE); R(px + 3, py + 3, 10, 7, C.cream); R(px + 3, py + 3, 10, 1, "#FFFFFF"); R(px + 3, py + 9, 10, 1, C.creamD);
+  // "$" verde
+  const g = "#3B8F56"; R(px + 7, py + 3, 1, 7, g); R(px + 6, py + 4, 3, 1, g); P(px + 5, py + 5, g); R(px + 6, py + 6, 2, 1, g); P(px + 9, py + 7, g); R(px + 6, py + 8, 3, 1, g);
+  P(px + 4, py + 4, C.rose); P(px + 11, py + 8, C.rose);
+}
 // jardim em volta da casa (só aparece na moldura)
 function drawGarden(){
   const g = "#7FB96C", gD = "#6BA85C", gL = "#97CE80";
   R(0, 0, W * T, H * T, g);
   for (let ty = 0; ty < H; ty++) for (let tx = 0; tx < W; tx++){
-    if (tx > 0 && tx < W - 1 && ty < H - 1) continue;
+    if (tx > 0 && tx < W - 1 && ty < HC) continue;
+    const meioQuintal = ty > HC && ty < H - 1 && tx > 0 && tx < W - 1;
     const px = tx * T, py = ty * T;
     for (let i = 0; i < 9; i++){ const h = hash(tx, ty, i), ax = px + h % 15, ay = py + (h >> 5) % 15; if (i % 3 === 0) R(ax, ay, 2, 1, gD); else if (i % 3 === 1){ P(ax, ay, gL); P(ax, ay + 1, gD); } else P(ax, ay, gD); }
     for (let i = 0; i < 3; i++){
-      const h = hash(tx, ty, 20 + i); if (h % 2) continue;
-      const fx = tx === 0 ? px + 1 + h % 6 : tx === W - 1 ? px + 9 + h % 6 : px + (h >> 3) % 15, fy = ty === H - 1 ? py + 10 + (h >> 7) % 5 : py + (h >> 7) % 15;
+      const h = hash(tx, ty, 20 + i); if (h % 2 || (meioQuintal && h % 5)) continue;
+      const fx = tx === 0 ? px + 1 + h % 6 : tx === W - 1 ? px + 9 + h % 6 : px + (h >> 3) % 15, fy = ty === HC ? py + 10 + (h >> 7) % 5 : py + (h >> 7) % 15;
       P(fx, fy, ["#FFFFFF", "#F9B8CC", "#FFE08A"][(h >> 11) % 3]); P(fx, fy + 1, "#4F9050");
     }
   }
@@ -945,7 +1161,7 @@ function drawGarden(){
     P(bx + 3, by + 2, "#F9B8CC"); P(bx + w - 3, by + 3, "#FFE08A");
     R(bx + 1, by + 6, w - 2, 1, "rgba(20,45,30,.25)");
   };
-  for (const tx of [1, 4, 5, 9, 12, 15]) bush(tx * T + 3 + hash(tx, 0, 40) % 4, (H - 1) * T + 9, 9 + hash(tx, 0, 41) % 3);
+  for (const tx of [1, 4, 5, 9, 12, 15]){ if (portaQ && Math.abs(tx - portaQ) <= 1) continue; bush(tx * T + 3 + hash(tx, 0, 40) % 4, HC * T + 9, 9 + hash(tx, 0, 41) % 3); }
   for (const ty of [2, 6, 9]){ bush(1, ty * T + 4, 7); bush((W - 1) * T + 8, ty * T + 11, 7); }
 }
 function drawWindow(px, py, hr, x){
@@ -990,14 +1206,15 @@ function drawDecor(kind, px, py, hr){
 const bg = document.createElement("canvas"); bg.width = W * T; bg.height = H * T;
 let bgKey = null;
 function ensureBg(hr){
-  const key = [pisos.quarto, pisos.banheiro, pisos.sala, pisos.cozinha, Math.floor(hr * 12)].join(",");
+  const key = [pisos.quarto, pisos.banheiro, pisos.sala, pisos.cozinha, H, portaQ, Math.floor(hr * 12)].join(",");
   if (key === bgKey) return;
   bgKey = key;
   const b = bg.getContext("2d"); b.imageSmoothingEnabled = false;
   withCtx(b, 1, () => {
     drawGarden();
     for (let y = 0; y < H; y++) for (let x = 0; x < W; x++){
-      if (MAP[y][x] === 1) continue;
+      if (MAP[y][x] === 1 || y > HC) continue; // quintal: a grama já veio do drawGarden
+      if (y === HC){ drawPortaQuintal(x, y); continue; }
       drawFloorTile(x, y, pisoDe(comodo(x, y)));
       if (MAP[y][x] === 2) drawDoor(x, y);
     }
@@ -1007,14 +1224,14 @@ function ensureBg(hr){
     for (let y = 0; y < H; y++) for (let x = 0; x < W; x++){
       const px = x * T, py = y * T;
       if (MAP[y][x] === 1){
-        if (x === VX && y < H - 1){ // parede fina: sombra à direita, no próprio quadrado
+        if (x === VX && y < HC){ // parede fina: sombra à direita, no próprio quadrado
           if (MAP[y][x + 1] !== 1){ R(px + 12, py, 2, T, s1); R(px + 14, py, 1, T, s2); }
           if (isFace(x, y) && MAP[y + 1][x] !== 1){ R(px + 4, py + T, 8, 2, s1); R(px + 4, py + T + 2, 9, 1, s2); }
         }
         continue;
       }
-      if (y > 0 && isFace(x, y - 1) && x !== VX){ R(px, py, T, 2, s1); R(px, py + 2, T, 2, s2); }
-      if (x === 1){ R(px, py, 2, T, s1); R(px + 2, py, 1, T, s2); }
+      if (y > 0 && y - 1 !== HC && isFace(x, y - 1) && x !== VX){ R(px, py, T, 2, s1); R(px, py + 2, T, 2, s2); }
+      if (x === 1 && y < HC){ R(px, py, 2, T, s1); R(px + 2, py, 1, T, s2); }
     }
     const kind = skyKind(hr);
     for (const k of JANELAS){
@@ -1026,6 +1243,7 @@ function ensureBg(hr){
       }
     }
     for (const [k, kindD] of Object.entries(DECOR)){ const [x, y] = k.split(",").map(Number); if (isFace(x, y)) drawDecor(kindD, x * T, y * T, hr); }
+    if (portaQ) drawPedras(); else drawPlaca(PLACA.x * T, PLACA.y * T);
   });
 }
 // brilhos animados das janelas (nuvem, reflexo, estrelas)
@@ -1046,7 +1264,8 @@ function drawWindowAnim(tm, hr){
 }
 // vinheta suave nos cantos
 const vig = document.createElement("canvas"); vig.width = W * T; vig.height = H * T;
-(() => { const v = vig.getContext("2d"), g = v.createRadialGradient(W * T / 2, H * T / 2, H * T * .45, W * T / 2, H * T / 2, W * T * .72); g.addColorStop(0, "rgba(40,18,50,0)"); g.addColorStop(1, "rgba(40,18,50,.3)"); v.fillStyle = g; v.fillRect(0, 0, W * T, H * T); })();
+function desenharVinheta(){ const v = vig.getContext("2d"), g = v.createRadialGradient(W * T / 2, H * T / 2, H * T * .45, W * T / 2, H * T / 2, W * T * .72); g.addColorStop(0, "rgba(40,18,50,0)"); g.addColorStop(1, "rgba(40,18,50,.3)"); v.clearRect(0, 0, vig.width, vig.height); v.fillStyle = g; v.fillRect(0, 0, W * T, H * T); }
+desenharVinheta();
 
 // ===================== estado =====================
 function salaFromHash(){ const h = decodeURIComponent(location.hash.replace(/^#/, "")).trim().toLowerCase(); return /^[a-z0-9-]{10,40}$/.test(h) ? h : null; }
@@ -1100,6 +1319,10 @@ function stop(){
   listeners.forEach(f => f()); listeners = []; moveis = {}; pisos = {}; jogadores = {}; me = null; disp = {};
   pet = null; jardim = {}; mural = {}; despensa = {}; pratos = {}; casaPronta = false; petCarregado = false; muralCarregado = false; muralAvisado = false; petView = null;
   if (typeof closePanel === "function") closePanel();
+  // leva 2
+  jogos = {}; stats = {}; conquistas = {}; cofre = {}; diario = {};
+  jogosCarregados = statsCarregados = conqCarregadas = cofreCarregado = false; bannerKey = null; $("banner").hidden = true;
+  if (portaQ){ montarMapa(false); tamanhoCena(); }
 }
 
 function showScreen(id){ for (const s of ["screenRoom", "screenCreator", "screenGame"]) $(s).hidden = s !== id; }
@@ -1154,13 +1377,27 @@ function boot(){
     muralCarregado = true; avisoMural(); refreshPanel("mural");
   });
   on(ref("casa/pisos"), "value", s => { pisos = s.val() || {}; });
+  // leva 2: quintal (cofrinho), jogos, tarefas do dia, contadores e conquistas
+  on(ref("casa/cofre"), "value", s => {
+    const tinha = temQuintal(), carregado = cofreCarregado; cofre = s.val() || {}; cofreCarregado = true;
+    if (temQuintal() !== tinha || (temQuintal() && portaQ !== (cofre.porta || 13))) aplicarQuintal(carregado && !tinha && !!me);
+    refreshPanel("quintal"); checarConquistas();
+  });
+  on(ref("casa/jogos"), "value", s => aoMudarJogos(s.val() || {}));
+  on(ref("casa/diario"), "value", s => { diario = s.val() || {}; limparDiario(); refreshPanel("tarefas"); checarDupla(); });
+  on(ref("casa/stats"), "value", s => { stats = s.val() || {}; statsCarregados = true; checarConquistas(); refreshPanel("trofeus"); });
+  on(ref("casa/conquistas"), "value", s => {
+    const ant = conquistas; conquistas = s.val() || {};
+    if (conqCarregadas && me) for (const c of CONQUISTAS) if (conquistas[c.id] && !ant[c.id]) celebrar(c);
+    conqCarregadas = true; checarConquistas(); refreshPanel("trofeus");
+  });
   on(ref("jogadores"), "value", s => {
     jogadores = s.val() || {};
     const mine = jogadores[pid];
     if (!mine){ if (!me && $("screenCreator").hidden) openCreator(); }
     else if (!me) startMe(mine);
     else { me.dados = mine; }
-    renderPeople(); renderHud();
+    renderPeople(); renderHud(); refreshPanel("tarefas"); refreshPanel("jogo");
   });
   on(fdb.ref(".info/connected"), "value", s => { if (s.val() && me) setOnline(); });
 }
@@ -1186,7 +1423,9 @@ function startMe(d){
     burst(me.px, me.py, ev.tipo === "beijo" || ev.tipo === "abracar" ? "heart" : "note");
     toast(nomeDe(ev.de) + " " + so.txt + ".");
     saveNeeds(true);
+    tarefaCheck({ id: "s-" + ev.tipo }); // quem recebe também cumpre "dançar/conversar com alguém"
   });
+  limparTarefasVelhas(d);
   resize(); renderHud(); renderInvite(); avisoMural();
 }
 
@@ -1203,7 +1442,7 @@ function setAcao(a){
   const prev = me.acao;
   if (prev && prev !== a && !prev.acabou && prev.def && prev.def.cancel) prev.def.cancel();
   me.acao = a;
-  ref("jogadores/" + pid + "/acao").set(a ? { id: a.id, nome: a.nome, ini: a.ini, dur: a.dur, mov: a.mov || null, alvo: a.alvo || null, sobre: a.sobre || 0, deitar: a.deitar || 0 } : null).catch(() => {});
+  ref("jogadores/" + pid + "/acao").set(a ? { id: a.id, nome: a.nome, ini: a.ini, dur: a.dur, mov: a.mov || null, alvo: a.alvo || null, sobre: a.sobre || 0, deitar: a.deitar || 0, tela: a.tela || null, cima: a.cima || 0, jogo: a.jogo || null } : null).catch(() => {});
   renderHud();
 }
 
@@ -1287,7 +1526,7 @@ canvas.addEventListener("click", e => {
   const other = playerAt(p.x, p.y);
   if (other) return socialMenu(other, p);
   if (petAt(p.x, p.y)) return petMenu(p);
-  const hs = HOTSPOTS.find(h => h.x === tx && h.y === ty);
+  const hs = HOTSPOTS.find(h => h.x === tx && h.y === ty && (!h.ativo || h.ativo()));
   if (hs) return hs.fn();
   const f = furnAt(tx, ty);
   if (f) return furnMenu(f, p);
@@ -1360,6 +1599,7 @@ function social(id, s){
     faceTo(jj.x, jj.y);
     setAcao({ id: "s-" + s.id, nome: s.nome + " com " + nomeDe(id), ini: Date.now(), dur: s.dur * 1000, alvo: id, def: { ganho: s.eu, social: s } });
     ref("eventos/" + id).push({ tipo: s.id, de: pid, at: firebase.database.ServerValue.TIMESTAMP }).catch(() => {});
+    const stK = { dancar: "dancas", abracar: "abracos", beijo: "beijos" }[s.id]; if (stK) statMais(stK);
     burst(me.px, me.py, s.id === "beijo" || s.id === "abracar" ? "heart" : "note");
   });
 }
@@ -1376,6 +1616,9 @@ function canPlace(t, x, y, ignore){
     const xx = x + dx, yy = y + dy;
     if (xx < 1 || yy < 1 || xx >= W - 1 || yy >= H - 1 || MAP[yy][xx] !== 0) return false;
     if (!c.chao && occ[yy][xx] && occ[yy][xx] !== ignore) return false;
+    if (c.fora ? yy <= HC : (!c.livre && yy > HC)) return false; // externo só no quintal; móveis de dentro só em casa
+    if (portaQ && xx === portaQ && (yy === HC - 1 || yy === HC + 1) && !c.chao) return false; // passagem da porta do quintal
+    if (c.fora && y === HC + 1 && (TOP[t] || 0) > 6) return false; // alto colado na parede de baixo invadiria a cozinha
   }
   if (c.chao){ for (const [id, m] of Object.entries(moveis)){ if (id === ignore || !CAT[m.t] || !CAT[m.t].chao) continue; const o = CAT[m.t];
     if (x < m.x + o.w && x + c.w > m.x && y < m.y + o.h && y + c.h > m.y) return false; } }
@@ -1386,12 +1629,14 @@ function buildClick(tx, ty, p){
   if (tool && tool.kind === "piso"){
     if (!MAP[ty] || MAP[ty][tx] === 1) return;
     const cm = comodo(tx, ty);
+    if (cm === "quintal"){ toast("O quintal é de grama."); return; }
     ref("casa/pisos/" + cm).set(tool.idx).then(() => toast(COMODOS[cm] + " com piso novo."));
     return;
   }
   if (tool && (tool.kind === "novo" || tool.kind === "mover")){
     const t = tool.t;
-    if (!canPlace(t, tx, ty, tool.id)){ toast("Não cabe aí. Tente outro lugar."); return; }
+    if (CAT[t].fora && !temQuintal()){ toast("Esse é pro quintal. Juntem $" + QUINTAL_PRECO + " no cofrinho pra liberar."); return; }
+    if (!canPlace(t, tx, ty, tool.id)){ toast(CAT[t].fora && ty <= HC ? "Esse vai lá fora, no quintal." : !CAT[t].fora && !CAT[t].livre && ty > HC ? "Esse móvel é de dentro de casa." : "Não cabe aí. Tente outro lugar."); return; }
     if (tool.kind === "novo"){
       const preco = CAT[t].preco;
       if (me.dinheiro < preco){ toast("Faltam $" + (preco - Math.floor(me.dinheiro)) + ". Trabalhe no computador pra ganhar mais."); return; }
@@ -1428,9 +1673,11 @@ function renderBuild(){
       const x = cv.getContext("2d"); x.imageSmoothingEnabled = false;
       const spr = furnSprite(t, 0), sc = Math.min(128 / spr.c.width, 96 / spr.c.height, 4);
       x.drawImage(spr.c, Math.round((128 - spr.c.width * sc) / 2), Math.round((96 - spr.c.height * sc) / 2), Math.round(spr.c.width * sc), Math.round(spr.c.height * sc));
-      b.append(cv, el("span", null, c.nome), el("span", "pr", "$" + c.preco));
+      const semQuintal = c.fora && !temQuintal();
+      b.append(cv, el("span", null, c.nome), el("span", "pr", "$" + c.preco + (semQuintal ? " · quintal" : "")));
       b.setAttribute("aria-pressed", String(!!(tool && tool.kind === "novo" && tool.t === t)));
-      b.disabled = !!me && me.dinheiro < c.preco && !(tool && tool.t === t);
+      b.disabled = semQuintal || (!!me && me.dinheiro < c.preco && !(tool && tool.t === t));
+      if (semQuintal) b.title = "Precisa do quintal";
       b.onclick = () => { tool = tool && tool.kind === "novo" && tool.t === t ? null : { kind: "novo", t }; renderBuild(); };
       cat.append(b);
     }
@@ -1575,7 +1822,7 @@ function barra(v, cor){ const b = el("div", "bar"), i = el("i"); i.style.width =
 // começa uma ação do meu boneco. a.antes() (opcional, pode ser promessa) decide se começa;
 // a.fim({ junto }) roda ao terminar; a.cancel() roda se parar antes; a.junto = 1 (mesma ação) ou função(acaoDoOutro)
 function startAcao(a, mov, alvo){
-  const go = () => setAcao({ id: a.id, nome: a.nome, ini: Date.now(), dur: a.dur * 1000, mov: mov || null, alvo: alvo || null, sobre: a.sobre || 0, deitar: a.deitar || 0, def: a });
+  const go = () => setAcao({ id: a.id, nome: a.nome, ini: Date.now(), dur: a.dur * 1000, mov: mov || null, alvo: alvo || null, sobre: a.sobre || 0, deitar: a.deitar || 0, tela: a.tela || null, cima: a.cima || 0, jogo: a.jogo || null, def: a });
   if (!a.antes) return go();
   Promise.resolve(a.antes()).then(ok => { if (ok) go(); });
 }
@@ -1754,7 +2001,7 @@ function petAt(wx, wy){ return petView && Math.hypot(wx - petView.cx, wy - (petV
 function petCuidar(campo){
   if (!pet) return;
   ref("casa/pet").update({ [campo]: TS(), [campo + "Por"]: pid }).catch(() => {});
-  if (campo === "carinho"){ ganharNeeds({ social: 10, diversao: 8 }); toast(petNome() + " ronronou de felicidade."); }
+  if (campo === "carinho"){ ganharNeeds({ social: 10, diversao: 8 }); toast(petNome() + " ronronou de felicidade."); statMais("carinhos"); }
   else toast(petNome() + " comeu tudinho.");
 }
 const ACAO_POTE = { id: "pet-comida", nome: "Enchendo o pote", dur: 3, ganho: {}, fim: () => petCuidar("comeu") };
@@ -1865,6 +2112,7 @@ function colher(id){
     if (s.colhe.moedas){ ganhar(s.colhe.moedas); toast("Colheu " + s.nome.toLowerCase() + ". Vendeu por $" + s.colhe.moedas + "."); }
     if (s.colhe.despensa){ mexerDespensa(s.colhe.despensa); toast("Colheu " + Object.values(s.colhe.despensa)[0] + " " + s.nome.toLowerCase() + (Object.values(s.colhe.despensa)[0] > 1 ? "s" : "") + ". Foi pra despensa."); }
     ganharNeeds({ diversao: 8 });
+    statMais("colheitas");
   });
 }
 let jardimAntes = {};
@@ -1948,6 +2196,7 @@ function cozinhar(fogaoId, rk){
     },
     fim: info => {
       const n = r.porcoes + (info.junto ? 1 : 0);
+      if (info.junto) statMais("pratosJuntos");
       ref("casa/pratos").push({ receita: rk, porcoes: n, por: pid, at: TS(), junto: info.junto ? 1 : 0 }).catch(() => {});
       toast(r.nome + " na mesa: " + n + " porções" + (info.junto ? " (uma a mais por cozinharem juntos)." : ".") + (primeiro("mesa") ? "" : " Coloque uma mesa pra servir."));
     }
@@ -2140,6 +2389,575 @@ function drawCasaLabels(mctx, K, fs, tm){
   if (mode === "live" && muralNovos()){ mctx.fillStyle = "#FAC775"; mctx.fillText("!", (MURAL.x * T + 8) * K, (MURAL.y * T + 3) * K - Math.abs(Math.sin(tm / 250)) * K * 2); }
 }
 
+// =====================================================================
+// LEVA 2: minigames, tarefas do dia e emprego, conquistas do casal, quintal
+//   casa/jogos/<id>        partida (convite → jogando → fim), cada jogada por transação
+//   casa/diario/<data>     { feitos: {pid}, bonus: {pid}, dupla: ts, noite: ts }
+//   casa/stats/<contador>  contadores do casal (sempre por transação: statMais)
+//   casa/conquistas/<id>   { at, por }  data em que destravou
+//   casa/cofre             { total, por: {pid: $}, liberado: ts, porta: x }  quintal
+//   jogadores/<pid>/tarefas/<data> = { feitas: {tarefa: true}, completo, turnos }
+// =====================================================================
+let jogos = {}, stats = {}, conquistas = {}, cofre = {}, diario = {};
+let jogosCarregados = false, statsCarregados = false, conqCarregadas = false, cofreCarregado = false, bannerKey = null;
+function dataDe(ts){ const d = new Date(ts); return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0"); }
+const hoje = () => dataDe(srvNow());
+function statMais(k, n){ return txn("casa/stats/" + k, v => (v || 0) + (n || 1)); }
+
+// ---- toast de conquista e confete ----
+function toastEspecial(tit, sub){
+  const espera = especialAte - Date.now();
+  if (espera > 0){ setTimeout(() => toastEspecial(tit, sub), espera + 50); return; }
+  const t = $("toast"); t.className = "toast gold"; t.textContent = "";
+  const tx = el("div"); tx.append(el("strong", null, tit), el("span", null, sub || ""));
+  t.append(iconeSpr(trofeuSprite(true)), tx); t.hidden = false;
+  especialAte = Date.now() + 4500; clearTimeout(toastT); toastT = setTimeout(() => t.hidden = true, 4500);
+}
+function confete(){
+  const cores = ["#F6C667", "#E8607A", "#7FD1B2", "#7FB8E8", "#B49CF4", "#FFFFFF"];
+  for (let i = 0; i < 80; i++) particles.push({ x: Math.random() * W * T, y: -Math.random() * 70, vx: Math.random() * 14 - 7, vy: 18 + Math.random() * 24, life: 5, kind: "conf", cor: cores[i % cores.length], ph: Math.random() * 6 });
+}
+
+// ---------------- conquistas ----------------
+const CONQUISTAS = [
+  { id: "danca1", nome: "Primeira dança", txt: "Dançaram juntos pela primeira vez.", st: "dancas", meta: 1 },
+  { id: "danca10", nome: "Pé de valsa", txt: "10 danças a dois.", st: "dancas", meta: 10 },
+  { id: "abraco10", nome: "10 abraços", txt: "Dez abraços apertados.", st: "abracos", meta: 10 },
+  { id: "beijo1", nome: "Primeiro beijinho", txt: "Um beijinho na casa nova.", st: "beijos", meta: 1 },
+  { id: "beijo25", nome: "Melosos", txt: "25 beijinhos.", st: "beijos", meta: 25 },
+  { id: "noite1", nome: "De conchinha", txt: "Uma noite juntinhos na cama de casal.", st: "noites", meta: 1 },
+  { id: "noite7", nome: "7 noites juntinhos", txt: "Sete noites dormindo juntos.", st: "noites", meta: 7 },
+  { id: "chef1", nome: "Chef a quatro mãos", txt: "Cozinharam um prato juntos.", st: "pratosJuntos", meta: 1 },
+  { id: "chef10", nome: "Restaurante do casal", txt: "10 pratos feitos a dois.", st: "pratosJuntos", meta: 10 },
+  { id: "verde", nome: "Dedo verde", txt: "10 colheitas na horta.", st: "colheitas", meta: 10 },
+  { id: "jogo1", nome: "Hora do jogo", txt: "Primeira partida um contra o outro.", st: "partidas", meta: 1 },
+  { id: "jogo20", nome: "Rivais de sofá", txt: "20 partidas jogadas.", st: "partidas", meta: 20 },
+  { id: "dupla1", nome: "Dia em dupla", txt: "Fizeram as tarefas no mesmo dia.", st: "diasDupla", meta: 1 },
+  { id: "pet20", nome: "Xodó do bichinho", txt: "20 carinhos no bichinho.", st: "carinhos", meta: 20 },
+  { id: "quintal", nome: "Quintal nosso", txt: "Juntaram dinheiro e compraram o quintal.", meta: 1, val: () => cofre.liberado ? 1 : 0 }
+];
+const conqValor = c => c.val ? c.val() : (stats[c.st] || 0);
+const conqTentou = {};
+function checarConquistas(){
+  if (!me || !statsCarregados || !conqCarregadas || !cofreCarregado) return;
+  for (const c of CONQUISTAS){
+    if (conquistas[c.id] || conqTentou[c.id] || conqValor(c) < c.meta) continue;
+    conqTentou[c.id] = 1;
+    txn("casa/conquistas/" + c.id, cur => cur ? undefined : { at: srvNow(), por: pid }).then(() => { setTimeout(() => { conqTentou[c.id] = 0; }, 5000); });
+  }
+}
+function celebrar(c){ toastEspecial("Conquista: " + c.nome, c.txt); confete(); }
+function drawTrofeu(x, y, on){
+  const g = on ? "#F6C667" : "#8A8398", gL = on ? "#FCE9B8" : "#B4AECB", gD = on ? "#D8963A" : "#625C72";
+  R(x, y + 1, 1, 3, g); P(x + 1, y + 1, g); P(x + 1, y + 4, g); R(x + 11, y + 1, 1, 3, g); P(x + 10, y + 1, g); P(x + 10, y + 4, g);
+  R(x + 2, y, 8, 5, g); R(x + 3, y + 5, 6, 1, g); R(x + 4, y + 6, 4, 1, gD);
+  R(x + 3, y + 1, 1, 3, gL); P(x + 4, y + 1, gL); R(x + 8, y + 1, 1, 4, gD); R(x + 2, y, 8, 1, gL);
+  R(x + 5, y + 7, 2, 2, gD);
+  rbox(x + 2, y + 9, 8, 3, on ? C.woodD : "#4A4258"); R(x + 3, y + 9, 6, 1, on ? C.wood : "#5E5670");
+  if (on){ P(x + 6, y + 2, "#FFFFFF"); pixHeart(x + 4, y + 2, "#E8607A"); }
+}
+const trofeuSprite = on => sprite("trofeu:" + (on ? 1 : 0), 12, 12, (ox, oy) => drawTrofeu(ox, oy, on));
+// quadro de troféus na parede da cozinha (ao lado do relógio): uma taça acende com 1, 5 e 10 conquistas
+const QUADRO = { x: 9, y: 8 };
+function drawQuadroTrofeus(tm){
+  const px = QUADRO.x * T, py = QUADRO.y * T, n = CONQUISTAS.filter(c => conquistas[c.id]).length;
+  R(px + 1, py + 3, 14, 10, C.woodD); R(px + 1, py + 3, 14, 1, C.wood); R(px + 1, py + 12, 14, 1, C.woodDD);
+  R(px + 2, py + 4, 12, 8, "#4E3F92"); R(px + 2, py + 4, 12, 1, "#3E3075"); R(px + 2, py + 10, 12, 1, C.wood); R(px + 2, py + 11, 12, 1, "#3E3075");
+  [1, 5, 10].forEach((meta, i) => {
+    const on = n >= meta, x = px + 3 + i * 4, y = py + 5, g = on ? "#F6C667" : "#6A5FA8", gD = on ? "#D8963A" : "#5A4E94";
+    R(x, y, 3, 2, g); P(x + 1, y + 2, gD); P(x + 1, y + 3, gD); R(x, y + 4, 3, 1, on ? C.woodD : gD);
+    if (on) P(x, y, "#FCE9B8");
+  });
+  const k = Math.floor(tm / 260) % 14; if (n && k < 3){ ctx.globalAlpha = .9; P(px + 4 + k * 4, py + 5, "#FFFFFF"); ctx.globalAlpha = 1; }
+}
+function openTrofeus(){
+  openPanel("trofeus", "Troféus do casal", corpo => {
+    const resumo = el("p", "muted"), grade = el("div", "trofs");
+    corpo.append(resumo, grade);
+    const upd = () => {
+      const n = CONQUISTAS.filter(c => conquistas[c.id]).length;
+      resumo.textContent = n + " de " + CONQUISTAS.length + " conquistas. Vale o que todo mundo da casa faz junto.";
+      grade.textContent = "";
+      const ord = CONQUISTAS.slice().sort((a, b) => (conquistas[b.id] ? 1 : 0) - (conquistas[a.id] ? 1 : 0));
+      for (const c of ord){
+        const on = !!conquistas[c.id], card = el("div", "trof " + (on ? "on" : "off")), tx = el("div", "tx");
+        tx.append(el("strong", null, c.nome), el("small", null, c.txt));
+        if (on){ const at = conquistas[c.id].at; tx.append(el("small", null, "Destravada em " + new Date(at).toLocaleDateString("pt-BR"))); }
+        else { const v = Math.min(conqValor(c), c.meta), w = el("div", "need"), r = el("div", "row"); r.append(el("span", null, "Progresso"), el("span", null, v + "/" + c.meta)); const bar = barra(v / c.meta * 100, "#B49CF4"); bar.firstChild.style.background = "#B49CF4"; w.append(r, bar); tx.append(w); }
+        card.append(iconeSpr(trofeuSprite(on)), tx); grade.append(card);
+      }
+    };
+    upd(); return upd;
+  });
+}
+
+// ---------------- tarefas do dia e emprego ----------------
+const TAREFAS = [
+  { id: "regar", nome: "Regar o jardim", dica: "Num canteiro ou numa planta", ok: a => a.id === "regar" },
+  { id: "cozinhar", nome: "Cozinhar um prato", dica: "No fogão", ok: a => /^coz-/.test(a.id) && a.id !== "coz-ajuda" },
+  { id: "carinho", nome: "Fazer carinho no bichinho", dica: "Toque no bichinho", ok: a => a.id === "pet-carinho" },
+  { id: "comida", nome: "Dar comida pro bichinho", dica: "No pote do bichinho", ok: a => a.id === "pet-comida" },
+  { id: "banho", nome: "Tomar banho", dica: "No chuveiro", ok: a => a.id === "banho" },
+  { id: "dancar", nome: "Dançar com alguém", dica: "Toque em alguém ou dancem no som", ok: a => a.id === "s-dancar" || (a.id === "dancar" && !!a.junto) },
+  { id: "ler", nome: "Ler um livro", dica: "Na estante", ok: a => a.id === "ler" },
+  { id: "tv", nome: "Assistir TV", dica: "Na TV", ok: a => a.id === "tv" },
+  { id: "abraco", nome: "Dar um abraço", dica: "Toque em alguém", ok: a => a.id === "s-abracar" },
+  { id: "conversar", nome: "Conversar com alguém", dica: "Toque em alguém", ok: a => a.id === "s-conversar" },
+  { id: "cafe", nome: "Tomar um café", dica: "Na mesa", ok: a => a.id === "cafe" },
+  { id: "trabalhar", nome: "Trabalhar um turno", dica: "No computador", ok: a => a.id === "trabalhar" },
+  { id: "jogar", nome: "Jogar uma partida", dica: "Na TV ou no computador, com alguém", ok: a => a.id === "minigame" },
+  { id: "dormir", nome: "Dormir ou tirar um cochilo", dica: "Na cama", ok: a => a.id === "dormir" || a.id === "cochilo" }
+];
+const TAREFA_PAGA = 30, DIA_COMPLETO = 50, DIA_DUPLA = 80, TURNOS_DIA = 4;
+// 3 por dia, sorteadas pela data + código da sala: iguais em todos os aparelhos
+function tarefasDoDia(d){
+  let sd = salaSeed; for (const ch of d) sd = (Math.imul(sd, 31) + ch.charCodeAt(0)) | 0;
+  const out = []; for (let i = 0; out.length < 3 && i < 60; i++){ const t = TAREFAS[hash(sd, i, 61) % TAREFAS.length]; if (!out.includes(t)) out.push(t); }
+  return out;
+}
+function minhasTarefas(d){ const j = jogadores[pid]; return (j && j.tarefas && j.tarefas[d || hoje()]) || {}; }
+const tarefaPend = {};
+function tarefaCheck(a){
+  if (!me || !a || !a.id) return;
+  const d = hoje(), lista = tarefasDoDia(d), base = "jogadores/" + pid + "/tarefas/" + d;
+  for (const t of lista){
+    if ((minhasTarefas(d).feitas || {})[t.id] || tarefaPend[d + t.id] || !t.ok(a)) continue;
+    tarefaPend[d + t.id] = 1;
+    txn(base + "/feitas/" + t.id, cur => cur ? undefined : true).then(ok => {
+      if (!ok) return;
+      ganhar(TAREFA_PAGA); toast("Tarefa feita: " + t.nome.toLowerCase() + ". +$" + TAREFA_PAGA);
+      const f = Object.assign({}, minhasTarefas(d).feitas || {}, { [t.id]: true });
+      if (!lista.every(x => f[x.id])) return;
+      txn(base + "/completo", c => c ? undefined : true).then(ok2 => {
+        if (!ok2) return;
+        ganhar(DIA_COMPLETO); toastEspecial("Tarefas do dia feitas!", "+$" + DIA_COMPLETO + " de bônus. Amanhã tem outras.");
+        ref("casa/diario/" + d + "/feitos/" + pid).set(true).then(checarDupla, () => {});
+      });
+    });
+  }
+}
+// dois ou mais com as 3 tarefas no mesmo dia: cada um pega o próprio bônus uma vez; o dia conta uma vez
+function checarDupla(){
+  if (!me) return;
+  const d = hoje(), dia = diario[d] || {}, feitos = Object.keys(dia.feitos || {});
+  if (feitos.length < 2) return;
+  if (feitos.includes(pid) && !(dia.bonus || {})[pid] && !tarefaPend["bonus" + d]){
+    tarefaPend["bonus" + d] = 1;
+    txn("casa/diario/" + d + "/bonus/" + pid, c => c ? undefined : true).then(ok => {
+      if (!ok) return; ganhar(DIA_DUPLA);
+      toastEspecial("Dia em dupla! +$" + DIA_DUPLA, feitos.filter(p => p !== pid).map(nomeDe).join(", ") + " também fez tudo hoje."); confete();
+    });
+  }
+  if (!dia.dupla && !tarefaPend["dupla" + d]){
+    tarefaPend["dupla" + d] = 1;
+    txn("casa/diario/" + d + "/dupla", c => c ? undefined : srvNow()).then(ok => { if (ok) statMais("diasDupla"); });
+  }
+}
+let diarioLimpo = false;
+function limparDiario(){
+  if (diarioLimpo || !me) return; diarioLimpo = true;
+  const corte = dataDe(srvNow() - 4 * 24 * HORA);
+  for (const k of Object.keys(diario)) if (k < corte) ref("casa/diario/" + k).remove().catch(() => {});
+}
+function limparTarefasVelhas(d){
+  const ok = [hoje(), dataDe(srvNow() - 24 * HORA)];
+  for (const k of Object.keys((d && d.tarefas) || {})) if (!ok.includes(k)) ref("jogadores/" + pid + "/tarefas/" + k).remove().catch(() => {});
+}
+function acaoTerminada(a){
+  if (a.id !== "minigame") tarefaCheck(a); // partida conta quando termina de verdade (pagarJogo)
+  if (a.id === "dancar" && a.junto && pid < a.junto) statMais("dancas"); // dança no som: conta uma vez por par
+}
+// noites juntinhos: dois dormindo na mesma cama de casal; no máximo uma por noite (data de 12h atrás)
+function checarNoite(a){
+  const m = a.mov && moveis[a.mov]; if (!m || m.t !== "casal") { a.noiteOk = true; return; }
+  const par = Object.entries(jogadores).find(([id, j]) => id !== pid && j.online && j.acao && j.acao.id === "dormir" && j.acao.mov === a.mov && Date.now() - (j.acao.ini || 0) < (j.acao.dur || 0) + 3000);
+  if (!par) return;
+  a.noiteOk = true;
+  txn("casa/diario/" + dataDe(srvNow() - 12 * HORA) + "/noite", c => c ? undefined : srvNow()).then(ok => { if (ok){ statMais("noites"); toast("Dormindo de conchinha com " + nomeDe(par[0]) + "."); } });
+}
+const turnosHoje = () => minhasTarefas().turnos || 0;
+const TRABALHO = { id: "trabalhar", nome: "Trabalhando (home office)", dur: 15, ganho: { diversao: -10, energia: -8 }, dinheiro: 90,
+  antes: () => {
+    if (turnosHoje() >= TURNOS_DIA){ toast("Chega de trabalho por hoje. Amanhã tem mais."); return false; }
+    if (me.needs.energia < 12){ toast("Cansado(a) demais pra trabalhar. Vá dormir um pouco."); return false; }
+    return true;
+  },
+  fim: () => txn("jogadores/" + pid + "/tarefas/" + hoje() + "/turnos", v => (v || 0) + 1) };
+const VIDEOS = { id: "videos", nome: "Ver vídeos", dur: 8, ganho: { diversao: 20 } };
+MENU_EXTRA.pc = id => {
+  const n = tarefasDoDia(hoje()).filter(t => (minhasTarefas().feitas || {})[t.id]).length;
+  return [
+    { nome: "Trabalhar", info: "+$" + TRABALHO.dinheiro + " · " + turnosHoje() + "/" + TURNOS_DIA + " hoje", fn: () => useFurn(id, TRABALHO) },
+    { nome: "Ver vídeos", info: "Diversão", fn: () => useFurn(id, VIDEOS) },
+    { nome: "Tarefas de hoje", info: n + "/3", fn: openTarefas }
+  ].concat(jogarItens(id));
+};
+MENU_EXTRA.tv = id => jogarItens(id);
+function openTarefas(){
+  openPanel("tarefas", "Tarefas de hoje", corpo => {
+    const info = el("p", "muted"), lista = el("div", "list"), dupla = el("p"), trab = el("div", "rowi");
+    dupla.style.fontWeight = "700";
+    corpo.append(info, lista, dupla, el("h3", null, "Emprego"), trab);
+    let sig = null;
+    const upd = () => {
+      const d = hoje(), ts = tarefasDoDia(d), mt = minhasTarefas(d), f = mt.feitas || {}, dia = diario[d] || {};
+      const s = JSON.stringify([d, mt, dia.feitos || {}, Math.floor(me ? me.dinheiro : 0)]); if (s === sig) return; sig = s;
+      info.textContent = "São as mesmas pra todo mundo da casa e mudam todo dia. Cada uma vale +$" + TAREFA_PAGA + "; fazendo as 3, mais +$" + DIA_COMPLETO + ".";
+      lista.textContent = "";
+      for (const t of ts){
+        const feita = !!f[t.id], row = el("div", "rowi" + (feita ? " feita" : "")), esq = el("div", "me"), tx = el("div", "tx");
+        esq.style.gap = "10px"; tx.append(el("strong", null, t.nome), el("small", null, feita ? "Feita" : t.dica));
+        esq.append(el("span", "chk", feita ? "✓" : ""), tx); row.append(esq, el("span", "money", feita ? "" : "+$" + TAREFA_PAGA));
+        lista.append(row);
+      }
+      const quem = Object.keys(dia.feitos || {});
+      dupla.textContent = quem.length >= 2 ? "Dia em dupla! " + quem.map(nomeDe).join(" e ") + " fizeram tudo hoje: +$" + DIA_DUPLA + " pra cada."
+        : quem.length === 1 ? (quem[0] === pid ? "Você fez as 3." : nomeDe(quem[0]) + " já fez as 3.") + " Se mais alguém fizer hoje, é dia em dupla: +$" + DIA_DUPLA + " pra cada."
+        : "Se dois ou mais fizerem as 3 hoje, é dia em dupla: +$" + DIA_DUPLA + " pra cada.";
+      trab.textContent = "";
+      const tx = el("div", "tx"), tn = turnosHoje(), pc = primeiro("pc");
+      tx.append(el("strong", null, "Home office no computador"), el("small", null, "+$" + TRABALHO.dinheiro + " por turno · cansa um pouco · " + tn + "/" + TURNOS_DIA + " turnos hoje"));
+      const b = btn(tn >= TURNOS_DIA ? "Folga" : "Trabalhar", "btn small", () => { closePanel(); useFurn(pc, TRABALHO); });
+      b.disabled = !pc || tn >= TURNOS_DIA; trab.append(tx, b);
+    };
+    upd(); return upd;
+  });
+}
+
+// ---------------- minigames: jogo da velha e jogo da memória ----------------
+// casa/jogos/<id> = { tipo, a (quem chamou, X), b, estado: convite|jogando|fim|recusado|cancelado|expirou,
+//   mov (TV/PC), criado, ultima (última jogada), vez, vencedor (pid|"empate"), motivo, quem, fimAt, pago: {pid}, contado,
+//   velha: tab ("x", "o" ou "." × 9), linha;  memória: cartas (12 dígitos), abertas ("a"/"b"/"." × 12), viradas ("i,j"), pa, pb }
+const JOGO_TIPOS = { velha: "Jogo da velha", memoria: "Jogo da memória" };
+const JOGO_DESC = { velha: "Três em linha. Quem chamou começa com X.", memoria: "Achem os pares. Acertou, joga de novo." };
+const MEMO_ICONES = ["ovo", "leite", "macarrao", "alface", "tomate", "morango"];
+const JOGO_PREMIO = 40, JOGO_EMPATE = 10, CONVITE_MS = 45000, SAIU_MS = 15000, PARADO_MS = 180000;
+const ATIVO = g => g && (g.estado === "convite" || g.estado === "jogando");
+const outroDe = g => g.a === pid ? g.b : g.a;
+const setCh = (s, i, c) => s.slice(0, i) + c + s.slice(i + 1);
+function jogoAtivoDe(p){ return Object.entries(jogos).find(([, g]) => ATIVO(g) && (g.a === p || g.b === p)); }
+function jogarItens(mov){
+  const at = jogoAtivoDe(pid);
+  if (at) return [{ nome: "Voltar pro jogo", info: JOGO_TIPOS[at[1].tipo], fn: () => abrirJogo(at[0]) }];
+  const outros = Object.entries(jogadores).filter(([id, j]) => id !== pid && j.online && j.nome);
+  if (!outros.length) return [{ nota: 1, nome: "Chame alguém pra jogar junto." }];
+  return outros.slice(0, 3).map(([id]) => ({ nome: "Jogar com " + nomeDe(id), info: "Velha ou memória", fn: () => escolherJogo(mov, id) }));
+}
+function escolherJogo(mov, outro){
+  openPanel("escolher", "Jogar com " + nomeDe(outro), corpo => {
+    corpo.append(el("p", "muted", nomeDe(outro) + " recebe o convite na hora. Quem ganhar leva +$" + JOGO_PREMIO + "."));
+    const g = el("div", "grid2");
+    for (const [k, n] of Object.entries(JOGO_TIPOS)){
+      const b = btn("", "btn ghost escolha", () => { closePanel(); convidarJogo(mov, outro, k); });
+      b.append(el("strong", null, n), el("small", null, JOGO_DESC[k])); g.append(b);
+    }
+    corpo.append(g);
+  });
+}
+function convidarJogo(mov, outro, tipo){
+  if (!moveis[mov]) return;
+  if (!jogadores[outro] || !jogadores[outro].online){ toast(nomeDe(outro) + " não está na casa agora."); return; }
+  const meu = jogoAtivoDe(pid); if (meu){ abrirJogo(meu[0]); return; }
+  if (jogoAtivoDe(outro)){ toast(nomeDe(outro) + " já está jogando."); return; }
+  const id = ref("casa/jogos").push().key, t = srvNow();
+  const g = { tipo, a: pid, b: outro, estado: "convite", mov, criado: t, ultima: t, vez: pid };
+  if (tipo === "velha") g.tab = ".........";
+  else {
+    const c = [0, 1, 2, 3, 4, 5, 0, 1, 2, 3, 4, 5];
+    for (let i = c.length - 1; i > 0; i--){ const j = Math.floor(Math.random() * (i + 1)); [c[i], c[j]] = [c[j], c[i]]; }
+    Object.assign(g, { cartas: c.join(""), abertas: "............", viradas: "", pa: 0, pb: 0 });
+  }
+  ref("casa/jogos/" + id).set(g).then(() => { abrirJogo(id); irJogar(id); }, () => toast("Não deu pra chamar agora."));
+}
+// sofá de frente para a TV (se tiver): os dois jogam sentados, olhando pra tela
+function sofaDaTv(m){
+  const ids = Object.keys(moveis).filter(k => { const s = moveis[k]; return s.t === "sofa" && s.y > m.y && s.y - m.y <= 7 && s.x < m.x + CAT.tv.w && s.x + CAT.sofa.w > m.x; });
+  return ids.sort()[0] || null;
+}
+function irJogar(id){
+  const g = jogos[id]; if (!g || !moveis[g.mov]) return;
+  const m = moveis[g.mov], sofa = m.t === "tv" ? sofaDaTv(m) : null;
+  useFurn(sofa || g.mov, {
+    id: "minigame", nome: JOGO_TIPOS[g.tipo] + " com " + nomeDe(outroDe(g)), dur: 3600, ganho: {}, tela: g.mov, cima: sofa ? 1 : 0, sobre: sofa ? 1 : 0, jogo: id,
+    antes: () => ATIVO(jogos[id]),
+    cancel: () => desistirJogo(id)
+  });
+}
+function aceitarJogo(id){
+  txn("casa/jogos/" + id, cur => { if (!cur || cur.estado !== "convite" || cur.b !== pid) return; cur.estado = "jogando"; cur.ultima = srvNow(); cur.vez = cur.a; return cur; })
+    .then(ok => { if (!ok){ toast("Esse convite já era."); return; } abrirJogo(id); irJogar(id); });
+}
+function desistirJogo(id){
+  txn("casa/jogos/" + id, cur => {
+    if (!cur) return;
+    if (cur.estado === "convite"){ cur.estado = cur.a === pid ? "cancelado" : "recusado"; cur.fimAt = srvNow(); return cur; }
+    if (cur.estado === "jogando"){ Object.assign(cur, { estado: "fim", vencedor: cur.a === pid ? cur.b : cur.a, motivo: "desistiu", quem: pid, fimAt: srvNow() }); return cur; }
+  });
+}
+const LINHAS = [[0,1,2],[3,4,5],[6,7,8],[0,3,6],[1,4,7],[2,5,8],[0,4,8],[2,4,6]];
+function velhaVence(t){ for (const l of LINHAS) if (t[l[0]] !== "." && t[l[0]] === t[l[1]] && t[l[1]] === t[l[2]]) return l; return null; }
+function jogar(id, i){
+  txn("casa/jogos/" + id, cur => {
+    if (!cur || cur.estado !== "jogando" || cur.vez !== pid) return;
+    const t = srvNow(), outro = cur.a === pid ? cur.b : cur.a;
+    if (cur.tipo === "velha"){
+      if (cur.tab[i] !== ".") return;
+      cur.tab = setCh(cur.tab, i, cur.a === pid ? "x" : "o");
+      const l = velhaVence(cur.tab);
+      if (l) Object.assign(cur, { estado: "fim", vencedor: pid, linha: l.join(""), fimAt: t });
+      else if (!cur.tab.includes(".")) Object.assign(cur, { estado: "fim", vencedor: "empate", fimAt: t });
+      else cur.vez = outro;
+    } else {
+      if (cur.abertas[i] !== ".") return;
+      let v = cur.viradas ? cur.viradas.split(",").map(Number) : [];
+      if (v.length >= 2) v = []; // o erro de antes já foi visto: vira de volta
+      if (v.includes(i)) return;
+      v.push(i);
+      if (v.length === 2){
+        const lado = cur.a === pid ? "a" : "b";
+        if (cur.cartas[v[0]] === cur.cartas[v[1]]){
+          cur.abertas = setCh(setCh(cur.abertas, v[0], lado), v[1], lado); cur["p" + lado] = (cur["p" + lado] || 0) + 1; v = [];
+          if (!cur.abertas.includes(".")) Object.assign(cur, { estado: "fim", vencedor: cur.pa > cur.pb ? cur.a : cur.pb > cur.pa ? cur.b : "empate", fimAt: t });
+        } else cur.vez = outro;
+      }
+      cur.viradas = v.join(",");
+    }
+    cur.ultima = t; return cur;
+  });
+}
+// resultado: diversão pra todos que jogaram, moedas pro vencedor (cada um paga a si mesmo uma vez)
+const jogoPago = {};
+function pagarJogo(id, g){
+  jogoPago[id] = 1;
+  txn("casa/jogos/" + id + "/pago/" + pid, c => c ? undefined : true).then(ok => {
+    if (!ok) return;
+    const nO = nomeDe(outroDe(g)), ganhei = g.vencedor === pid, empate = g.vencedor === "empate";
+    ganharNeeds({ diversao: 25, social: 10 });
+    if (ganhei){ ganhar(JOGO_PREMIO); toast((g.motivo ? nO + " saiu do jogo. " : "") + "Vitória sua! +$" + JOGO_PREMIO); }
+    else if (empate){ ganhar(JOGO_EMPATE); toast("Empate! +$" + JOGO_EMPATE + " pra cada."); }
+    else toast(g.motivo === "desistiu" && g.quem === pid ? "Você saiu do jogo." : nO + " ganhou essa. Revanche?");
+    tarefaCheck({ id: "minigame" });
+    txn("casa/jogos/" + id + "/contado", c => c ? undefined : true).then(ok2 => { if (ok2) statMais("partidas"); });
+  });
+}
+function terminarAcaoJogo(id){ if (me && me.acao && me.acao.jogo === id){ me.acao.acabou = true; setAcao(null); } }
+function aoMudarJogos(novo){
+  const ant = jogos; jogos = novo;
+  if (jogosCarregados && me) for (const [id, g] of Object.entries(jogos)){
+    if (!g) continue; const a = ant[id];
+    if (g.b === pid && g.estado === "convite" && !a) toast(nomeDe(g.a) + " te chamou pra um " + JOGO_TIPOS[g.tipo].toLowerCase() + ".");
+    if (g.a === pid && a && a.estado === "convite" && g.estado !== "convite"){
+      if (g.estado === "jogando") toast(nomeDe(g.b) + " aceitou. Bora jogar!");
+      else if (g.estado === "recusado") toast(nomeDe(g.b) + " não pode agora.");
+      else if (g.estado === "expirou") toast(nomeDe(g.b) + " não respondeu o convite.");
+    }
+  }
+  jogosCarregados = true; refreshPanel("jogo"); vigiarJogos();
+}
+// roda a cada segundo: convites vencidos, quem saiu no meio, prêmios e limpeza
+const jogoTx = {};
+function jogoTxn(id, k, fn){ const key = id + k; if (jogoTx[key] && Date.now() - jogoTx[key] < 5000) return; jogoTx[key] = Date.now(); txn("casa/jogos/" + id, fn); }
+function vigiarJogos(){
+  if (!me || !jogosCarregados) return;
+  const t = srvNow();
+  for (const [id, g] of Object.entries(jogos)){
+    if (!g) continue;
+    const meu = g.a === pid || g.b === pid;
+    if (!ATIVO(g)){
+      if (meu) terminarAcaoJogo(id);
+      if (meu && g.estado === "fim" && !(g.pago || {})[pid] && !jogoPago[id]) pagarJogo(id, g);
+      if (t - (g.fimAt || g.ultima || 0) > 120000) jogoTxn(id, "rm", () => null);
+      continue;
+    }
+    if (!meu){ if (t - (g.ultima || 0) > 15 * 60000) jogoTxn(id, "rm", () => null); continue; }
+    if (g.estado === "convite" && t - (g.criado || 0) > CONVITE_MS)
+      jogoTxn(id, "exp", cur => { if (!cur || cur.estado !== "convite") return; cur.estado = "expirou"; cur.fimAt = srvNow(); return cur; });
+    else if (g.estado === "jogando" && g.vez !== pid){
+      const jo = jogadores[g.vez], saiu = !jo || !jo.online;
+      if ((saiu && t - g.ultima > SAIU_MS) || t - g.ultima > PARADO_MS)
+        jogoTxn(id, "wo", cur => {
+          if (!cur || cur.estado !== "jogando" || cur.vez === pid) return;
+          const j2 = jogadores[cur.vez], s2 = !j2 || !j2.online, tt = srvNow();
+          if (!(s2 && tt - cur.ultima > SAIU_MS) && tt - cur.ultima <= PARADO_MS) return;
+          Object.assign(cur, { estado: "fim", vencedor: pid, motivo: s2 ? "saiu" : "tempo", quem: cur.vez, fimAt: tt }); return cur;
+        });
+    }
+  }
+  if (me.acao && me.acao.jogo && !jogos[me.acao.jogo] && Date.now() - me.acao.ini > 5000) terminarAcaoJogo(me.acao.jogo);
+  renderBannerJogo();
+}
+// faixa no topo da tela: convite recebido, ou "sua vez" com o painel fechado
+function renderBannerJogo(){
+  const b = $("banner"); let key = "", partes = null;
+  const conv = Object.entries(jogos).find(([, g]) => g && g.b === pid && g.estado === "convite");
+  const at = jogoAtivoDe(pid), aberto = painel && painel.id === "jogo";
+  if (conv){
+    const [id, g] = conv; key = "c" + id;
+    partes = () => { const bb = el("div", "bb"); bb.append(btn("Aceitar", "btn small", () => aceitarJogo(id)), btn("Agora não", "btn ghost small", () => desistirJogo(id))); return [el("span", null, nomeDe(g.a) + " te chamou pra um " + JOGO_TIPOS[g.tipo].toLowerCase() + "."), bb]; };
+  } else if (at && at[1].estado === "jogando" && !aberto){
+    const [id, g] = at, minha = g.vez === pid; key = "v" + id + minha;
+    partes = () => [el("span", null, (minha ? "Sua vez no " : "Jogando ") + JOGO_TIPOS[g.tipo].toLowerCase() + "."), btn("Abrir", "btn small", () => abrirJogo(id))];
+  }
+  if (key === bannerKey) return; bannerKey = key;
+  b.className = "banner jogo"; b.textContent = ""; b.hidden = !partes;
+  if (partes) b.append(...partes());
+}
+function abrirJogo(id){
+  const g0 = jogos[id];
+  openPanel("jogo", g0 ? JOGO_TIPOS[g0.tipo] : "Jogo", corpo => {
+    const placar = el("div", "placar"), status = el("p", "jstatus"), tab = el("div"), acoes = el("div", "hbtns");
+    status.setAttribute("aria-live", "polite");
+    corpo.append(placar, status, tab, acoes);
+    let sig = null;
+    const upd = () => {
+      const g = jogos[id];
+      const s = JSON.stringify(g || 0) + (g ? String(!!(jogadores[outroDe(g)] || {}).online) : ""); if (s === sig) return; sig = s;
+      placar.textContent = ""; tab.textContent = ""; acoes.textContent = "";
+      if (!g){ status.textContent = "Esse jogo acabou."; acoes.append(btn("Fechar", "btn ghost", closePanel)); return; }
+      const outro = outroDe(g), eu = g.a === pid ? "a" : "b", nO = nomeDe(outro), on = !!(jogadores[outro] || {}).online, velha = g.tipo === "velha";
+      for (const [p, lado] of [[pid, eu], [outro, eu === "a" ? "b" : "a"]]){
+        const c = el("div", "pl" + (g.estado === "jogando" && g.vez === p ? " vez" : "")), av = el("canvas"), tx = el("div", "tx");
+        av.width = 18; av.height = 22; const x = av.getContext("2d"); x.imageSmoothingEnabled = false;
+        x.drawImage(avatarSprite(jogadores[p] || {}, "down", 0, "stand").c, 0, 0, 18, 22, 0, 0, 18, 22);
+        const pts = g["p" + lado] || 0;
+        tx.append(el("strong", null, p === pid ? "Você" : nomeDe(p)), el("small", null, velha ? (lado === "a" ? "X" : "O") : pts + (pts === 1 ? " par" : " pares")));
+        c.append(av, tx); placar.append(c);
+      }
+      const jogando = g.estado === "jogando", minha = jogando && g.vez === pid;
+      status.textContent =
+        g.estado === "convite" ? (g.a === pid ? "Esperando " + nO + " aceitar..." : nO + " te chamou. Aceita?") :
+        jogando ? (minha ? "Sua vez." : "Vez de " + nO + "." + (on ? "" : " " + nO + " saiu; se não voltar, a vitória é sua.")) :
+        g.estado === "fim" ? (g.vencedor === pid ? (g.motivo ? nO + " saiu do jogo. Vitória sua! +$" + JOGO_PREMIO : "Você ganhou! +$" + JOGO_PREMIO)
+          : g.vencedor === "empate" ? "Empate! +$" + JOGO_EMPATE + " pra cada." : g.motivo && g.quem === pid ? "Você saiu do jogo." : nO + " ganhou essa.") :
+        g.estado === "recusado" ? (g.a === pid ? nO + " não pode agora." : "Convite recusado.") :
+        g.estado === "expirou" ? "O convite expirou." : "Convite cancelado.";
+      if (velha){
+        const grid = el("div", "velha"), linha = g.linha || "";
+        for (let i = 0; i < 9; i++){
+          const c = g.tab[i], b = btn(c === "." ? "" : c.toUpperCase(), c === "." ? "cel" : c, () => jogar(id, i));
+          if (linha.includes(String(i))) b.classList.add("win");
+          b.setAttribute("aria-label", "Casa " + (i + 1) + (c === "." ? ", vazia" : ", " + c.toUpperCase()));
+          b.disabled = !minha || c !== "."; grid.append(b);
+        }
+        tab.append(grid);
+      } else {
+        const grid = el("div", "memo"), vir = g.viradas ? g.viradas.split(",").map(Number) : [];
+        for (let i = 0; i < 12; i++){
+          const dono = g.abertas[i], up = dono !== "." || vir.includes(i), b = btn(up ? "" : "?", up ? (dono !== "." ? dono : "up") : "cel", () => jogar(id, i));
+          const ing = MEMO_ICONES[+g.cartas[i]];
+          if (up) b.append(iconeSpr(ingSprite(ing)));
+          b.setAttribute("aria-label", "Carta " + (i + 1) + (up ? ", " + INGREDIENTES[ing].nome : ", virada pra baixo"));
+          b.disabled = !minha || dono !== "." || (vir.length === 1 && vir[0] === i); grid.append(b);
+        }
+        tab.append(grid);
+      }
+      if (g.estado === "convite" && g.b === pid) acoes.append(btn("Aceitar", "btn", () => aceitarJogo(id)), btn("Agora não", "btn ghost", () => desistirJogo(id)));
+      else if (g.estado === "convite") acoes.append(btn("Cancelar convite", "btn ghost", () => desistirJogo(id)));
+      else if (jogando){
+        const d = btn("Desistir", "btn ghost"); let certo = false;
+        d.onclick = () => { if (!certo){ certo = true; d.textContent = "Certeza?"; setTimeout(() => { certo = false; d.textContent = "Desistir"; }, 3000); return; } desistirJogo(id); };
+        acoes.append(d, btn("Minimizar", "btn ghost", closePanel));
+      } else {
+        if (on && moveis[g.mov]) acoes.append(btn("Revanche", "btn", () => convidarJogo(g.mov, outro, g.tipo)));
+        acoes.append(btn("Fechar", "btn ghost", closePanel));
+      }
+    };
+    upd(); return upd;
+  });
+  bannerKey = null; renderBannerJogo();
+}
+// tabuleiro em miniatura na tela da TV ou do PC
+function addJogoObjs(objs, tm){
+  for (const g of Object.values(jogos)){
+    if (!g || !(g.estado === "jogando" || (g.estado === "fim" && srvNow() - (g.fimAt || 0) < 20000))) continue;
+    const m = moveis[g.mov]; if (!m || (m.t !== "tv" && m.t !== "pc")) continue;
+    objs.push({ z: (m.y + 1) * T + 1, f: () => drawTelaJogo(g, m.t, m.x * T, m.y * T, tm) });
+  }
+}
+function drawTelaJogo(g, t, x, y, tm){
+  const tv = t === "tv", sx = tv ? x + 5 : x + 10, sy = y - 7, sw = tv ? 22 : 12, shh = tv ? 10 : 8;
+  R(sx, sy, sw, shh, "#1E2440"); R(sx, sy, sw, 1, "#2E3866");
+  const velha = g.tipo === "velha", bw = velha ? 8 : 11, bx = sx + Math.floor((sw - bw) / 2), by = sy + Math.floor((shh - 8) / 2);
+  if (velha){
+    R(bx + 2, by, 1, 8, "#5A4E8A"); R(bx + 5, by, 1, 8, "#5A4E8A"); R(bx, by + 2, 8, 1, "#5A4E8A"); R(bx, by + 5, 8, 1, "#5A4E8A");
+    for (let i = 0; i < 9; i++){ const c = (g.tab || "")[i]; if (c === "x" || c === "o") R(bx + (i % 3) * 3, by + Math.floor(i / 3) * 3, 2, 2, c === "x" ? "#F08A7A" : "#7FD0F5"); }
+  } else {
+    const vir = g.viradas ? g.viradas.split(",").map(Number) : [];
+    for (let i = 0; i < 12; i++){ const d = (g.abertas || "")[i]; R(bx + (i % 4) * 3, by + Math.floor(i / 4) * 3, 2, 2, d === "a" ? "#F08A7A" : d === "b" ? "#7FD0F5" : vir.includes(i) ? "#FFFFFF" : "#8E7CF0"); }
+  }
+  if (tv){ pixHeart(sx + 1, sy + 1, g.vez === g.a ? "#F08A7A" : "#7FD0F5"); }
+  if (g.estado === "fim" && Math.floor(tm / 300) % 2){ R(sx, sy, sw, 1, C.gold); R(sx, sy + shh - 1, sw, 1, C.gold); }
+}
+
+// ---------------- quintal (cofrinho) ----------------
+const QUINTAL_PRECO = 800;
+const temQuintal = () => !!cofre.liberado;
+function aplicarQuintal(festa){
+  montarMapa(temQuintal(), cofre.porta); rebuildOcc(); tamanhoCena();
+  if (mode === "build") renderBuild();
+  if (festa){ toastEspecial("Quintal liberado!", "Saiam pela porta da cozinha e aproveitem."); confete(); }
+}
+// porta: primeira coluna da cozinha com o chão livre logo acima da parede de baixo
+function escolherPorta(){ for (const x of [13, 12, 14, 11, 10, 15, 9, 16, 8]) if (MAP[HC - 1][x] === 0 && !(occ[HC - 1] || [])[x]) return x; return 13; }
+function porNoCofre(v){
+  if (temQuintal()) return;
+  v = Math.min(v, QUINTAL_PRECO - (cofre.total || 0)); if (v <= 0) return;
+  if (!gastar(v, "o cofrinho")) return;
+  let aceito = 0; const porta = escolherPorta();
+  txn("casa/cofre", cur => {
+    cur = cur || {}; aceito = 0; if (cur.liberado) return;
+    const t = cur.total || 0; aceito = Math.min(v, QUINTAL_PRECO - t); if (aceito <= 0) return;
+    cur.total = t + aceito; cur.por = cur.por || {}; cur.por[pid] = (cur.por[pid] || 0) + aceito;
+    if (cur.total >= QUINTAL_PRECO) Object.assign(cur, { liberado: srvNow(), porta, liberouPor: pid });
+    return cur;
+  }).then(ok => {
+    const volta = v - (ok ? aceito : 0); if (volta > 0) ganhar(volta);
+    if (ok && !temQuintal()) toast("$" + aceito + " no cofrinho. Faltam $" + (QUINTAL_PRECO - (cofre.total || 0)) + ".");
+    else if (!ok) toast("Não deu pra guardar agora. O dinheiro voltou.");
+  });
+}
+function openQuintal(){
+  openPanel("quintal", "Cofrinho do quintal", corpo => {
+    const intro = el("p", "muted"), prog = el("div", "need"), row = el("div", "row"), lab = el("span"), val = el("span");
+    row.append(lab, val); const barBox = el("div"); prog.append(row, barBox);
+    const din = el("p", "money"), bts = el("div", "hbtns"), lista = el("div", "list");
+    corpo.append(intro, prog, din, bts, el("h3", null, "Quem já pôs"), lista);
+    const upd = () => {
+      const total = cofre.total || 0, falta = QUINTAL_PRECO - total;
+      intro.textContent = temQuintal() ? "Quintal liberado! A porta fica na parede de baixo da cozinha. Os móveis de área externa estão no modo Construir."
+        : "Juntem $" + QUINTAL_PRECO + " e o terreno atrás da casa vira quintal: grama, cerca e espaço pra churrasqueira, rede, piscininha, balanço e mesa de piquenique. Cada um põe o quanto puder.";
+      lab.textContent = temQuintal() ? "Pago" : "Guardado"; val.textContent = "$" + total + " de $" + QUINTAL_PRECO;
+      barBox.textContent = ""; barBox.append(barra(Math.min(100, total / QUINTAL_PRECO * 100), "#FAC775"));
+      din.textContent = me ? "Você tem $ " + Math.floor(me.dinheiro) : "";
+      bts.textContent = ""; bts.hidden = temQuintal();
+      for (const v of [50, 100, 200]){ if (v >= falta) continue; const b = btn("+$" + v, "btn ghost", () => porNoCofre(v)); b.disabled = !me || me.dinheiro < v; bts.append(b); }
+      if (falta > 0){ const b = btn("Completar $" + falta, "btn", () => porNoCofre(falta)); b.disabled = !me || me.dinheiro < falta; bts.append(b); }
+      lista.textContent = "";
+      const por = Object.entries(cofre.por || {}).sort((a, b) => b[1] - a[1]);
+      if (!por.length) lista.append(el("p", "muted", "Ninguém ainda. Que tal começar?"));
+      for (const [p, v] of por){ const r = el("div", "rowi"); r.append(el("strong", null, p === pid ? "Você" : nomeDe(p)), el("span", "money", "$" + v)); lista.append(r); }
+    };
+    upd(); return upd;
+  });
+}
+HOTSPOTS.push({ x: QUADRO.x, y: QUADRO.y, fn: () => openTrofeus() }, { x: PLACA.x, y: PLACA.y, fn: () => openQuintal(), ativo: () => !temQuintal() });
+
+// ---------------- HUD ----------------
+function renderLeva2Hud(){
+  if (!me) return;
+  const d = hoje(), f = minhasTarefas(d).feitas || {}, n = tarefasDoDia(d).filter(t => f[t.id]).length;
+  const setTxt = (id, t) => { const b = $(id); if (b.textContent !== t) b.textContent = t; };
+  setTxt("bTarefas", n >= 3 ? "Tarefas ✓" : "Tarefas " + n + "/3");
+  setTxt("bTrofeus", "Troféus " + CONQUISTAS.filter(c => conquistas[c.id]).length + "/" + CONQUISTAS.length);
+  const bq = $("bQuintal"); bq.hidden = !cofreCarregado || temQuintal();
+  setTxt("bQuintal", "Quintal $" + (cofre.total || 0) + "/" + QUINTAL_PRECO);
+  refreshPanel("tarefas");
+}
+$("bTarefas").onclick = () => openTarefas();
+$("bTrofeus").onclick = () => openTrofeus();
+$("bQuintal").onclick = () => openQuintal();
+setInterval(() => { if (!me) return; vigiarJogos(); checarConquistas(); checarDupla(); limparDiario(); }, 1000);
+
 // ===================== laço =====================
 let last = performance.now(), hudT = 0, clockSkew = 0;
 function tick(now){
@@ -2153,7 +2971,7 @@ function renderHudLight(){
   for (const w of $("needs").children){ const id = w.dataset.id, v = Math.round(me.needs[id]); w.querySelector(".v").textContent = v; const i = w.querySelector("i"); i.style.width = v + "%"; i.style.background = v < 25 ? "var(--bad)" : NEEDS.find(q => q.id === id).cor; }
   $("meMood").textContent = mood(); $("money").textContent = "$ " + Math.floor(me.dinheiro);
   if (mode === "build") $("money2").textContent = "$ " + Math.floor(me.dinheiro);
-  renderHouseCard();
+  renderHouseCard(); renderLeva2Hud();
 }
 
 const SPEED = 4.2;
@@ -2190,7 +3008,9 @@ function update(dt){
       if (d.dinheiro){ me.dinheiro += d.dinheiro; toast("+$" + d.dinheiro + " pelo trabalho."); }
       a.acabou = true; setAcao(null); saveNeeds(true);
       if (d.fim) d.fim({ junto: a.junto || null });
+      acaoTerminada(a);
     }
+    if (me.acao === a && a.id === "dormir" && !a.noiteOk) checarNoite(a);
   }
   // outros jogadores
   for (const [id, j] of Object.entries(jogadores)){
@@ -2205,11 +3025,19 @@ function update(dt){
   // partículas
   particles = particles.filter(p => (p.life -= dt) > 0);
   for (const p of particles){ p.x += p.vx * dt; p.y += p.vy * dt; }
+  particles.forEach(p => { if (p.kind === "conf") p.vy = Math.min(p.vy + 6 * dt, 40); });
   if (performance.now() - lastSave > 4000){ lastSave = performance.now(); saveNeeds(false); }
 }
 
 const lo = document.createElement("canvas"); lo.width = W * T; lo.height = H * T;
 const lc = document.createElement("canvas"); lc.width = W * T; lc.height = H * T;
+// troca o tamanho da cena (com ou sem quintal): canvases internos, vinheta e largura máxima da tela
+function tamanhoCena(){
+  for (const c of [bg, lo, lc, vig]){ c.width = W * T; c.height = H * T; }
+  desenharVinheta(); bgKey = null;
+  $("stage").style.maxWidth = H > H_CASA ? "min(100%, 78vh)" : "";
+  if (!$("screenGame").hidden) resize();
+}
 let blinkUntil = {};
 function draw(now){
   const mctx = canvas.getContext("2d");
@@ -2220,6 +3048,7 @@ function draw(now){
   ctx.drawImage(bg, 0, 0);
   drawWindowAnim(tm, hr);
   drawMural(tm);
+  drawQuadroTrofeus(tm);
   // tapetes
   for (const m of Object.values(moveis)) if (CAT[m.t] && CAT[m.t].chao){ R(m.x * T + 4, m.y * T + CAT[m.t].h * T - 2, CAT[m.t].w * T - 8, 1, "rgba(35,18,40,.18)"); blitFurn(m.t, m.x * T, m.y * T, 0); }
   // sombras dos móveis (em degraus, para ficarem suaves)
@@ -2235,8 +3064,8 @@ function draw(now){
 
   // objetos ordenados pela base
   const objs = [], ativo = {};
-  for (const j of Object.values(jogadores)) if (j.online && j.acao && j.acao.mov && tm - j.acao.ini < j.acao.dur + 3000) ativo[j.acao.mov] = 1;
-  if (me && me.acao && me.acao.mov) ativo[me.acao.mov] = 1;
+  for (const j of Object.values(jogadores)) if (j.online && j.acao && tm - j.acao.ini < j.acao.dur + 3000){ if (j.acao.mov) ativo[j.acao.mov] = 1; if (j.acao.tela) ativo[j.acao.tela] = 1; }
+  if (me && me.acao){ if (me.acao.mov) ativo[me.acao.mov] = 1; if (me.acao.tela) ativo[me.acao.tela] = 1; }
   for (const [id, m] of Object.entries(moveis)){
     const c = CAT[m.t]; if (!c || c.chao) continue;
     if (tool && tool.kind === "mover" && tool.id === id) continue;
@@ -2245,11 +3074,13 @@ function draw(now){
     if (ativo[id]) objs.push({ z: z + 3, f: () => drawFx(m.t, m.x * T, m.y * T, tm) });
   }
   addCasaObjs(objs, tm); // leva 1: plantas, pratos na mesa e bichinho
+  addJogoObjs(objs, tm); // leva 2: tabuleiro na tela da TV/PC
   const labels = [], lights = [];
   for (const [id, m] of Object.entries(moveis)){
     if (m.t === "abajur") lights.push([m.x * T + 8, m.y * T - 2, 58, "255,206,130", 1]);
     if (ativo[id] && m.t === "tv") lights.push([m.x * T + 16, m.y * T + 2, 38, "140,190,255", .8 + .2 * Math.sin(tm / 110) * Math.sin(tm / 370)]);
     if (ativo[id] && m.t === "pc") lights.push([m.x * T + 16, m.y * T, 24, "140,190,255", .85]);
+    if (ativo[id] && m.t === "churrasqueira") lights.push([m.x * T + 12, m.y * T, 26, "255,150,80", .85 + .15 * Math.sin(tm / 80)]);
     if (ativo[id] && m.t === "fogao") lights.push([m.x * T + 8, m.y * T + 2, 20, "255,170,90", .8 + .2 * Math.sin(tm / 90)]);
     if (m.t === "geladeira") lights.push([m.x * T + 8, m.y * T + 4, 12, "220,235,255", .25]);
   }
@@ -2258,18 +3089,25 @@ function draw(now){
     let x, y, dir = j.dir || "down", moving = false, acao = j.acao;
     if (id === pid){ if (!me) continue; x = me.px; y = me.py; dir = me.dir; moving = me.path.length > 0; acao = me.acao; }
     else { const d = disp[id]; if (!d) continue; x = d.x; y = d.y; moving = d.moving; if (acao && tm - acao.ini > acao.dur + 3000) acao = null; }
-    let cx = Math.round((x + .5) * T), by = Math.round((y + 1) * T - 3), pose = "stand", frame = moving ? Math.floor(tm / 115) % 4 : 0, deitado = false, sentado = false;
+    let cx = Math.round((x + .5) * T), by = Math.round((y + 1) * T - 3), pose = "stand", frame = moving ? Math.floor(tm / 115) % 4 : 0, deitado = false, sentado = false, movT = null;
     if (!moving && Math.floor((tm + (id.charCodeAt(2) || 0) * 97) / 800) % 2) pose = "breath"; // respirando parado
     if (!blinkUntil[id] || tm > blinkUntil[id] + 3500 + (id.charCodeAt(1) % 7) * 300) blinkUntil[id] = tm + 140;
     if (tm < blinkUntil[id] && !moving) pose = pose === "breath" ? "blinkbreath" : "blink";
     if (acao && acao.sobre && acao.mov && moveis[acao.mov]){
-      const m = moveis[acao.mov], c = CAT[m.t];
-      if (acao.deitar){ deitado = true; pose = "lie"; const slot = Object.keys(jogadores).indexOf(id) % 2; cx = m.x * T + (m.t === "casal" ? (slot ? 35 : 13) : 16); by = m.y * T + 21; }
-      else { sentado = true; cx = Math.round((m.x + c.w / 2) * T); by = (m.y + c.h) * T - 3; dir = "down"; }
+      const m = moveis[acao.mov], c = CAT[m.t]; movT = m.t;
+      if (acao.deitar){ deitado = true; pose = "lie"; const slot = Object.keys(jogadores).indexOf(id) % 2; cx = m.x * T + (m.t === "casal" ? (slot ? 35 : 13) : m.t === "rede" ? 24 : 16); by = m.y * T + (m.t === "rede" ? 8 : 21); }
+      else {
+        // vaga: ordem entre quem está no mesmo móvel (dois no sofá não ficam um em cima do outro)
+        sentado = true; const se = SENTAR[m.t] || {};
+        const aqui = Object.keys(jogadores).filter(k => { const aa = k === pid ? (me && me.acao) : jogadores[k].acao; return aa && aa.mov === acao.mov && (k === pid || jogadores[k].online); });
+        const slot = Math.max(0, aqui.indexOf(id)) % 2;
+        cx = Math.round((m.x + c.w / 2) * T) + (se.dx && aqui.length > 1 ? se.dx[slot] : 0); by = se.by != null ? m.y * T + se.by : (m.y + c.h) * T - 3; dir = acao.cima ? "up" : se.dir || "down";
+      }
     }
     const aid = acao ? (acao.id || "") : "";
     if (/dancar/.test(aid)){ pose = Math.floor(tm / 260) % 2 ? "arms" : "stand"; frame = Math.floor(tm / 260) % 2 ? 1 : 3; }
     if (/^s-(cocegas|abracar|beijo)/.test(aid)) pose = "arms";
+    if (aid === "minigame" && Math.floor((tm + id.charCodeAt(1) * 131) / 900) % 5 === 0) pose = "arms"; // comemora de vez em quando
     const off = !j.online && id !== pid;
     if (off){ pose = "blink"; }
     // sentado ou deitado: o boneco fica por cima do móvel
@@ -2278,7 +3116,9 @@ function draw(now){
       if (!deitado && !sentado){ R(cx - 3, by - 1, 6, 1, "rgba(35,18,40,.22)"); R(cx - 5, by, 10, 1, "rgba(35,18,40,.3)"); R(cx - 4, by + 1, 8, 1, "rgba(35,18,40,.2)"); }
       if (off) ctx.globalAlpha = .55;
       blitAvatar(j, cx, by, dir, frame, pose);
-      if (deitado){ R(cx - 7, by - 2, 14, 2, C.cream); R(cx - 6, by - 3, 12, 1, "#FFFFFF"); R(cx - 7, by, 14, 1, C.creamD); }
+      if (deitado && movT === "rede"){ R(cx - 8, by - 2, 16, 2, C.rose); R(cx - 7, by - 3, 14, 1, "#F9C9D6"); R(cx - 8, by, 16, 1, "#D97A96"); }
+      else if (deitado){ R(cx - 7, by - 2, 14, 2, C.cream); R(cx - 6, by - 3, 12, 1, "#FFFFFF"); R(cx - 7, by, 14, 1, C.creamD); }
+      if (sentado && movT === "piscina"){ ctx.globalAlpha = .82; R(cx - 7, by - 6, 14, 5, "#8FD6EE"); ctx.globalAlpha = 1; R(cx - 6, by - 6, 12, 1, "#E6F8FD"); }
       ctx.globalAlpha = 1;
     } });
     lights.push([cx, by - 9, 16, "255,236,214", .55]);
@@ -2297,7 +3137,11 @@ function draw(now){
     for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) if (MAP[y][x] !== 1 && comodo(x, y) === cm) ctx.fillRect(x * T, y * T, T, T);
   }
   // partículas
-  for (const p of particles){ ctx.globalAlpha = clamp(p.life, 0, 1); if (p.kind === "heart") pixHeart(p.x - 2, p.y, "#F0707A"); else pixNote(p.x - 2, p.y, "#CECBF6"); }
+  for (const p of particles){
+    ctx.globalAlpha = clamp(p.life, 0, 1);
+    if (p.kind === "conf") R(Math.round(p.x + Math.sin(tm / 220 + p.ph) * 2), Math.round(p.y), 2, Math.floor(tm / 140 + p.ph) % 2 ? 2 : 1, p.cor);
+    else if (p.kind === "heart") pixHeart(p.x - 2, p.y, "#F0707A"); else pixNote(p.x - 2, p.y, "#CECBF6");
+  }
   ctx.globalAlpha = 1;
   // luz do dia e da noite: um mapa de luz colorido multiplicado sobre a cena
   const dk = darkness(hr), k = dk * 2;
@@ -2349,9 +3193,9 @@ function draw(now){
     }
     let icon = null;
     if (L.off) icon = "zZ";
-    else if (L.acao){ const id = L.acao.id || ""; icon = /dormir|cochilo/.test(id) ? "zZ" : /dancar/.test(id) ? "♪" : /^s-(beijo|abracar)/.test(id) ? "♥" : /^s-/.test(id) ? "…" : /trabalhar/.test(id) ? "$" : /pet-carinho/.test(id) ? "♥" : /^coz-|lanche|cafe|comer/.test(id) ? "~" : null; }
+    else if (L.acao){ const id = L.acao.id || ""; icon = /dormir|cochilo/.test(id) ? "zZ" : /dancar/.test(id) ? "♪" : /^s-(beijo|abracar)/.test(id) ? "♥" : /^s-/.test(id) ? "…" : /trabalhar/.test(id) ? "$" : id === "minigame" ? "★" : /pet-carinho/.test(id) ? "♥" : /^coz-|lanche|cafe|comer/.test(id) ? "~" : null; }
     if (icon){ mctx.fillStyle = icon === "♥" ? "#F0707A" : icon === "$" ? "#FAC775" : "#CECBF6"; mctx.fillText(icon, sx + 8 * K, top - fs * .9 - Math.sin(tm / 300) * K * 1.5); }
-    if (L.id === pid && L.acao){
+    if (L.id === pid && L.acao && L.acao.id !== "minigame"){
       const w = 16 * K, pr = clamp((tm - L.acao.ini) / L.acao.dur, 0, 1), bh = Math.max(4, K * 1.2);
       mctx.fillStyle = "rgba(18,14,28,.85)"; mctx.fillRect(sx - w / 2 - 1, top + 2, w + 2, bh + 2);
       mctx.fillStyle = "#8E7CF0"; mctx.fillRect(sx - w / 2, top + 3, w * pr, bh);
