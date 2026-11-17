@@ -101,6 +101,7 @@ canvas#game{display:block;width:100%;height:auto;image-rendering:pixelated;curso
 .swatches{display:flex;gap:6px;flex-wrap:wrap}
 .swatch{width:34px;height:34px;border-radius:10px;border:2px solid var(--line);padding:0}
 .swatch[aria-pressed=true]{border-color:#fff;box-shadow:0 0 0 2px var(--accent)}
+#swEstilo .btn[aria-pressed=true]{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
 .lbl{font-size:.82rem;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.06em}
 .linkbox{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
 .linkbox code{flex:1 1 220px;min-width:0;overflow-wrap:anywhere;font-size:.85rem;background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:8px 10px}
@@ -505,7 +506,7 @@ function setAcao(a){
 function openCreator(edit){
   const d = edit && me ? me.dados : null;
   if (d) creator = { nome: d.nome || "", roupa: d.roupa || 0, cabelo: d.cabelo || 0, estilo: d.estilo || 0, pele: d.pele || 0 };
-  else if (!creator.nome){ creator.roupa = Math.floor(Math.random() * ROUPAS.length); creator.cabelo = Math.floor(Math.random() * 4); creator.estilo = Math.floor(Math.random() * 4); creator.pele = Math.floor(Math.random() * PELES.length); }
+  else if (!creator.sorteado){ creator.sorteado = true; creator.roupa = Math.floor(Math.random() * ROUPAS.length); creator.cabelo = Math.floor(Math.random() * 4); creator.estilo = Math.floor(Math.random() * 4); creator.pele = Math.floor(Math.random() * PELES.length); }
   showScreen("screenCreator");
   $("cName").value = creator.nome;
   $("cGo").textContent = d ? "Salvar" : "Entrar na casa";
@@ -684,7 +685,7 @@ function buildClick(tx, ty, p){
       const preco = CAT[t].preco;
       if (me.dinheiro < preco){ toast("Faltam $" + (preco - Math.floor(me.dinheiro)) + ". Trabalhe no computador pra ganhar mais."); return; }
       me.dinheiro -= preco; saveNeeds(true);
-      ref("casa/moveis").push({ t, x: tx, y: ty, por: pid }).then(() => toast(CAT[t].nome + " colocado. -$" + preco));
+      ref("casa/moveis").push({ t, x: tx, y: ty, por: pid }).then(() => toast(CAT[t].nome + " na casa. -$" + preco));
     } else {
       ref("casa/moveis/" + tool.id).update({ x: tx, y: ty }).then(() => toast("Móvel no lugar novo."));
       tool = null; renderBuild();
@@ -696,7 +697,7 @@ function buildClick(tx, ty, p){
     const m = moveis[f], c = CAT[m.t], volta = Math.round(c.preco * .7);
     openMenu(p, c.nome, [
       { nome: "Mover", fn: () => { tool = { kind: "mover", t: m.t, id: f }; renderBuild(); toast("Toque no lugar novo."); } },
-      { nome: "Vender", info: "+$" + volta, fn: () => { ref("casa/moveis/" + f).remove().then(() => { me.dinheiro += volta; saveNeeds(true); toast(c.nome + " vendido. +$" + volta); }); } }
+      { nome: "Vender", info: "+$" + volta, fn: () => { ref("casa/moveis/" + f).remove().then(() => { me.dinheiro += volta; saveNeeds(true); toast("Venda feita: " + c.nome + ". +$" + volta); }); } }
     ]);
   }
 }
@@ -932,7 +933,8 @@ function draw(now){
   }
 
   // textos em cima de tudo
-  const fs = Math.max(10, Math.round(4.2 * S));
+  const dpr = Math.min(window.devicePixelRatio || 1, 3);
+  const fs = Math.round(clamp(5 * S, 12 * dpr, 18 * dpr));
   ctx.font = "700 " + fs + "px 'Pixelify Sans', monospace"; ctx.textAlign = "center"; ctx.textBaseline = "bottom";
   for (const L of labels){
     const sx = L.cx * S, top = (L.by - (L.deitado ? 9 : 22)) * S;
