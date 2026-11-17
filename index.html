@@ -50,7 +50,7 @@ header{display:flex;align-items:center;justify-content:space-between;gap:10px;fl
 /* Tela do jogo */
 .stage{position:relative;border-radius:14px;overflow:hidden;background:#120E1C;border:1px solid var(--line);touch-action:manipulation}
 canvas#game{display:block;width:100%;height:auto;image-rendering:pixelated;cursor:pointer}
-.menu{position:absolute;z-index:5;background:var(--panel-2);border:1px solid var(--line);border-radius:12px;padding:6px;display:flex;flex-direction:column;gap:4px;min-width:170px;max-width:240px;box-shadow:0 8px 24px rgba(0,0,0,.4)}
+.menu{position:absolute;z-index:12;background:var(--panel-2);border:1px solid var(--line);border-radius:12px;padding:6px;display:flex;flex-direction:column;gap:4px;min-width:170px;max-width:240px;box-shadow:0 8px 24px rgba(0,0,0,.4)}
 .menu .ttl{font-family:var(--pixel);font-size:.9rem;padding:4px 8px 2px;color:var(--muted)}
 .menu button{background:transparent;border:0;text-align:left;padding:9px 10px;border-radius:8px;font-weight:700;display:flex;justify-content:space-between;gap:10px}
 .menu button:hover,.menu button:focus-visible{background:var(--line)}
@@ -185,6 +185,31 @@ textarea{font:inherit;color:inherit;border:1.5px solid var(--line);background:va
 .trof .tx{display:flex;flex-direction:column;gap:3px;min-width:0;flex:1}
 .trof small{color:var(--muted)}
 .trof.off strong{color:var(--muted)}
+/* Leva 3: criador com corpo, roupas e acessórios; clima; celular */
+.creator .cprev{display:flex;flex-direction:column;align-items:center;gap:6px;position:sticky;top:8px;z-index:2;background:var(--panel)}
+.creator canvas{width:240px;height:128px}
+@media (max-width:560px){.creator .cprev{top:0;width:100%;padding:6px 0;border-bottom:1px solid var(--line)}.creator canvas{width:180px;height:96px}}
+.cprev p{font-size:.8rem;min-height:1.2em}
+.opts .swatches .btn{min-height:44px}
+.opts .swatches .btn[aria-pressed=true]{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.swatch{width:44px;height:44px}
+.cbtns{display:flex;gap:8px;flex-wrap:wrap}
+.cbtns .btn{min-height:44px}
+.clima{background:var(--panel);border:1px solid var(--line);border-radius:999px;padding:4px 10px;font-size:.82rem;font-weight:800;white-space:nowrap}
+.menu{position:fixed;z-index:12;max-height:calc(100vh - 16px);overflow:auto;overscroll-behavior:contain}
+html.travado,html.travado body{overflow:hidden}
+.sheet-bg{overscroll-behavior:contain}
+.sheet{overscroll-behavior:contain;-webkit-overflow-scrolling:touch}
+.ibar{display:grid;grid-template-columns:repeat(auto-fill,minmax(108px,1fr));gap:8px;flex:2 1 440px}
+.ibar .btn{display:flex;align-items:center;justify-content:center;gap:6px;padding:8px 6px;font-size:.88rem;white-space:nowrap}
+.ibar .ic{font-size:1.05rem;line-height:1}
+@media (max-width:520px){
+  .ibar{grid-template-columns:repeat(3,minmax(0,1fr));flex-basis:100%}
+  .ibar .btn{flex-direction:column;gap:2px;padding:6px 2px;font-size:.78rem;min-height:52px}
+  .ibar .tx{max-width:100%;overflow:hidden;text-overflow:ellipsis}
+  .toolbar .modes button{padding:8px 10px}
+}
+.modes button,#invite,.tabs button,#invitePanel .btn,.linkbox .btn{min-height:44px}
 @media (prefers-reduced-motion: reduce){*{transition:none!important}}
 </style>
 </head>
@@ -193,7 +218,7 @@ textarea{font:inherit;color:inherit;border:1.5px solid var(--line);background:va
   <header>
     <div class="brand">
       <svg viewBox="0 0 16 16" shape-rendering="crispEdges" aria-hidden="true"><rect x="2" y="7" width="12" height="8" fill="#E7A3B8"/><rect x="1" y="6" width="14" height="2" fill="#8E7CF0"/><rect x="3" y="4" width="10" height="2" fill="#8E7CF0"/><rect x="5" y="2" width="6" height="2" fill="#8E7CF0"/><rect x="7" y="10" width="3" height="5" fill="#7A5A3E"/><rect x="3" y="9" width="3" height="3" fill="#9FC3E0"/></svg>
-      <h1>Casinha</h1>
+      <h1>Casinha</h1><span class="clima" id="clima" hidden></span>
     </div>
     <div class="people" id="people"></div>
   </header>
@@ -206,17 +231,25 @@ textarea{font:inherit;color:inherit;border:1.5px solid var(--line);background:va
   </section>
 
   <section id="screenCreator" class="card" hidden>
-    <h2>Monte seu bonequinho</h2>
+    <h2 id="cTitulo">Monte seu bonequinho</h2>
     <div class="creator">
-      <canvas id="cPreview" width="32" height="32" aria-label="Prévia do bonequinho"></canvas>
+      <div class="cprev">
+        <canvas id="cPreview" width="60" height="32" role="img" aria-label="Prévia do bonequinho de frente, de lado e de costas"></canvas>
+        <p class="muted" id="cPose" aria-hidden="true"></p>
+      </div>
       <div class="opts">
         <label class="lbl" for="cName">Nome</label>
         <input type="text" id="cName" maxlength="16" placeholder="Como você quer aparecer">
-        <span class="lbl">Roupa</span><div class="swatches" id="swRoupa"></div>
-        <span class="lbl">Cabelo</span><div class="swatches" id="swCabelo"></div>
-        <span class="lbl">Penteado</span><div class="swatches" id="swEstilo"></div>
-        <span class="lbl">Pele</span><div class="swatches" id="swPele"></div>
-        <div><button class="btn" type="button" id="cGo">Entrar na casa</button></div>
+        <span class="lbl" id="lCorpo">Corpo</span><div class="swatches" id="swCorpo" role="group" aria-labelledby="lCorpo"></div>
+        <div id="rowBarba" class="opts" hidden><span class="lbl" id="lBarba">Barba</span><div class="swatches" id="swBarba" role="group" aria-labelledby="lBarba"></div></div>
+        <span class="lbl" id="lTraje">Roupa</span><div class="swatches" id="swTraje" role="group" aria-labelledby="lTraje"></div>
+        <span class="lbl" id="lRoupa">Cor da roupa</span><div class="swatches" id="swRoupa" role="group" aria-labelledby="lRoupa"></div>
+        <span class="lbl" id="lEstilo">Penteado</span><div class="swatches" id="swEstilo" role="group" aria-labelledby="lEstilo"></div>
+        <span class="lbl" id="lCabelo">Cor do cabelo</span><div class="swatches" id="swCabelo" role="group" aria-labelledby="lCabelo"></div>
+        <span class="lbl" id="lAcess">Acessório</span><div class="swatches" id="swAcess" role="group" aria-labelledby="lAcess"></div>
+        <span class="lbl" id="lPele">Pele</span><div class="swatches" id="swPele" role="group" aria-labelledby="lPele"></div>
+        <p class="muted" id="cDica"></p>
+        <div class="cbtns"><button class="btn" type="button" id="cGo">Entrar na casa</button><button class="btn ghost" type="button" id="cBack" hidden>Voltar</button></div>
       </div>
     </div>
   </section>
@@ -259,13 +292,13 @@ textarea{font:inherit;color:inherit;border:1.5px solid var(--line);background:va
         </div>
         <div class="card wide house" id="houseCard">
           <div class="petrow"><canvas id="petAv" width="21" height="17" aria-hidden="true"></canvas><div class="petline" id="petLine"></div></div>
-          <div class="hbtns">
-            <button class="btn ghost" type="button" id="bMural">Mural</button>
-            <button class="btn ghost" type="button" id="bDespensa">Despensa</button>
-            <button class="btn ghost" type="button" id="bPet">Bichinho</button>
-            <button class="btn ghost" type="button" id="bTarefas">Tarefas</button>
-            <button class="btn ghost" type="button" id="bTrofeus">Troféus</button>
-            <button class="btn ghost" type="button" id="bQuintal" hidden>Quintal</button>
+          <div class="hbtns ibar">
+            <button class="btn ghost" type="button" id="bMural" aria-label="Mural"><span class="ic" aria-hidden="true">📌</span><span class="tx">Mural</span></button>
+            <button class="btn ghost" type="button" id="bDespensa" aria-label="Despensa"><span class="ic" aria-hidden="true">🧺</span><span class="tx">Despensa</span></button>
+            <button class="btn ghost" type="button" id="bPet" aria-label="Bichinho"><span class="ic" aria-hidden="true">🐱</span><span class="tx">Bichinho</span></button>
+            <button class="btn ghost" type="button" id="bTarefas" aria-label="Tarefas"><span class="ic" aria-hidden="true">✅</span><span class="tx">Tarefas</span></button>
+            <button class="btn ghost" type="button" id="bTrofeus" aria-label="Troféus"><span class="ic" aria-hidden="true">🏆</span><span class="tx">Troféus</span></button>
+            <button class="btn ghost" type="button" id="bQuintal" aria-label="Quintal" hidden><span class="ic" aria-hidden="true">🐷</span><span class="tx">Quintal</span></button>
           </div>
         </div>
       </div>
@@ -360,7 +393,7 @@ const CAT = {
   estante:   { nome: "Estante", w: 2, h: 1, preco: 150, acoes: [{ id: "ler", nome: "Ler um livro", dur: 10, ganho: { diversao: 25 } }] },
   som:       { nome: "Som", w: 1, h: 1, preco: 180, acoes: [{ id: "dancar", nome: "Dançar", dur: 10, ganho: { diversao: 30, energia: -5 }, junto: 1 }] },
   planta:    { nome: "Planta", w: 1, h: 1, preco: 40, livre: 1, acoes: [{ id: "regar", nome: "Regar", dur: 3, ganho: { diversao: 5 } }] },
-  armario:   { nome: "Guarda-roupa", w: 2, h: 1, preco: 200, acoes: [{ id: "roupa", nome: "Trocar de roupa", dur: 1, ganho: {}, roupa: 1 }] },
+  armario:   { nome: "Guarda-roupa", w: 2, h: 1, preco: 200, acoes: [] }, // espelho: MENU_EXTRA.armario (leva 3)
   abajur:    { nome: "Abajur", w: 1, h: 1, preco: 60, acoes: [] },
   tapete:    { nome: "Tapete", w: 3, h: 2, preco: 80, acoes: [], chao: 1 },
   canteiro:  { nome: "Canteiro", w: 1, h: 1, preco: 60, livre: 1, acoes: [] },  // horta: ver JARDIM (menu extra)
@@ -395,9 +428,13 @@ const MOVEIS_INICIAIS = [
 const EXTRAS_LEVA1 = [["canteiro",13,1],["canteiro",14,1],["pote",16,11]];
 
 const ROUPAS = ["#0B8A7C", "#D9483D", "#5246B0", "#EF9F27", "#D4537E", "#378ADD", "#3B6D11", "#2C2C2A"];
-const CABELOS = ["#2B1D14", "#6B3A2A", "#B5651D", "#E8C27A", "#8E8E8E", "#1E1E1E", "#B03A5B", "#5246B0"];
+const CABELOS = ["#2B1D14", "#6B3A2A", "#B5651D", "#E8C27A", "#8E8E8E", "#1E1E1E", "#B03A5B", "#5246B0", "#D2602A", "#F3E3BE", "#E58FB5", "#3F8FD0", "#3F9A6E"];
 const PELES = ["#F6D2B0", "#E8B48C", "#C98E62", "#9C6644", "#6B4430"];
-const ESTILOS = ["Curto", "Comprido", "Coque", "Cacheado"];
+const ESTILOS = ["Curto", "Comprido", "Coque", "Cacheado", "Raspado", "Franja", "Rabo de cavalo", "Maria-chiquinha", "Black power", "Topete"];
+// leva 3: corpo (neutro = como era antes), tipo de roupa e acessório. preco = paga uma vez no guarda-roupa (jogadores/<pid>/guarda)
+const CORPOS = [["ele", "Ele"], ["ela", "Ela"], ["neutro", "Neutro"]];
+const TRAJES = [{ nome: "Camiseta" }, { nome: "Vestido" }, { nome: "Saia e blusa" }, { nome: "Macacão", preco: 40 }, { nome: "Moletom", preco: 60 }, { nome: "Regata" }];
+const ACESS = [{ nome: "Nenhum" }, { nome: "Óculos" }, { nome: "Laço" }, { nome: "Boné", preco: 30 }, { nome: "Flor" }];
 
 // ===================== desenho =====================
 let ctx, S = 1;
@@ -877,85 +914,151 @@ function drawFx(t, x, y, tm){
 }
 
 // ---- bonequinhos ----
+// visual normalizado: jogadores antigos (sem corpo/traje/acess) continuam como eram (neutro, camiseta)
+const idxDe = (v, arr) => Number.isInteger(v) && v >= 0 && v < arr.length ? v : 0;
+function visual(p){
+  p = p || {};
+  const corpo = p.corpo === "ele" || p.corpo === "ela" ? p.corpo : "neutro";
+  return { corpo, roupa: idxDe(p.roupa, ROUPAS), traje: idxDe(p.traje, TRAJES), cabelo: idxDe(p.cabelo, CABELOS), estilo: idxDe(p.estilo, ESTILOS), pele: idxDe(p.pele, PELES), barba: corpo === "ele" && p.barba ? 1 : 0, acess: idxDe(p.acess, ACESS) };
+}
 function avatarSprite(p, dir, frame, pose){
-  const key = ["av", p.roupa, p.cabelo, p.estilo, p.pele, dir, frame, pose].join(":");
-  return sprite(key, 16, 27, (ox, oy) => drawAvatarLocal(p, ox + 8, oy + 25, dir, frame, pose));
+  const v = visual(p);
+  const key = ["av", v.corpo, v.roupa, v.traje, v.cabelo, v.estilo, v.pele, v.barba, v.acess, dir, frame, pose].join(":");
+  return sprite(key, 16, 27, (ox, oy) => drawAvatarLocal(v, ox + 8, oy + 25, dir, frame, pose));
 }
 function blitAvatar(p, cx, by, dir, frame, pose){ const s = avatarSprite(p, dir, frame, pose); ctx.drawImage(s.c, Math.round(cx - 9), Math.round(by - 26)); }
 
 // poses: "stand", "breath" (respirando), "blink", "blinkbreath", "arms", "lie"
-function drawAvatarLocal(p, cx, by, dir, frame, pose){
-  const skin = PELES[p.pele] || PELES[0], hair = CABELOS[p.cabelo] || CABELOS[0], shirt = ROUPAS[p.roupa] || ROUPAS[0], st = p.estilo || 0;
+// trajes: 0 camiseta, 1 vestido, 2 saia e blusa, 3 macacão, 4 moletom com capuz, 5 regata com short
+function drawAvatarLocal(v, cx, by, dir, frame, pose){
+  const skin = PELES[v.pele], hair = CABELOS[v.cabelo], cor = ROUPAS[v.roupa], st = v.estilo, tj = v.traje;
+  const ela = v.corpo === "ela", o = v.corpo === "ele" ? 1 : 0; // ele: ombros 1px mais largos de cada lado
   pose = String(pose || "stand");
-  if (pose === "lie"){ const hy = by - 10; headDraw(cx, hy, "down", skin, true); hairDraw(cx, hy, "down", st, hair); return; }
+  if (pose === "lie"){ const hy = by - 10; headDraw(cx, hy, "down", skin, true, v, hair); hairDraw(cx, hy, "down", st, hair); acessDraw(cx, hy, "down", v); return; }
   const blink = pose.indexOf("blink") >= 0, breath = pose.indexOf("breath") >= 0, armsUp = pose === "arms";
   const side = dir === "left" || dir === "right", m = dir === "right" ? -1 : 1, X = (a, w) => m > 0 ? cx + a : cx - a - w;
   const walk = frame === 1 || frame === 3, bob = breath ? 1 : walk ? -1 : 0;
-  const shL = sh(shirt, .3), shD = sh(shirt, -.22), skD = sh(skin, -.16);
-  const pants = "#56609E", pantsD = "#434B80", shoe = "#F1EDF7";
+  const JEANS = "#56609E", CREME = "#FFF4E0", shoe = "#F1EDF7";
+  const top = tj === 2 || tj === 3 ? CREME : cor;
+  const shL = sh(top, .3), shD = sh(top, -.22), skD = sh(skin, -.16), corD = sh(cor, -.24), corL = sh(cor, .28);
+  const quadril = tj === 1 || tj === 2 || tj === 3 ? cor : JEANS;
+  const perna = tj === 3 ? cor : tj === 0 || tj === 4 ? JEANS : skin, pernaD = perna === skin ? skD : sh(perna, -.2);
+  const manga = tj === 5 ? skin : top, mangaD = tj === 5 ? skD : shD, mangaN = tj === 4 ? 3 : 2;
   // pernas
-  R(cx - 3, by - 5, 6, 2, pants);
+  R(cx - 3, by - 5, 6, 2, quadril);
   if (side){
-    if (!walk){ R(X(-2, 4), by - 3, 4, 2, pants); R(X(1, 1), by - 3, 1, 2, pantsD); R(X(-3, 5), by - 1, 5, 1, shoe); }
+    if (!walk){ R(X(-2, 4), by - 3, 4, 2, perna); R(X(1, 1), by - 3, 1, 2, pernaD); R(X(-3, 5), by - 1, 5, 1, shoe); }
     else {
-      const a = frame === 1 ? pants : pantsD, b = frame === 1 ? pantsD : pants;
+      const a = frame === 1 ? perna : pernaD, b = frame === 1 ? pernaD : perna;
       R(X(1, 2), by - 3, 2, 1, b); R(X(2, 2), by - 2, 2, 1, shoe);
       R(X(-4, 3), by - 3, 3, 2, a); R(X(-5, 3), by - 1, 3, 1, shoe);
     }
   } else {
     const lL = frame === 1 ? 1 : 0, rL = frame === 3 ? 1 : 0;
-    R(cx - 3, by - 3, 2, 2 - lL, pants); R(cx - 3, by - 1 - lL, 2, 1, shoe);
-    R(cx + 1, by - 3, 2, 2 - rL, pants); R(cx + 1, by - 1 - rL, 2, 1, shoe);
-    P(cx - 1, by - 4, pantsD); P(cx, by - 4, pantsD);
+    R(cx - 3, by - 3, 2, 2 - lL, perna); R(cx - 3, by - 1 - lL, 2, 1, shoe);
+    R(cx + 1, by - 3, 2, 2 - rL, perna); R(cx + 1, by - 1 - rL, 2, 1, shoe);
+    P(cx - 1, by - 4, sh(quadril, -.2)); P(cx, by - 4, sh(quadril, -.2));
   }
   // corpo
   const ty = by - 9 + bob;
-  R(cx - 3, ty, 6, 5, shirt); R(cx + 2, ty + 1, 1, 4, shD); R(cx - 3, ty + 4, 6, 1, shD);
+  if (ela){ R(cx - 2, ty, 4, 1, top); R(cx - 3, ty + 1, 6, 4, top); }
+  else { R(cx - 3 - o, ty, 6 + 2 * o, 2, top); R(cx - 3, ty + 2, 6, 3, top); if (o) R(cx + 3, ty, 1, 2, shD); }
+  R(cx + 2, ty + 1, 1, 4, shD); R(cx - 3, ty + 4, 6, 1, shD);
+  if (ela && tj !== 1 && tj !== 2) R(cx - 4, ty + 4, 8, 1, shD); // barra rodadinha
   if (dir === "down"){ R(cx - 1, ty, 2, 1, skD); P(cx - 2, ty, shL); P(cx + 1, ty, shL); P(cx - 2, ty + 2, shL); }
   else if (dir === "up"){ R(cx - 2, ty, 4, 1, shL); }
   else { P(X(-3, 1), ty, shL); }
+  if (tj === 1 || tj === 2){ // saia (vestido: mais comprida)
+    const h = tj === 1 ? 4 : 3;
+    R(cx - 4, ty + 4, 8, h, cor); R(cx - 4, ty + 3 + h, 8, 1, corD); R(cx + 2, ty + 5, 2, h - 2, corD); P(cx - 3, ty + 5, corL);
+    if (tj === 2){ R(cx - 3, ty + 4, 6, 1, sh(cor, -.12)); if (dir === "down") P(cx - 1, ty + 1, "#E9D8BE"); }
+    else if (dir !== "up") R(cx - 3, ty + 3, 6, 1, corD); // cinto do vestido
+  } else if (tj === 3){ // macacão: peitilho e alças
+    R(cx - 3, ty + 3, 6, 2, cor); R(cx - 3, ty + 4, 6, 1, corD);
+    if (dir === "down"){ R(cx - 2, ty + 2, 4, 1, cor); R(cx - 2, ty, 1, 2, cor); R(cx + 1, ty, 1, 2, cor); P(cx - 2, ty + 2, C.gold); P(cx + 1, ty + 2, C.gold); }
+    else if (dir === "up"){ R(cx - 2, ty, 1, 3, cor); R(cx + 1, ty, 1, 3, cor); P(cx - 1, ty + 2, cor); P(cx, ty + 2, cor); }
+    else R(X(0, 1), ty, 1, 3, cor);
+  } else if (tj === 4){ // moletom com capuz
+    R(cx - 3, ty + 5, 6, 1, shD);
+    if (dir === "down"){ P(cx - 2, ty, shD); P(cx + 1, ty, shD); P(cx - 1, ty + 1, shoe); P(cx, ty + 2, shoe); R(cx - 2, ty + 3, 4, 1, shD); }
+    else if (dir === "up"){ R(cx - 3, ty, 6, 2, shD); R(cx - 2, ty + 2, 4, 1, shD); R(cx - 2, ty, 4, 1, top); }
+    else R(X(1, 3), ty, 3, 2, shD);
+  } else if (tj === 5){ // regata
+    if (!ela){ P(cx - 3 - o, ty, skin); P(cx + 2 + o, ty, skin); }
+    if (dir === "down") R(cx - 1, ty, 2, 1, skin);
+  }
   // braços
   if (!armsUp){
-    if (side){ const sw = frame === 1 ? 1 : frame === 3 ? -1 : 0; R(X(-1 - sw, 2), ty + 1, 2, 2, shD); R(X(-1 - sw, 2), ty + 3, 2, 2, skin); }
+    if (side){ const sw = frame === 1 ? 1 : frame === 3 ? -1 : 0; R(X(-1 - sw, 2), ty + 1, 2, mangaN, mangaD); R(X(-1 - sw, 2), ty + 1 + mangaN, 2, 4 - mangaN, skin); }
     else {
-      const aL = frame === 1 ? -1 : frame === 3 ? 1 : 0;
-      R(cx - 4, ty + 1 + aL, 1, 2, shirt); R(cx - 4, ty + 3 + aL, 1, 2, skin);
-      R(cx + 3, ty + 1 - aL, 1, 2, shD); R(cx + 3, ty + 3 - aL, 1, 2, skin);
+      const aL = frame === 1 ? -1 : frame === 3 ? 1 : 0, ax = 4 + o;
+      R(cx - ax, ty + 1 + aL, 1, mangaN, manga); R(cx - ax, ty + 1 + mangaN + aL, 1, 4 - mangaN, skin);
+      R(cx + ax - 1, ty + 1 - aL, 1, mangaN, mangaD); R(cx + ax - 1, ty + 1 + mangaN - aL, 1, 4 - mangaN, skin);
     }
   }
-  // cabeça e cabelo
+  // cabeça, cabelo e acessório
   const hy = by - 18 + bob;
-  headDraw(cx, hy, dir, skin, blink);
+  headDraw(cx, hy, dir, skin, blink, v, hair);
   hairDraw(cx, hy, dir, st, hair);
+  acessDraw(cx, hy, dir, v);
   if (armsUp){
-    R(cx - 5, ty, 2, 1, shirt); R(cx - 6, ty - 2, 1, 3, shirt); R(cx - 6, ty - 5, 1, 3, skin);
-    R(cx + 3, ty, 2, 1, shD); R(cx + 5, ty - 2, 1, 3, shD); R(cx + 5, ty - 5, 1, 3, skin);
+    const a = 5 + o;
+    R(cx - a, ty, 2, 1, manga); R(cx - a - 1, ty - 2, 1, 3, manga); R(cx - a - 1, ty - 5, 1, 3, skin);
+    R(cx + a - 2, ty, 2, 1, mangaD); R(cx + a, ty - 2, 1, 3, mangaD); R(cx + a, ty - 5, 1, 3, skin);
+    if (tj === 4){ R(cx - a - 1, ty - 4, 1, 2, manga); R(cx + a, ty - 4, 1, 2, mangaD); }
   }
 }
-function headDraw(cx, hy, dir, skin, closed){
+function headDraw(cx, hy, dir, skin, closed, v, hair){
   const dark = hexRGB(skin)[0] < 170, skD = sh(skin, -.14), eye = dark ? "#1E1220" : "#3A2433", bl = "rgba(238,96,110,.5)", mo = sh(skin, -.4);
+  const ela = v && v.corpo === "ela", bc = v && v.barba ? sh(hair || "#2B1D14", -.1) : null;
   R(cx - 4, hy, 8, 1, skin); R(cx - 5, hy + 1, 10, 6, skin); R(cx - 4, hy + 7, 8, 1, skin); R(cx - 3, hy + 8, 6, 1, skin);
   P(cx - 4, hy + 7, skD); P(cx + 3, hy + 7, skD); P(cx - 3, hy + 8, skD); P(cx + 2, hy + 8, skD);
   if (dir === "down"){
     R(cx + 4, hy + 3, 1, 4, skD);
     if (closed){ R(cx - 3, hy + 5, 2, 1, eye); R(cx + 1, hy + 5, 2, 1, eye); }
     else { R(cx - 3, hy + 4, 2, 2, eye); R(cx + 1, hy + 4, 2, 2, eye); P(cx - 3, hy + 4, "#FFFFFF"); P(cx + 1, hy + 4, "#FFFFFF"); }
+    if (ela){ const y = closed ? hy + 4 : hy + 3; P(cx - 4, y, eye); P(cx + 3, y, eye); } // cílios
     R(cx - 4, hy + 6, 2, 1, bl); R(cx + 2, hy + 6, 2, 1, bl);
     R(cx - 1, hy + 7, 2, 1, mo);
+    if (bc){ R(cx - 5, hy + 4, 1, 3, bc); R(cx + 4, hy + 4, 1, 3, bc); R(cx - 4, hy + 7, 3, 1, bc); R(cx + 1, hy + 7, 3, 1, bc); R(cx - 3, hy + 8, 6, 1, bc); }
   } else if (dir === "left" || dir === "right"){
     const m = dir === "right" ? -1 : 1, X = (a, w) => m > 0 ? cx + a : cx - a - w;
     R(X(-4, 1), hy + (closed ? 5 : 4), 1, closed ? 1 : 2, eye); if (!closed && dark) P(X(-5, 1), hy + 4, "#FFFFFF");
+    if (ela) P(X(-3, 1), hy + (closed ? 4 : 3), eye);
     R(X(-5, 2), hy + 6, 2, 1, bl); P(X(-6, 1), hy + 5, skin); P(X(-4, 1), hy + 7, mo);
+    if (bc){ R(X(-1, 1), hy + 5, 1, 2, bc); R(X(-3, 3), hy + 7, 3, 1, bc); R(X(-3, 4), hy + 8, 4, 1, bc); P(X(-4, 1), hy + 8, bc); }
   }
 }
 function hairDraw(cx, hy, dir, st, hair){
-  const hl = sh(hair, .3), dk = sh(hair, -.25), side = dir === "left" || dir === "right";
+  const hl = sh(hair, .3), dk = sh(hair, -.25), side = dir === "left" || dir === "right", tie = "#E8607A";
   const m = dir === "right" ? -1 : 1, X = (a, w) => m > 0 ? cx + a : cx - a - w;
+  if (st === 4 || st === 9){ // raspado e topete: cabelo rente
+    R(cx - 4, hy - 1, 8, 1, hair); R(cx - 5, hy, 10, 2, hair);
+    if (dir === "down"){ P(cx - 5, hy + 2, hair); P(cx + 4, hy + 2, hair); }
+    else if (dir === "up"){ R(cx - 5, hy + 2, 10, 4, hair); R(cx - 4, hy + 6, 8, 1, hair); R(cx - 2, hy + 3, 1, 2, dk); R(cx + 2, hy + 2, 1, 2, dk); }
+    else { R(X(0, 5), hy + 2, 5, 3, hair); R(X(1, 3), hy + 5, 3, 1, hair); P(X(2, 1), hy + 3, dk); }
+    for (const [a, b] of [[-3, 0], [1, 0], [-1, 1], [3, 1]]) P(cx + a, hy + b, dk);
+    if (st === 9){ // topete
+      R(cx - 2, hy - 5, 4, 1, hair); R(cx - 4, hy - 4, 7, 1, hair); R(cx - 4, hy - 3, 8, 2, hair);
+      R(cx - 2, hy - 4, 3, 1, hl); P(cx - 3, hy - 3, hl); P(cx + 3, hy - 2, dk); P(cx - 1, hy - 2, dk);
+      if (side){ R(X(-6, 3), hy - 3, 3, 2, hair); P(X(-6, 1), hy - 3, hl); }
+    } else R(cx - 3, hy - 1, 3, 1, hl);
+    return;
+  }
+  if (st === 8){ // black power
+    R(cx - 5, hy - 6, 10, 1, hair); R(cx - 7, hy - 5, 14, 1, hair); R(cx - 8, hy - 4, 16, 6, hair);
+    if (dir === "down"){ R(cx - 8, hy + 2, 3, 4, hair); R(cx + 5, hy + 2, 3, 4, hair); R(cx - 7, hy + 6, 2, 1, hair); R(cx + 5, hy + 6, 2, 1, hair); R(cx - 5, hy + 2, 2, 1, hair); R(cx + 3, hy + 2, 2, 1, hair); P(cx - 7, hy + 4, dk); P(cx + 6, hy + 3, dk); }
+    else if (dir === "up"){ R(cx - 8, hy + 2, 16, 5, hair); R(cx - 7, hy + 7, 14, 1, hair); P(cx - 4, hy + 4, dk); P(cx + 3, hy + 5, dk); P(cx, hy + 3, dk); }
+    else { R(X(0, 8), hy + 2, 8, 5, hair); R(X(1, 6), hy + 7, 6, 1, hair); R(X(-8, 3), hy + 2, 3, 1, hair); P(X(4, 1), hy + 4, dk); }
+    for (const [a, b] of [[-6, -3], [-2, -5], [3, -4], [6, -1], [-7, 1], [0, -2], [4, 0], [-4, 0], [5, -3], [-3, -2]]) P(cx + a, hy + b, dk);
+    for (const [a, b] of [[-5, -4], [-1, -5], [-6, -2], [2, -5], [-4, -5]]) P(cx + a, hy + b, hl);
+    return;
+  }
   // topo
   if (st === 3){ R(cx - 5, hy - 4, 10, 1, hair); R(cx - 6, hy - 3, 12, 2, hair); R(cx - 7, hy - 1, 14, 4, hair); }
   else { R(cx - 4, hy - 2, 8, 1, hair); R(cx - 5, hy - 1, 10, 3, hair); }
   // franja, nuca ou lateral
-  if (dir === "down"){ R(cx - 5, hy + 2, 3, 1, hair); R(cx + 1, hy + 2, 4, 1, hair); P(cx - 5, hy + 3, hair); P(cx + 4, hy + 3, hair); }
+  if (dir === "down"){ if (st === 5){ R(cx - 5, hy + 2, 10, 2, hair); P(cx - 2, hy + 3, dk); P(cx + 2, hy + 3, dk); } else { R(cx - 5, hy + 2, 3, 1, hair); R(cx + 1, hy + 2, 4, 1, hair); P(cx - 5, hy + 3, hair); P(cx + 4, hy + 3, hair); } }
   else if (dir === "up"){ R(cx - 5, hy + 2, 10, 5, hair); R(cx - 4, hy + 7, 8, 1, hair); R(cx - 3, hy + 3, 1, 3, dk); R(cx + 1, hy + 4, 1, 3, dk); }
   else { R(X(0, 5), hy + 2, 5, 4, hair); R(X(-1, 1), hy + 2, 1, 2, hair); R(X(1, 4), hy + 6, 4, 1, hair); R(X(-5, 2), hy + 2, 2, 1, hair); P(X(2, 1), hy + 4, dk); }
   if (st === 0){ R(cx + 1, hy - 3, 2, 1, hair); }
@@ -976,8 +1079,47 @@ function hairDraw(cx, hy, dir, st, hair){
     for (const [a, b] of [[-5, -2], [-2, -3], [2, -2], [5, 0], [-6, 1], [0, -1], [3, 1], [-3, 0]]) P(cx + a, hy + b, dk);
     for (const [a, b] of [[-4, -3], [1, -4], [4, -2], [-6, -1]]) P(cx + a, hy + b, hl);
   }
+  else if (st === 5){ // franja reta e cabelo na altura do queixo
+    if (dir === "down"){ R(cx - 6, hy, 2, 8, hair); R(cx + 4, hy, 2, 8, hair); R(cx - 6, hy + 7, 2, 1, dk); R(cx + 4, hy + 7, 2, 1, dk); P(cx - 6, hy + 3, hl); }
+    else if (dir === "up"){ R(cx - 6, hy, 12, 8, hair); R(cx - 5, hy + 8, 10, 1, dk); R(cx - 2, hy + 3, 1, 4, dk); R(cx + 2, hy + 3, 1, 4, dk); }
+    else { R(X(0, 6), hy + 2, 6, 6, hair); R(X(1, 4), hy + 8, 4, 1, dk); R(X(-6, 3), hy + 2, 3, 2, hair); P(X(2, 1), hy + 5, dk); }
+  }
+  else if (st === 6){ // rabo de cavalo
+    if (dir === "down"){ R(cx + 5, hy, 2, 3, hair); R(cx + 6, hy + 3, 1, 4, hair); P(cx + 5, hy, tie); P(cx + 6, hy + 6, dk); }
+    else if (dir === "up"){ R(cx - 1, hy + 1, 2, 1, tie); R(cx - 2, hy + 2, 1, 6, dk); R(cx + 1, hy + 2, 1, 6, dk); R(cx - 1, hy + 2, 2, 8, hair); P(cx - 1, hy + 3, hl); P(cx, hy + 9, dk); }
+    else { P(X(4, 1), hy + 1, tie); R(X(5, 2), hy + 1, 2, 3, hair); R(X(6, 2), hy + 4, 2, 4, hair); P(X(6, 1), hy + 7, dk); P(X(5, 1), hy + 2, hl); }
+  }
+  else if (st === 7){ // maria-chiquinha
+    const tufo = x0 => { R(x0, hy + 2, 3, 4, hair); R(x0 + (x0 < cx ? 0 : 1), hy + 6, 2, 1, hair); P(x0 + 1, hy + 3, hl); P(x0 + 1, hy + 5, dk); };
+    if (!side){ tufo(cx - 8); tufo(cx + 5); P(cx - 6, hy + 2, tie); P(cx + 5, hy + 2, tie); }
+    else { const x0 = m > 0 ? cx + 4 : cx - 7; tufo(x0); P(m > 0 ? x0 : x0 + 2, hy + 2, tie); }
+  }
   // brilho
   R(cx - 3, hy - 1, 3, 1, hl); P(cx - 4, hy, hl); P(cx + 3, hy + 1, dk);
+}
+// acessórios: 1 óculos, 2 laço, 3 boné, 4 flor
+function acessDraw(cx, hy, dir, v){
+  const a = v.acess; if (!a) return;
+  const st = v.estilo, side = dir === "left" || dir === "right", m = dir === "right" ? -1 : 1, X = (q, w) => m > 0 ? cx + q : cx - q - w;
+  if (a === 1){
+    const f = "#C68A3E"; // armação cor de casco: o olho continua aparecendo
+    if (dir === "down"){ R(cx - 4, hy + 3, 3, 1, f); R(cx + 1, hy + 3, 3, 1, f); P(cx - 1, hy + 4, f); P(cx, hy + 4, f); P(cx - 4, hy + 4, f); P(cx + 3, hy + 4, f); P(cx - 4, hy + 5, f); P(cx + 3, hy + 5, f); R(cx - 3, hy + 6, 2, 1, f); R(cx + 1, hy + 6, 2, 1, f); }
+    else if (side){ R(X(-5, 2), hy + 3, 2, 1, f); P(X(-5, 1), hy + 4, f); P(X(-5, 1), hy + 5, f); P(X(-4, 1), hy + 6, f); R(X(-3, 3), hy + 4, 3, 1, f); }
+  } else if (a === 2){
+    const c = "#E8607A", cD = "#B8405A", cL = "#F7A3B5";
+    const bx = st === 8 ? cx + 3 : side ? X(-1, 5) : dir === "up" ? cx - 6 : cx + 1, y = st === 8 ? hy - 5 : st === 3 || st === 9 ? hy - 5 : st === 4 ? hy - 3 : hy - 4;
+    R(bx, y, 2, 3, c); R(bx + 3, y, 2, 3, c); P(bx + 2, y + 1, cD); P(bx, y, cL); P(bx + 3, y, cL); P(bx + 1, y + 2, cD); P(bx + 4, y + 2, cD);
+  } else if (a === 3){
+    const c = "#E8735F", cD = sh(c, -.25), cL = sh(c, .3), y = st === 8 ? hy - 6 : hy - 2;
+    R(cx - 4, y, 8, 1, c); R(cx - 5, y + 1, 10, 2, c); R(cx - 3, y, 3, 1, cL); P(cx - 1, y - 1, cD);
+    if (dir === "down"){ R(cx - 5, y + 3, 10, 1, cD); P(cx, y + 1, "#FFFFFF"); P(cx - 1, y + 2, "#FFFFFF"); }
+    else if (dir === "up"){ R(cx - 5, y + 3, 10, 1, c); P(cx - 1, y + 3, "#FFF4E0"); P(cx, y + 3, "#FFF4E0"); }
+    else { R(X(-5, 10), y + 3, 10, 1, c); R(X(-8, 4), y + 3, 4, 1, cD); }
+  } else if (a === 4){
+    const p = "#F9B8CC", pD = "#E58FB5", ce = "#FFE08A";
+    const fx = st === 8 ? (dir === "up" ? cx + 4 : side ? X(2, 3) : cx - 8) : dir === "up" ? cx + 3 : side ? X(1, 3) : cx - 6, fy = st === 8 ? hy - 3 : hy - 1;
+    P(fx + 1, fy, p); P(fx, fy + 1, p); P(fx + 2, fy + 1, pD); P(fx + 1, fy + 2, pD); P(fx + 1, fy + 1, ce);
+  }
 }
 function pixHeart(x, y, c){ x = Math.round(x); y = Math.round(y); R(x, y, 2, 1, c); R(x + 3, y, 2, 1, c); R(x, y + 1, 5, 1, c); R(x + 1, y + 2, 3, 1, c); R(x + 2, y + 3, 1, 1, c); }
 function pixNote(x, y, c){ x = Math.round(x); y = Math.round(y); R(x + 2, y, 1, 4, c); R(x + 3, y, 2, 1, c); R(x, y + 3, 3, 2, c); }
@@ -1141,37 +1283,63 @@ function drawPlaca(px, py){
   P(px + 4, py + 4, C.rose); P(px + 11, py + 8, C.rose);
 }
 // jardim em volta da casa (só aparece na moldura)
-function drawGarden(){
-  const g = "#7FB96C", gD = "#6BA85C", gL = "#97CE80";
+// estações (leva 3): grama, flores/folhas e arbustos mudam conforme a época do ano
+const GRAMAS = {
+  primavera: { g: "#7FB96C", gD: "#6BA85C", gL: "#97CE80", flores: ["#FFFFFF", "#F9B8CC", "#FFE08A", "#C9B6F2"], nFlor: 5, raro: 2, arb: ["#3F8F56", "#5DB070", "#2F7446", "#8AD490"], bot: ["#F9B8CC", "#FFFFFF"] },
+  verao:     { g: "#86BF5A", gD: "#70AA47", gL: "#A8D66E", flores: ["#FFE08A", "#FFFFFF", "#F6A04D"], nFlor: 3, raro: 2, arb: ["#2F8A4A", "#4EAA5E", "#22683A", "#86D68F"], bot: ["#FFE08A", "#F6A04D"] },
+  outono:    { g: "#A3AC64", gD: "#8C9752", gL: "#BFC37D", flores: ["#E08A3C", "#C9612F", "#F2B04A", "#B5502C"], nFlor: 4, raro: 1, folhas: 1, arb: ["#C47A36", "#E39A4A", "#93532A", "#F4C070"], bot: ["#B5502C", "#F2B04A"] },
+  inverno:   { g: "#A2B48F", gD: "#8DA17B", gL: "#C2CFAF", flores: ["#FFFFFF", "#E6EEF2"], nFlor: 3, raro: 3, geada: 1, arb: ["#577E5E", "#6E9572", "#3F6447", "#DCE8E2"], bot: ["#E6EEF2", "#FFFFFF"] }
+};
+function drawGarden(est, chuva){
+  const gp = GRAMAS[est] || GRAMAS.primavera, g = gp.g, gD = gp.gD, gL = gp.gL;
   R(0, 0, W * T, H * T, g);
   for (let ty = 0; ty < H; ty++) for (let tx = 0; tx < W; tx++){
     if (tx > 0 && tx < W - 1 && ty < HC) continue;
     const meioQuintal = ty > HC && ty < H - 1 && tx > 0 && tx < W - 1;
     const px = tx * T, py = ty * T;
     for (let i = 0; i < 9; i++){ const h = hash(tx, ty, i), ax = px + h % 15, ay = py + (h >> 5) % 15; if (i % 3 === 0) R(ax, ay, 2, 1, gD); else if (i % 3 === 1){ P(ax, ay, gL); P(ax, ay + 1, gD); } else P(ax, ay, gD); }
-    for (let i = 0; i < 3; i++){
-      const h = hash(tx, ty, 20 + i); if (h % 2 || (meioQuintal && h % 5)) continue;
+    for (let i = 0; i < gp.nFlor; i++){
+      const h = hash(tx, ty, 20 + i); if (h % gp.raro || (meioQuintal && h % 5 > (gp.folhas ? 1 : 0))) continue;
       const fx = tx === 0 ? px + 1 + h % 6 : tx === W - 1 ? px + 9 + h % 6 : px + (h >> 3) % 15, fy = ty === HC ? py + 10 + (h >> 7) % 5 : py + (h >> 7) % 15;
-      P(fx, fy, ["#FFFFFF", "#F9B8CC", "#FFE08A"][(h >> 11) % 3]); P(fx, fy + 1, "#4F9050");
+      const cor = gp.flores[(h >> 11) % gp.flores.length];
+      if (gp.folhas){ R(fx, fy, 2, 1, cor); P(fx + ((h >> 13) % 2), fy + 1, sh(cor, -.2)); } // folhas caídas
+      else if (gp.geada){ P(fx, fy, cor); if (h % 3 === 0) P(fx + 1, fy, "#DDE7EA"); } // geada
+      else { P(fx, fy, cor); P(fx, fy + 1, "#4F9050"); }
     }
   }
+  const [a0, a1, a2, a3] = gp.arb;
   const bush = (bx, by, w) => {
-    R(bx + 1, by, w - 2, 6, "#3F8F56"); R(bx, by + 1, w, 4, "#3F8F56"); R(bx + 1, by, w - 2, 2, "#5DB070"); R(bx + 2, by, 2, 1, "#8AD490");
-    R(bx + 1, by + 5, w - 2, 1, "#2F7446"); P(bx + w - 2, by + 2, "#2F7446"); P(bx + 2, by + 3, "#2F7446");
-    P(bx + 3, by + 2, "#F9B8CC"); P(bx + w - 3, by + 3, "#FFE08A");
+    R(bx + 1, by, w - 2, 6, a0); R(bx, by + 1, w, 4, a0); R(bx + 1, by, w - 2, 2, a1); R(bx + 2, by, 2, 1, a3);
+    R(bx + 1, by + 5, w - 2, 1, a2); P(bx + w - 2, by + 2, a2); P(bx + 2, by + 3, a2);
+    P(bx + 3, by + 2, gp.bot[0]); P(bx + w - 3, by + 3, gp.bot[1]);
+    if (est === "primavera"){ P(bx + w - 4, by + 1, "#FFFFFF"); P(bx + 5, by + 4, "#F9B8CC"); }
+    if (gp.geada) R(bx + 2, by, w - 4, 1, "#EEF4F2");
     R(bx + 1, by + 6, w - 2, 1, "rgba(20,45,30,.25)");
   };
   for (const tx of [1, 4, 5, 9, 12, 15]){ if (portaQ && Math.abs(tx - portaQ) <= 1) continue; bush(tx * T + 3 + hash(tx, 0, 40) % 4, HC * T + 9, 9 + hash(tx, 0, 41) % 3); }
   for (const ty of [2, 6, 9]){ bush(1, ty * T + 4, 7); bush((W - 1) * T + 8, ty * T + 11, 7); }
+  if (chuva){
+    // grama molhada e poças
+    ctx.fillStyle = "rgba(30,50,90,.13)"; ctx.fillRect(0, 0, W * T, H * T);
+    const poca = (x, y, w, h) => { R(x + 1, y, w - 2, h, "#7E9FC0"); R(x, y + 1, w, h - 2, "#7E9FC0"); R(x + 1, y + 1, w - 3, 1, "#A9C6E0"); P(x + w - 2, y + h - 2, "#6A88AA"); };
+    for (let tx = 1; tx < W - 1; tx++){ const h = hash(tx, HC, 77); if (h % 4 === 0 && !(portaQ && Math.abs(tx - portaQ) <= 0)) poca(tx * T + 2 + h % 6, HC * T + 11, 6, 3); }
+    for (let ty = HC + 1; ty < H - 1; ty++) for (let tx = 1; tx < W - 1; tx++){ const h = hash(tx, ty, 78); if (h % 5 === 0) poca(tx * T + 2 + h % 5, ty * T + 3 + (h >> 4) % 8, 7 + h % 3, 4); }
+    for (const ty of [4, 8]){ poca(1, ty * T + 12, 6, 3); poca((W - 1) * T + 9, ty * T + 2, 6, 3); }
+  }
 }
-function drawWindow(px, py, hr, x){
-  const kind = skyKind(hr), [s0, s1] = SKY[kind];
+const SKY_CHUVA = { dia: ["#8796AE", "#B9C3D0"], tarde: ["#7F7896", "#B7AABA"], manha: ["#8D88A8", "#C2B9C6"] };
+function drawWindow(px, py, hr, x, est, chuva){
+  const kind = skyKind(hr), [s0, s1] = chuva && SKY_CHUVA[kind] ? SKY_CHUVA[kind] : SKY[kind], gp = GRAMAS[est] || GRAMAS.primavera;
   R(px + 1, py + 4, 14, 1, "#8C5E3A");
   R(px + 3, py + 4, 11, 9, C.cream);
   for (let j = 0; j < 7; j++) R(px + 4, py + 5 + j, 9, 1, mix(s0, s1, j / 6));
-  if (kind === "noite"){ if (x % 2){ R(px + 9, py + 6, 2, 2, "#FFF6D6"); P(px + 10, py + 6, mix(s0, s1, .2)); } }
-  else if (kind === "tarde" || kind === "manha"){ R(px + 9, py + 9, 3, 2, "#FFE9A8"); R(px + 4, py + 11, 9, 1, mix(s1, "#FFFFFF", .3)); }
-  else { R(px + 4, py + 11, 9, 1, "#8CC97C"); P(px + 6, py + 10, "#8CC97C"); P(px + 7, py + 10, "#8CC97C"); P(px + 11, py + 10, "#6FB866"); }
+  if (kind === "noite"){ if (x % 2 && !chuva){ R(px + 9, py + 6, 2, 2, "#FFF6D6"); P(px + 10, py + 6, mix(s0, s1, .2)); } }
+  else if (kind === "tarde" || kind === "manha"){ if (!chuva) R(px + 9, py + 9, 3, 2, "#FFE9A8"); R(px + 4, py + 11, 9, 1, mix(s1, "#FFFFFF", .3)); }
+  else {
+    if (est === "verao" && !chuva && x % 2 === 0){ R(px + 10, py + 6, 2, 2, "#FFE45C"); P(px + 9, py + 6, "#FFF3A8"); } // sol forte
+    R(px + 4, py + 11, 9, 1, gp.gL); P(px + 6, py + 10, gp.gL); P(px + 7, py + 10, gp.gL); P(px + 11, py + 10, gp.g);
+    if (est === "outono"){ P(px + 5, py + 10, "#E08A3C"); P(px + 10, py + 11, "#C9612F"); }
+  }
   R(px + 8, py + 5, 1, 7, C.cream); R(px + 4, py + 8, 9, 1, C.cream);
   R(px + 3, py + 4, 11, 1, "#FFFFFF"); R(px + 13, py + 5, 1, 8, C.creamD);
   R(px + 2, py + 12, 13, 1, "#D2A06C");
@@ -1206,12 +1374,13 @@ function drawDecor(kind, px, py, hr){
 const bg = document.createElement("canvas"); bg.width = W * T; bg.height = H * T;
 let bgKey = null;
 function ensureBg(hr){
-  const key = [pisos.quarto, pisos.banheiro, pisos.sala, pisos.cozinha, H, portaQ, Math.floor(hr * 12)].join(",");
+  const est = estacao(), chuva = climaAgora(), mes = mesAgora();
+  const key = [pisos.quarto, pisos.banheiro, pisos.sala, pisos.cozinha, H, portaQ, Math.floor(hr * 12), est, chuva || "", mes === 6 ? 6 : 0].join(",");
   if (key === bgKey) return;
   bgKey = key;
   const b = bg.getContext("2d"); b.imageSmoothingEnabled = false;
   withCtx(b, 1, () => {
-    drawGarden();
+    drawGarden(est, chuva);
     for (let y = 0; y < H; y++) for (let x = 0; x < W; x++){
       if (MAP[y][x] === 1 || y > HC) continue; // quintal: a grama já veio do drawGarden
       if (y === HC){ drawPortaQuintal(x, y); continue; }
@@ -1236,21 +1405,37 @@ function ensureBg(hr){
     const kind = skyKind(hr);
     for (const k of JANELAS){
       const [x, y] = k.split(",").map(Number), px = x * T, py = y * T;
-      drawWindow(px, py, hr, x);
-      if (kind !== "noite"){ // luz da janela no chão
-        const c = kind === "dia" ? "rgba(255,248,210,.2)" : kind === "tarde" ? "rgba(255,190,120,.22)" : "rgba(255,210,200,.18)";
+      drawWindow(px, py, hr, x, est, chuva);
+      if (kind !== "noite"){ // luz da janela no chão (fraquinha quando chove, forte no verão)
+        const c = chuva ? "rgba(210,225,255,.1)" : kind === "dia" ? (est === "verao" ? "rgba(255,246,190,.3)" : "rgba(255,248,210,.2)") : kind === "tarde" ? "rgba(255,190,120,.22)" : "rgba(255,210,200,.18)";
         for (let r = 0; r < 20; r++){ if (r === 9 || r === 10) continue; const o = Math.floor(r / 3); R(px + 4 + o, py + T + 3 + r, 4, 1, c); R(px + 9 + o, py + T + 3 + r, 4, 1, c); }
       }
     }
     for (const [k, kindD] of Object.entries(DECOR)){ const [x, y] = k.split(",").map(Number); if (isFace(x, y)) drawDecor(kindD, x * T, y * T, hr); }
     if (portaQ) drawPedras(); else drawPlaca(PLACA.x * T, PLACA.y * T);
+    if (mes === 6) drawBandeirinhas();
   });
+}
+// festa junina: bandeirinhas na parede de cima do quarto e da sala
+function drawBandeirinhas(){
+  const cores = ["#E8607A", "#F6C667", "#5DCAA5", "#7FB8E8", "#B49CF4", "#E8735F"];
+  for (let x = 1; x < W - 1; x++){
+    if (x === VX) continue;
+    const px = x * T, py = 0;
+    R(px, py + 4, T, 1, "#6B4429");
+    for (let k = 0; k < 2; k++){ const fx = px + 2 + k * 8, c = cores[(x * 2 + k) % cores.length]; R(fx, py + 5, 5, 2, c); R(fx + 1, py + 7, 3, 1, c); P(fx + 2, py + 8, c); P(fx, py + 5, sh(c, .35)); }
+  }
 }
 // brilhos animados das janelas (nuvem, reflexo, estrelas)
 function drawWindowAnim(tm, hr){
-  const kind = skyKind(hr);
+  const kind = skyKind(hr), chuva = climaAgora();
   for (const k of JANELAS){
     const [x, y] = k.split(",").map(Number), px = x * T, py = y * T;
+    if (chuva){ // nuvem carregada passando
+      const cxp = Math.floor((tm / 2600 + x * 5) % 18) - 5;
+      for (let i = 0; i < 6; i++){ const ax = px + 4 + cxp + i; if (ax < px + 4 || ax > px + 12 || ax === px + 8) continue; P(ax, py + 6, kind === "noite" ? "#3A3F66" : "#9AA4B6"); if (i > 0 && i < 5) P(ax, py + 5, kind === "noite" ? "#323760" : "#A9B2C2"); }
+      continue;
+    }
     if (kind === "noite"){
       for (let i = 0; i < 3; i++){ const h = hash(x, i, 7), sx = px + 5 + h % 7, sy = py + 5 + (h >> 4) % 3; if (sx === px + 8) continue; ctx.globalAlpha = .35 + .65 * Math.abs(Math.sin(tm / 700 + h % 10)); P(sx, sy, "#FFFFFF"); }
       ctx.globalAlpha = 1;
@@ -1277,7 +1462,7 @@ let me = null;            // estado local do meu boneco
 let disp = {};            // posições exibidas dos outros
 let mode = "live", buildTab = "mov", tool = null;
 let hover = null, menuEl = null, particles = [], lastSave = 0, lastNeedsSent = "";
-let creator = { nome: "", roupa: 0, cabelo: 0, estilo: 0, pele: 1 };
+let creator = { nome: "", roupa: 0, cabelo: 0, estilo: 0, pele: 1, corpo: "neutro", traje: 0, barba: 0, acess: 0 };
 
 function link(){ return location.origin + location.pathname + "#" + sala; }
 function nomeDe(id){ const j = jogadores[id]; return (j && j.nome) || "Alguém"; }
@@ -1447,35 +1632,96 @@ function setAcao(a){
 }
 
 // ===================== criação do boneco =====================
+// o mesmo editor serve pra entrar na casa e pro espelho do guarda-roupa (edit = true)
+let creatorEdit = false;
+function guardaDe(){ return (me && me.dados && me.dados.guarda) || {}; }
+// peças pagas escolhidas: [chave em jogadores/<pid>/guarda, preço, nome]
+function itensPagos(c){
+  const r = [], t = TRAJES[c.traje], a = ACESS[c.acess];
+  if (t && t.preco) r.push(["traje-" + c.traje, t.preco, t.nome]);
+  if (a && a.preco) r.push(["acess-" + c.acess, a.preco, a.nome]);
+  return r;
+}
 function openCreator(edit){
   const d = edit && me ? me.dados : null;
-  if (d) creator = { nome: d.nome || "", roupa: d.roupa || 0, cabelo: d.cabelo || 0, estilo: d.estilo || 0, pele: d.pele || 0 };
-  else if (!creator.sorteado){ creator.sorteado = true; creator.roupa = Math.floor(Math.random() * ROUPAS.length); creator.cabelo = Math.floor(Math.random() * 4); creator.estilo = Math.floor(Math.random() * 4); creator.pele = Math.floor(Math.random() * PELES.length); }
+  if (d) creator = Object.assign({ nome: d.nome || "", sorteado: true }, visual(d));
+  else if (!creator.sorteado){
+    const rnd = n => Math.floor(Math.random() * n), gratis = TRAJES.map((t, i) => t.preco ? -1 : i).filter(i => i >= 0);
+    Object.assign(creator, { sorteado: true, corpo: "neutro", barba: 0, acess: 0, roupa: rnd(ROUPAS.length), cabelo: rnd(6), estilo: rnd(ESTILOS.length), pele: rnd(PELES.length), traje: gratis[rnd(gratis.length)] });
+  }
+  creatorEdit = !!d;
   showScreen("screenCreator");
-  $("cName").value = creator.nome;
-  $("cGo").textContent = d ? "Salvar" : "Entrar na casa";
-  $("cGo").dataset.edit = d ? "1" : "";
-  swatchRow("swRoupa", ROUPAS, "roupa"); swatchRow("swCabelo", CABELOS, "cabelo"); swatchRow("swPele", PELES, "pele");
-  const est = $("swEstilo"); est.innerHTML = "";
-  ESTILOS.forEach((n, i) => { const b = el("button", "btn ghost small", n); b.type = "button"; b.setAttribute("aria-pressed", String(creator.estilo === i)); b.onclick = () => { creator.estilo = i; openCreatorRefresh(); }; est.append(b); });
+  $("cName").value = creator.nome || "";
+  montarCriador();
+  window.scrollTo(0, 0);
+}
+// opções em botões; ao clicar, redesenha tudo e devolve o foco ao mesmo botão
+function opcoes(id, itens){
+  const box = $(id); box.innerHTML = "";
+  itens.forEach((it, i) => {
+    const b = btn(it.nome, it.cor ? "swatch" : "btn ghost small", () => { it.fn(); montarCriador(); const nb = $(id).children[i]; if (nb) nb.focus({ preventScroll: true }); });
+    if (it.cor){ b.textContent = ""; b.style.background = it.cor; b.setAttribute("aria-label", it.nome); }
+    b.setAttribute("aria-pressed", String(!!it.on));
+    if (it.off){ b.disabled = true; b.title = "Libera no guarda-roupa da casa"; }
+    box.append(b);
+  });
+}
+function itemPago(campo, i, it){
+  const tem = !it.preco || guardaDe()[campo + "-" + i], trava = !tem && !creatorEdit;
+  return { nome: it.nome + (tem ? "" : trava ? " 🔒" : " · $" + it.preco), on: creator[campo] === i, off: trava, fn: () => creator[campo] = i };
+}
+function montarCriador(){
+  const ed = creatorEdit;
+  $("cTitulo").textContent = ed ? "Espelho do guarda-roupa" : "Monte seu bonequinho";
+  $("cGo").textContent = ed ? "Salvar o visual" : "Entrar na casa";
+  $("cBack").hidden = !ed;
+  opcoes("swCorpo", CORPOS.map(([k, n]) => ({ nome: n, on: creator.corpo === k, fn: () => { creator.corpo = k; if (k !== "ele") creator.barba = 0; } })));
+  $("rowBarba").hidden = creator.corpo !== "ele";
+  opcoes("swBarba", [["Sem barba", 0], ["Com barba", 1]].map(([n, b]) => ({ nome: n, on: (creator.barba || 0) === b, fn: () => creator.barba = b })));
+  opcoes("swTraje", TRAJES.map((t, i) => itemPago("traje", i, t)));
+  opcoes("swRoupa", ROUPAS.map((c, i) => ({ nome: "Cor da roupa " + (i + 1), cor: c, on: creator.roupa === i, fn: () => creator.roupa = i })));
+  opcoes("swEstilo", ESTILOS.map((n, i) => ({ nome: n, on: creator.estilo === i, fn: () => creator.estilo = i })));
+  opcoes("swCabelo", CABELOS.map((c, i) => ({ nome: "Cor do cabelo " + (i + 1), cor: c, on: creator.cabelo === i, fn: () => creator.cabelo = i })));
+  opcoes("swAcess", ACESS.map((a, i) => itemPago("acess", i, a)));
+  opcoes("swPele", PELES.map((c, i) => ({ nome: "Tom de pele " + (i + 1), cor: c, on: creator.pele === i, fn: () => creator.pele = i })));
+  const novos = itensPagos(creator).filter(([k]) => !guardaDe()[k]), custo = novos.reduce((s, x) => s + x[1], 0);
+  $("cDica").textContent = ed ? (custo ? "Peça nova: " + novos.map(x => x[2]).join(" e ") + " por $" + custo + ". Você tem $" + Math.floor(me ? me.dinheiro : 0) + ". Paga uma vez só." : "Quase tudo é de graça. Peças com preço você paga uma vez só.")
+    : "Dá pra trocar tudo depois no guarda-roupa. Peças com 🔒 se compram lá.";
   drawCreator();
 }
-function openCreatorRefresh(){ creator.nome = $("cName").value; const ed = $("cGo").dataset.edit; openCreator(false); $("cGo").dataset.edit = ed; $("cGo").textContent = ed ? "Salvar" : "Entrar na casa"; }
-function swatchRow(id, cores, key){
-  const box = $(id); box.innerHTML = "";
-  cores.forEach((c, i) => { const b = el("button", "swatch"); b.type = "button"; b.style.background = c; b.setAttribute("aria-label", key + " " + (i + 1)); b.setAttribute("aria-pressed", String(creator[key] === i)); b.onclick = () => { creator[key] = i; openCreatorRefresh(); }; box.append(b); });
-}
+// prévia de frente, de lado e de costas, alternando parado, andando e dançando
+const POSES_PREVIA = [["stand", "Parado"], ["walk", "Andando"], ["arms", "Dançando"]];
 function drawCreator(){
-  const c = $("cPreview"), x = c.getContext("2d"); x.imageSmoothingEnabled = false; x.clearRect(0, 0, 32, 32);
-  withCtx(x, 1, () => R(0, 24, 32, 8, "#30264A")); x.drawImage(avatarSprite(creator, "down", 0, "stand").c, 7, 1);
+  const c = $("cPreview"); if (!c || $("screenCreator").hidden) return;
+  const x = c.getContext("2d"), t = Date.now(), fase = Math.floor(t / 2600) % 3, [ps, nome] = POSES_PREVIA[fase];
+  x.imageSmoothingEnabled = false; x.clearRect(0, 0, 60, 32);
+  withCtx(x, 1, () => { R(0, 25, 60, 7, "#30264A"); R(0, 25, 60, 1, "#3E3260"); });
+  ["down", "right", "up"].forEach((dir, i) => {
+    let pose = "stand", fr = 0;
+    if (ps === "walk") fr = Math.floor(t / 150) % 4;
+    else if (ps === "arms"){ const k = Math.floor(t / 300) % 2; pose = k ? "arms" : "stand"; fr = k ? 1 : 3; }
+    else if (t % 3200 < 160) pose = "blink";
+    x.drawImage(avatarSprite(creator, dir, fr, pose).c, 1 + i * 20, 1);
+  });
+  const lp = $("cPose"); if (lp.textContent !== nome) lp.textContent = nome;
 }
+setInterval(drawCreator, 120);
 $("cName").addEventListener("input", e => creator.nome = e.target.value);
+$("cBack").onclick = () => { showScreen("screenGame"); resize(); };
 $("cGo").onclick = () => {
   const nome = $("cName").value.trim().slice(0, 16);
   if (!nome){ toast("Escreva um nome pro seu bonequinho."); $("cName").focus(); return; }
   creator.nome = nome;
-  const base = { nome, roupa: creator.roupa, cabelo: creator.cabelo, estilo: creator.estilo, pele: creator.pele };
-  if ($("cGo").dataset.edit && me){ ref("jogadores/" + pid).update(base); showScreen("screenGame"); resize(); return; }
+  const v = visual(creator);
+  const base = { nome, roupa: v.roupa, cabelo: v.cabelo, estilo: v.estilo, pele: v.pele, corpo: v.corpo, traje: v.traje, barba: v.barba, acess: v.acess };
+  if (creatorEdit && me){
+    const novos = itensPagos(v).filter(([k]) => !guardaDe()[k]), custo = novos.reduce((s, x) => s + x[1], 0);
+    if (custo && !gastar(custo, "o visual novo")) return;
+    for (const [k] of novos) base["guarda/" + k] = true;
+    ref("jogadores/" + pid).update(base).then(() => toast(custo ? "Visual novo! -$" + custo + ". Agora é seu pra sempre." : "Visual novo! Ficou ótimo."), () => { if (custo) ganhar(custo); toast("Não deu pra salvar. Tente de novo."); });
+    showScreen("screenGame"); resize(); return;
+  }
+  if (itensPagos(v).length){ toast("Essa peça se compra no guarda-roupa. Escolha outra por enquanto."); return; }
   const [x, y] = freeSpot();
   const n = {}; NEEDS.forEach(k => n[k.id] = 80);
   ref("jogadores/" + pid).set(Object.assign(base, { x, y, dir: "down", needs: n, dinheiro: 500, online: true, entrou: Date.now() })).catch(() => toast("Não deu pra entrar. Tente de novo."));
@@ -1498,8 +1744,8 @@ function worldFromEvent(e){
   const r = canvas.getBoundingClientRect();
   return { x: (e.clientX - r.left) / r.width * W * T, y: (e.clientY - r.top) / r.height * H * T, sx: e.clientX - r.left, sy: e.clientY - r.top };
 }
-function playerAt(wx, wy){
-  let best = null, bd = 12;
+function playerAt(wx, wy, folga){
+  let best = null, bd = 12 + (folga || 0);
   for (const [id, j] of Object.entries(jogadores)){
     if (id === pid || !disp[id]) continue;
     const d = disp[id], cx = (d.x + .5) * T, cy = (d.y + 1) * T - 2;
@@ -1523,13 +1769,18 @@ canvas.addEventListener("click", e => {
   const p = worldFromEvent(e), tx = Math.floor(p.x / T), ty = Math.floor(p.y / T);
   closeMenu();
   if (mode === "build"){ hover = { x: tx, y: ty }; buildClick(tx, ty, p); return; }
-  const other = playerAt(p.x, p.y);
+  // no toque (dedo), alvos pequenos (pessoa, bichinho, mural, troféus, placa) aceitam um raio maior
+  const toque = e.pointerType === "touch" || e.pointerType === "pen" || (!e.pointerType && window.matchMedia && matchMedia("(pointer: coarse)").matches);
+  const other = playerAt(p.x, p.y, toque ? 4 : 0);
   if (other) return socialMenu(other, p);
-  if (petAt(p.x, p.y)) return petMenu(p);
-  const hs = HOTSPOTS.find(h => h.x === tx && h.y === ty && (!h.ativo || h.ativo()));
+  if (petAt(p.x, p.y, toque ? 5 : 0)) return petMenu(p);
+  const ativos = HOTSPOTS.filter(h => !h.ativo || h.ativo());
+  const hs = ativos.find(h => h.x === tx && h.y === ty);
   if (hs) return hs.fn();
   const f = furnAt(tx, ty);
   if (f) return furnMenu(f, p);
+  const fg = toque ? 7 : 3, perto = ativos.find(h => p.x >= h.x * T - fg && p.x < (h.x + 1) * T + fg && p.y >= h.y * T - fg && p.y < (h.y + 1) * T + fg);
+  if (perto) return perto.fn();
   if (walkable(tx, ty)) goTo(() => tx === me.tx && ty === me.ty ? true : null, (x, y) => x === tx && y === ty, null);
 });
 
@@ -1544,15 +1795,18 @@ function openMenu(p, titulo, items){
     b.onclick = ev => { ev.stopPropagation(); closeMenu(); it.fn(); };
     m.append(b);
   }
-  $("stage").append(m);
-  const sw = $("stage").clientWidth, sh = $("stage").clientHeight;
-  m.style.left = clamp(p.sx + 8, 6, sw - m.offsetWidth - 6) + "px";
-  m.style.top = clamp(p.sy - 10, 6, Math.max(6, sh - m.offsetHeight - 6)) + "px";
+  document.body.append(m);
+  const r = canvas.getBoundingClientRect(), vw = document.documentElement.clientWidth, vh = window.innerHeight;
+  let x = r.left + p.sx + 10; if (x + m.offsetWidth > vw - 6) x = r.left + p.sx - 10 - m.offsetWidth; // vira pro outro lado do dedo
+  m.style.left = clamp(x, 6, Math.max(6, vw - m.offsetWidth - 6)) + "px";
+  m.style.top = clamp(r.top + p.sy - 16, 6, Math.max(6, vh - m.offsetHeight - 6)) + "px";
   menuEl = m; const first = m.querySelector("button"); if (first) first.focus({ preventScroll: true });
 }
 function closeMenu(){ if (menuEl){ menuEl.remove(); menuEl = null; } }
 document.addEventListener("keydown", e => { if (e.key === "Escape"){ closeMenu(); closePanel(); } });
 document.addEventListener("click", e => { if (menuEl && !menuEl.contains(e.target) && e.target !== canvas) closeMenu(); });
+window.addEventListener("scroll", () => { if (menuEl) closeMenu(); }, { passive: true });
+window.addEventListener("resize", () => { if (menuEl) closeMenu(); });
 
 function ganhoTxt(a){
   const parts = [];
@@ -1800,11 +2054,13 @@ function openPanel(id, titulo, monta){
   const corpo = el("div"); corpo.style.cssText = "display:flex;flex-direction:column;gap:12px";
   folha.append(hd, corpo); fundo.append(folha); document.body.append(fundo);
   fundo.addEventListener("click", e => { if (e.target === fundo) closePanel(); });
+  fundo.addEventListener("touchmove", e => { if (!folha.contains(e.target)) e.preventDefault(); }, { passive: false }); // fundo não rola atrás
+  document.documentElement.classList.add("travado");
   painel = { id, el: fundo, upd: null };
   painel.upd = monta(corpo) || null;
   fx.focus({ preventScroll: true });
 }
-function closePanel(){ if (painel){ painel.el.remove(); painel = null; } }
+function closePanel(){ if (painel){ painel.el.remove(); painel = null; } document.documentElement.classList.remove("travado"); }
 function refreshPanel(id){ if (painel && painel.id === id && painel.upd) painel.upd(); }
 function btn(txt, cls, fn){ const b = el("button", cls || "btn", txt); b.type = "button"; if (fn) b.onclick = fn; return b; }
 function quando(ts){
@@ -1996,7 +2252,7 @@ function addPetObj(objs, tm){
     if (st.triste) drawNuvem(cx + (st.esq ? -3 : 3), by - 19, tm);
   } });
 }
-function petAt(wx, wy){ return petView && Math.hypot(wx - petView.cx, wy - (petView.by - 6)) < 11; }
+function petAt(wx, wy, folga){ return petView && Math.hypot(wx - petView.cx, wy - (petView.by - 6)) < 11 + (folga || 0); }
 // cuidar: grava o timestamp e quem cuidou (todos veem e o bichinho pula)
 function petCuidar(campo){
   if (!pet) return;
@@ -2062,8 +2318,7 @@ const JARDIM_SECA_H = 2;
 function plantaInfo(p, t){
   const s = p && SEMENTES[p.tipo]; if (!s) return null;
   t = t || srvNow();
-  const lr = p.ultimaRega || p.plantado || t, seca = JARDIM_SECA_H * HORA, desde = Math.max(0, t - lr);
-  const g = (p.cresc || 0) + Math.min(desde, seca), total = s.horas * HORA, pr = clamp(g / total, 0, 1);
+  const seca = JARDIM_SECA_H * HORA, { g, desde } = crescAte(p, t), total = s.horas * HORA, pr = clamp(g / total, 0, 1);
   return { s, pr, estagio: pr >= 1 ? 3 : pr >= .55 ? 2 : pr >= .15 ? 1 : 0, pronta: pr >= 1, murcha: pr < 1 && desde > seca, sede: pr < 1 && desde > seca * .7, falta: total - g };
 }
 function drawPlanta(tipo, est, murcha, x, y){
@@ -2095,8 +2350,8 @@ function drawGota(x, y){ P(x + 1, y, "#9FD3F2"); R(x, y + 1, 3, 2, "#7FB8E8"); P
 function regar(id){
   return txn("casa/jardim/" + id, cur => {
     if (!cur) return;
-    const t = srvNow(), lr = cur.ultimaRega || cur.plantado || t;
-    cur.cresc = (cur.cresc || 0) + clamp(t - lr, 0, JARDIM_SECA_H * HORA); cur.ultimaRega = t; cur.regouPor = pid;
+    const t = srvNow();
+    cur.cresc = crescAte(cur, t).g; cur.ultimaRega = t; cur.regouPor = pid; // crescAte já conta a chuva como rega
     return cur;
   }).then(ok => toast(ok ? "Planta regada. Ela agradece." : "Não tinha planta pra regar."));
 }
@@ -2125,7 +2380,7 @@ MENU_EXTRA.canteiro = id => {
   const fase = inf.pronta ? "pronto pra colher" : inf.murcha ? "murchou, precisa de água" : ["semente", "broto", "crescendo", ""][inf.estagio] + " · falta " + duracao(inf.falta);
   const it = [{ nota: 1, nome: inf.s.nome + ": " + fase }];
   if (inf.pronta) it.push({ nome: "Colher", info: inf.s.colhe.moedas ? "+$" + inf.s.colhe.moedas : "Despensa", fn: () => useFurn(id, { id: "colher", nome: "Colhendo", dur: 2, ganho: {}, antes: () => { jardimAntes[id] = jardim[id]; return true; }, fim: () => colher(id) }) });
-  else it.push({ nome: "Regar", info: inf.murcha ? "Urgente" : inf.sede ? "Com sede" : "Tudo certo", fn: () => useFurn(id, { id: "regar", nome: "Regando", dur: 3, ganho: { diversao: 5 }, fim: () => regar(id) }) });
+  else it.push({ nome: "Regar", info: climaAgora() ? "A chuva já rega" : inf.murcha ? "Urgente" : inf.sede ? "Com sede" : "Tudo certo", fn: () => useFurn(id, { id: "regar", nome: "Regando", dur: 3, ganho: { diversao: 5 }, fim: () => regar(id) }) });
   if (!inf.pronta) it.push({ nome: "Arrancar", info: "Perde a planta", fn: () => useFurn(id, { id: "arrancar", nome: "Arrancando", dur: 2, ganho: {}, fim: () => ref("casa/jardim/" + id).remove().then(() => toast("Canteiro vazio de novo.")) }) });
   return it;
 };
@@ -2946,17 +3201,111 @@ HOTSPOTS.push({ x: QUADRO.x, y: QUADRO.y, fn: () => openTrofeus() }, { x: PLACA.
 function renderLeva2Hud(){
   if (!me) return;
   const d = hoje(), f = minhasTarefas(d).feitas || {}, n = tarefasDoDia(d).filter(t => f[t.id]).length;
-  const setTxt = (id, t) => { const b = $(id); if (b.textContent !== t) b.textContent = t; };
+  const setTxt = (id, t) => { const b = $(id), tx = b.querySelector(".tx"); if (tx.textContent !== t){ tx.textContent = t; b.setAttribute("aria-label", t); } };
   setTxt("bTarefas", n >= 3 ? "Tarefas ✓" : "Tarefas " + n + "/3");
   setTxt("bTrofeus", "Troféus " + CONQUISTAS.filter(c => conquistas[c.id]).length + "/" + CONQUISTAS.length);
   const bq = $("bQuintal"); bq.hidden = !cofreCarregado || temQuintal();
-  setTxt("bQuintal", "Quintal $" + (cofre.total || 0) + "/" + QUINTAL_PRECO);
+  setTxt("bQuintal", "Quintal $" + (cofre.total || 0));
   refreshPanel("tarefas");
 }
 $("bTarefas").onclick = () => openTarefas();
 $("bTrofeus").onclick = () => openTrofeus();
 $("bQuintal").onclick = () => openQuintal();
 setInterval(() => { if (!me) return; vigiarJogos(); checarConquistas(); checarDupla(); limparDiario(); }, 1000);
+
+// =====================================================================
+// LEVA 3: visual novo (corpo, roupas, cabelos, acessórios, espelho), estações e chuva, celular
+//   jogadores/<pid>: corpo ("ele" | "ela" | "neutro"), traje, barba, acess, guarda/{"traje-N" | "acess-N": true}
+//   Clima não vai pro banco: a chuva sai de um hash(sala, bloco de 3h), igual pra todo mundo da casa.
+//   Teste: ?estacao=inverno  ?chuva=1 | garoa | 0  ?mes=6 (bandeirinhas) | 12 (pisca-pisca)  ?hora=NN
+// =====================================================================
+MENU_EXTRA.armario = id => [{ nome: "Trocar o visual", info: "Espelho", fn: () => useFurn(id, { id: "roupa", nome: "Trocar o visual", dur: 1, ganho: {}, roupa: 1 }) }];
+
+const URLP = new URLSearchParams(location.search);
+const ESTACAO_TESTE = ["verao", "outono", "inverno", "primavera"].includes(URLP.get("estacao")) ? URLP.get("estacao") : null;
+const CHUVA_TESTE = URLP.has("chuva") ? (URLP.get("chuva") === "0" ? "" : URLP.get("chuva") === "garoa" ? "garoa" : "chuva") : null;
+const MES_TESTE = (n => n >= 1 && n <= 12 ? n : null)(parseInt(URLP.get("mes"), 10));
+// hemisfério sul: verão dez–fev, outono mar–mai, inverno jun–ago, primavera set–nov. chance = % de blocos com chuva
+const ESTACOES = {
+  verao: { nome: "Verão", chance: 38, ic: "☀️" },
+  outono: { nome: "Outono", chance: 22, ic: "🍂" },
+  inverno: { nome: "Inverno", chance: 30, ic: "❄️" },
+  primavera: { nome: "Primavera", chance: 25, ic: "🌸" }
+};
+const BLOCO_CLIMA = 3 * HORA;
+const estacaoDoMes = m => m === 12 || m <= 2 ? "verao" : m <= 5 ? "outono" : m <= 8 ? "inverno" : "primavera";
+const mesAgora = () => MES_TESTE || new Date(srvNow()).getMonth() + 1;
+const estacao = () => ESTACAO_TESTE || estacaoDoMes(mesAgora());
+const blocoAgora = () => Math.floor(srvNow() / BLOCO_CLIMA);
+// null (sem chuva), "chuva" ou "garoa" (no inverno é sempre garoa)
+function climaBloco(b, est){
+  est = est || estacaoDoMes(new Date(b * BLOCO_CLIMA).getMonth() + 1);
+  if (hash(salaSeed, b, 911) % 100 >= ESTACOES[est].chance) return null;
+  return est === "inverno" || hash(salaSeed, b, 912) % 4 === 0 ? "garoa" : "chuva";
+}
+function climaAgora(){ return CHUVA_TESTE != null ? (CHUVA_TESTE || null) : climaBloco(blocoAgora(), ESTACAO_TESTE); }
+const choveuNoBloco = b => b === blocoAgora() ? !!climaAgora() : !!climaBloco(b);
+// horta: chuva conta como rega. Crescimento calculado sem gravar nada (idempotente), olhando até 10 dias pra trás
+function crescAte(p, t){
+  const seca = JARDIM_SECA_H * HORA; let cur = p.ultimaRega || p.plantado || t, g = p.cresc || 0;
+  if (t > cur){
+    const bt = Math.floor(t / BLOCO_CLIMA);
+    for (let b = Math.max(Math.floor(cur / BLOCO_CLIMA), bt - 80); b <= bt; b++){
+      const s = b * BLOCO_CLIMA, e = s + BLOCO_CLIMA;
+      if (e <= cur || s >= t || !choveuNoBloco(b)) continue;
+      const rs = Math.max(s, cur), re = Math.min(e, t);
+      g += Math.min(rs - cur, seca) + (re - rs); cur = re;
+    }
+  }
+  return { g: g + Math.min(Math.max(0, t - cur), seca), desde: Math.max(0, t - cur) };
+}
+// gotas animadas só na área de fora (laterais, jardim de baixo, quintal) e nos vidros das janelas
+function drawChuva(tm, tipo){
+  const garoa = tipo === "garoa", Ww = W * T, Hh = H * T, cor = garoa ? "rgba(228,238,255,.55)" : "rgba(212,230,255,.78)", len = garoa ? 2 : 4;
+  ctx.save(); ctx.beginPath();
+  ctx.rect(0, 0, 9, Hh); ctx.rect(Ww - 9, 0, 9, Hh); ctx.rect(0, HC * T + 7, Ww, Hh - HC * T - 7);
+  const jan = [...JANELAS].map(w => w.split(",").map(Number));
+  for (const [x, y] of jan) ctx.rect(x * T + 4, y * T + 5, 9, 7);
+  ctx.clip();
+  ctx.fillStyle = cor;
+  const n = garoa ? 90 : 190;
+  for (let i = 0; i < n; i++){
+    const h = hash(i, 31, 5), vel = (garoa ? 55 : 160) + (h >> 9) % 50;
+    const y = ((h >> 4) % (Hh + 30) + tm / 1000 * vel) % (Hh + 30) - 15;
+    const x = (((h % Ww) - Math.floor(y / 5)) % Ww + Ww) % Ww; // inclinação leve
+    ctx.fillRect(x, Math.floor(y), 1, len);
+  }
+  for (const [x, y] of jan) for (let i = 0; i < (garoa ? 2 : 4); i++){
+    const h = hash(x, i, 6), yy = ((h >> 5) % 9 + tm / 1000 * (garoa ? 9 : 22)) % 10;
+    ctx.fillRect(x * T + 4 + h % 9, y * T + 4 + Math.floor(yy), 1, garoa ? 1 : 2);
+  }
+  if (!garoa){ // respingos
+    const passo = Math.floor(tm / 170), y0 = HC * T + 9, alt = Hh - y0 - 3;
+    for (let i = 0; i < (portaQ ? 14 : 6); i++){ const h = hash(passo, i, 9), x = h % Ww, y = y0 + (h >> 8) % Math.max(4, portaQ ? alt : 6); ctx.fillRect(x - 1, y, 1, 1); ctx.fillRect(x + 1, y, 1, 1); ctx.fillRect(x, y - 1, 1, 1); }
+  }
+  ctx.restore();
+}
+// Natal (dezembro): pisca-pisca na parede de cima
+function drawPiscaPisca(tm){
+  const cores = ["#FF6E78", "#FFDC78", "#82DCAA", "#8CB4FF"], fase = Math.floor(tm / 450);
+  for (let x = 1; x < W - 1; x++){
+    if (x === VX) continue;
+    const px = x * T; R(px, 4, T, 1, "#3E5A3A");
+    for (let q = 0; q < 4; q++){ const n = x * 4 + q, on = (n + fase) % 3 !== 0; ctx.globalAlpha = on ? 1 : .4; R(px + 1 + q * 4, 5, 1, 2, cores[n % 4]); if (on) P(px + 1 + q * 4, 5, "#FFFFFF"); }
+    ctx.globalAlpha = 1;
+  }
+}
+// indicador no canto da tela: estação e clima. Avisa quando começa a chover
+let climaVisto;
+function renderClima(){
+  const e = ESTACOES[estacao()], c = climaAgora(), noite = skyKind(hourNow()) === "noite";
+  const ic = c === "chuva" ? "🌧️" : c === "garoa" ? "🌦️" : noite ? "🌙" : e.ic;
+  const txt = ic + " " + e.nome + (c === "garoa" ? " · garoa" : c ? " · chuva" : "");
+  const b = $("clima"); b.hidden = false;
+  if (b.textContent !== txt){ b.textContent = txt; b.setAttribute("aria-label", e.nome + (c ? ", " + (c === "chuva" ? "chovendo" : "garoando") : ", tempo firme")); }
+  if (climaVisto !== undefined && c && !climaVisto) toast(c === "chuva" ? "Começou a chover. A horta agradece." : "Começou uma garoa lá fora.");
+  climaVisto = c;
+}
 
 // ===================== laço =====================
 let last = performance.now(), hudT = 0, clockSkew = 0;
@@ -2971,7 +3320,7 @@ function renderHudLight(){
   for (const w of $("needs").children){ const id = w.dataset.id, v = Math.round(me.needs[id]); w.querySelector(".v").textContent = v; const i = w.querySelector("i"); i.style.width = v + "%"; i.style.background = v < 25 ? "var(--bad)" : NEEDS.find(q => q.id === id).cor; }
   $("meMood").textContent = mood(); $("money").textContent = "$ " + Math.floor(me.dinheiro);
   if (mode === "build") $("money2").textContent = "$ " + Math.floor(me.dinheiro);
-  renderHouseCard(); renderLeva2Hud();
+  renderHouseCard(); renderLeva2Hud(); renderClima();
 }
 
 const SPEED = 4.2;
@@ -3047,6 +3396,8 @@ function draw(now){
   ensureBg(hr);
   ctx.drawImage(bg, 0, 0);
   drawWindowAnim(tm, hr);
+  const clima = climaAgora(), est = estacao(), natal = mesAgora() === 12;
+  if (natal) drawPiscaPisca(tm);
   drawMural(tm);
   drawQuadroTrofeus(tm);
   // tapetes
@@ -3143,11 +3494,15 @@ function draw(now){
     else if (p.kind === "heart") pixHeart(p.x - 2, p.y, "#F0707A"); else pixNote(p.x - 2, p.y, "#CECBF6");
   }
   ctx.globalAlpha = 1;
-  // luz do dia e da noite: um mapa de luz colorido multiplicado sobre a cena
-  const dk = darkness(hr), k = dk * 2;
+  // chuva (leva 3): gotas no jardim, no quintal e nas janelas
+  if (clima) drawChuva(tm, clima);
+  if (natal) for (let i = 0; i < 8; i++) lights.push([24 + i * 34, 6, 18, ["255,110,120", "255,220,120", "130,220,170", "140,180,255"][i % 4], .95]);
+  // luz do dia e da noite: um mapa de luz colorido multiplicado sobre a cena (chuva escurece o céu)
+  let dk = darkness(hr); if (clima) dk = Math.min(.5, dk + (clima === "garoa" ? .08 : .15));
+  const k = dk * 2;
   if (k > 0){
     if (k > .5) for (const w of JANELAS){ const [wx, wy] = w.split(",").map(Number); lights.push([wx * T + 9, wy * T + 26, 24, "150,175,255", .45]); }
-    const warm = hr < 12 ? [255, 214, 214] : [255, 198, 156], night = [116, 110, 182];
+    const warm = clima ? [186, 196, 224] : hr < 12 ? [255, 214, 214] : [255, 198, 156], night = [116, 110, 182];
     const A = k < .5 ? [255, 255, 255] : warm, B = k < .5 ? warm : night, t = k < .5 ? k * 2 : (k - .5) * 2;
     const l = lc.getContext("2d");
     l.globalCompositeOperation = "source-over";
@@ -3166,7 +3521,7 @@ function draw(now){
       ctx.fillStyle = g; ctx.fillRect(x - r, y - r, r * 2, r * 2);
     }
     // vaga-lumes no jardim
-    if (k > .7) for (let i = 0; i < 7; i++){
+    if (k > .7 && !clima) for (let i = 0; i < 7; i++){
       const fx = 10 + ((i * 41 + tm / 260 * (i % 2 ? 1 : -1)) % (W * T - 20) + (W * T - 20)) % (W * T - 20), fy = H * T - 5 + Math.sin(tm / 600 + i * 1.7) * 2.5;
       ctx.globalAlpha = .35 + .65 * Math.abs(Math.sin(tm / 450 + i * 2.3)); P(Math.round(fx), Math.round(fy), "#F6F2A0");
     }
@@ -3174,7 +3529,7 @@ function draw(now){
     ctx.globalCompositeOperation = "source-over";
   }
   // tom quente de dia e vinheta nos cantos
-  if (k < 1){ ctx.fillStyle = "rgba(255,196,120," + (.06 * (1 - k)) + ")"; ctx.fillRect(0, 0, lo.width, lo.height); }
+  if (k < 1 && !clima){ ctx.fillStyle = est === "verao" ? "rgba(255,206,110," + (.11 * (1 - k)) + ")" : est === "inverno" ? "rgba(200,220,255," + (.06 * (1 - k)) + ")" : "rgba(255,196,120," + (.06 * (1 - k)) + ")"; ctx.fillRect(0, 0, lo.width, lo.height); }
   ctx.drawImage(vig, 0, 0);
   // amplia a arte para a tela
   mctx.imageSmoothingEnabled = false;
