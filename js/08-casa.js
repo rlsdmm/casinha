@@ -582,9 +582,12 @@ function renderHouseCard(){
   }
   const [nm, sub, bars] = box.children;
   if (!pet){ nm.textContent = "Bichinho"; sub.textContent = "Chegando..."; return; }
+  const pose = petView ? petView.pose : "", fr = Math.floor(Date.now() / 650) % 2;
+  // leva 8: nada mudou desde a última vez: não mexe no DOM
+  const sig = [petNome(), pet.tipo, pose, fr, petTriste(), Math.round(petFome()), Math.round(petCarinho()), muralNovos()].join("|");
+  if (box.dataset.sig === sig) return; box.dataset.sig = sig;
   nm.textContent = petNome();
-  const pose = petView ? petView.pose : "";
-  const av = $("petAv"), ax = av.getContext("2d"), fr = Math.floor(Date.now() / 650) % 2;
+  const av = $("petAv"), ax = av.getContext("2d");
   ax.imageSmoothingEnabled = false; ax.clearRect(0, 0, 21, 17);
   ax.drawImage(petSprite(pet.tipo in PET_TIPOS ? pet.tipo : "gato", pose === "sleep" ? "sleep" : "sit", pose === "sleep" ? 0 : fr, false, petTriste()).c, 1, 1);
   sub.textContent = petTriste() ? "Tristinho. Precisa de carinho e comida." : pose === "sleep" ? "Dormindo." : pose === "eat" ? "Comendo." : "Feliz da vida.";

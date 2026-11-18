@@ -11,7 +11,7 @@
 // =====================================================================
 let paredes = {}, paredes2 = {}, decor = {}, nivelXp = 0, nivelCarregado = false, lojaDonos = {}, leva6Tentou = false;
 let papelPad = 1, papelCor = 0;
-function leva6Reset(){ paredes = {}; paredes2 = {}; decor = {}; nivelXp = 0; nivelCarregado = false; lojaDonos = {}; leva6Tentou = false; }
+function leva6Reset(){ paredes = {}; paredes2 = {}; paredesSigC = null; decor = {}; nivelXp = 0; nivelCarregado = false; lojaDonos = {}; leva6Tentou = false; }
 
 // ---------------- papel de parede ----------------
 const PAPEL_CORES = [["Lilás", "#BEACEA"], ["Rosa", "#F5C6D6"], ["Pêssego", "#F7CDB0"], ["Amarelo", "#F7E3A8"], ["Menta", "#BFE5DA"], ["Azul", "#C5E0F6"],
@@ -21,7 +21,8 @@ const PAPEL_PADROES = [
   { id: "flor", nome: "Florzinha" }, { id: "tijolo", nome: "Tijolinho" }, { id: "madeira", nome: "Madeira" },
   { id: "coracoes", nome: "Corações", nivel: 4 }, { id: "estrelas", nome: "Estrelinhas douradas", nivel: 14 }
 ];
-const paredesSig = () => JSON.stringify(paredes) + JSON.stringify(paredes2);
+let paredesSigC = null; // leva 8: a assinatura entra na chave do fundo a cada quadro; calcula só quando as paredes mudam
+const paredesSig = () => paredesSigC || (paredesSigC = JSON.stringify(paredes) + JSON.stringify(paredes2));
 function papelDe(room){
   const v = (COMODOS2.has(room) ? paredes2 : paredes)[room];
   if (!v || typeof v !== "object") return null;
@@ -174,7 +175,17 @@ function decorSpotOk(x, y, ignore){
   const k = x + "," + y;
   if (janelas().has(k) || decorAtual()[k]) return false;
   if (andarAtual === 0 && ((x === MURAL.x && y === MURAL.y) || (x === QUADRO.x && y === QUADRO.y))) return false;
+  if (moveAltoEm(x, y + 1)) return false; // leva 8: atrás de móvel alto a decoração ficaria escondida (e o toque ia pro móvel)
   return !decorDoAndar().some(([id, d]) => id !== ignore && d.x === x && d.y === y);
+}
+// leva 8: móvel alto (que sobe por cima da parede de trás) encostado nessa parede
+const DECOR_ALTO = 7;
+function moveAltoEm(x, y){ const id = occ[y] && occ[y][x], m = id && moveis[id]; return !!m && (TOP[m.t] || 0) >= DECOR_ALTO; }
+// leva 8: o inverso: um móvel alto colocado logo abaixo de uma decoração esconderia ela
+function escondeDecor(t, x, y, ignore){
+  const c = CAT[t]; if (!c || c.chao || (TOP[t] || 0) < DECOR_ALTO) return false;
+  for (let dx = 0; dx < c.w; dx++) if (decorDoAndar().some(([, d]) => d.x === x + dx && d.y === y - 1)) return true;
+  return false;
 }
 function drawDecorParede(tm, hr){
   for (const [id, d] of decorDoAndar()){
@@ -239,10 +250,11 @@ function leva6BuildClick(tx, ty, p){
   if (tool && (tool.kind === "decor" || tool.kind === "decorMover")){
     const def = DECOR_CAT[tool.t];
     if (!decorSpotOk(tx, ty, tool.id)){
-      toast(MAP[ty] && MAP[ty][tx] === 1 && isFace(tx, ty) && tx > 0 && tx < W - 1 && tx !== VX ? "Aí não dá: janela, mural ou já tem coisa nessa parede." : "Decoração vai na parede de cima de um cômodo (as marcadas de verde).");
+      toast(MAP[ty] && MAP[ty][tx] === 1 && isFace(tx, ty) && moveAltoEm(tx, ty + 1) ? "Aí tem um móvel alto na frente: a decoração ficaria escondida." :
+        MAP[ty] && MAP[ty][tx] === 1 && isFace(tx, ty) && tx > 0 && tx < W - 1 && tx !== VX ? "Aí não dá: janela, mural ou já tem coisa nessa parede." : "Decoração vai na parede de cima de um cômodo (as marcadas de verde).");
       return true;
     }
-    if (tool.kind === "decorMover"){ const id = tool.id; tool = null; ref("casa/decor/" + id).update({ x: tx, y: ty }).then(() => toast("Decoração no lugar novo.")); renderBuild(); return true; }
+    if (tool.kind === "decorMover"){ const id = tool.id; tool = null; txn("casa/decor/" + id, cur => cur ? Object.assign(cur, { x: tx, y: ty }) : undefined).then(ok => toast(ok ? "Decoração no lugar novo." : "Essa decoração não está mais na parede.")); renderBuild(); return true; }
     if (def.nivel && nivelCasal() < def.nivel){ toast(def.nome + " libera no nível " + def.nivel + " do casal."); return true; }
     const preco = tool.preco != null ? tool.preco : def.preco;
     if (!gastar(preco, def.nome.toLowerCase())) return true;
@@ -255,7 +267,7 @@ function leva6BuildClick(tx, ty, p){
     const d = decor[id], def = DECOR_CAT[d.t], volta = Math.round(def.preco * .7);
     openMenu(p, def.nome, [
       { nome: "Mover", fn: () => { tool = { kind: "decorMover", t: d.t, id }; buildTab = "parede"; renderBuild(); toast("Toque na parede nova."); } },
-      { nome: "Vender", info: "+$" + volta, fn: () => ref("casa/decor/" + id).remove().then(() => { ganhar(volta); toast("Venda feita: " + def.nome + ". +$" + volta); }) }
+      { nome: "Vender", info: "+$" + volta, fn: () => txn("casa/decor/" + id, cur => cur ? null : undefined).then(ok => { if (!ok){ toast("Essa decoração já saiu da parede."); return; } ganhar(volta); toast("Venda feita: " + def.nome + ". +$" + volta); }) }
     ]);
     return true;
   }
@@ -344,9 +356,11 @@ function premioIcone(p){
   else { const base = Object.assign({}, (me && me.dados) || {}), v = visual(base); if (p.tipo === "traje") v.traje = p.k; else v.acess = p.k; x.drawImage(avatarSprite(v, "down", 0, "stand").c, 6, 2, 27, 36); }
   return cv;
 }
-function festaNivel(n){
-  const pr = premiosNivel().filter(p => p.n === n);
-  toastEspecial("Nível " + n + " do casal!", pr.length ? "Liberou: " + pr.map(p => p.nome).join(", ") + "." : "Cada vez mais juntinhos.");
+// leva 8: subiu vários níveis de uma vez (ex.: migração de XP): mostra os presentes de todos, não só do último
+function festaNivel(n, de){
+  de = Math.min(de || n - 1, n - 1);
+  const pr = premiosNivel().filter(p => p.n > de && p.n <= n);
+  toastEspecial(n - de > 1 ? "Níveis " + (de + 1) + " a " + n + " do casal!" : "Nível " + n + " do casal!", pr.length ? "Liberou: " + pr.map(p => p.nome).join(", ") + "." : "Cada vez mais juntinhos.");
   confete(); setTimeout(() => sfx("nivel"), 380);
   if (me) burst(me.px, me.py, "heart");
 }
@@ -463,14 +477,14 @@ $("bLojaB").onclick = () => openLoja();
 
 // ---------------- ouvir o banco e laço ----------------
 function leva6Ouvir(){
-  on(ref("casa/paredes"), "value", s => { paredes = s.val() || {}; });
-  on(ref("casa/paredes2"), "value", s => { paredes2 = s.val() || {}; });
+  on(ref("casa/paredes"), "value", s => { paredes = s.val() || {}; paredesSigC = null; });
+  on(ref("casa/paredes2"), "value", s => { paredes2 = s.val() || {}; paredesSigC = null; });
   on(ref("casa/decor"), "value", s => { decor = s.val() || {}; checarConquistas(); });
   on(ref("casa/loja"), "value", s => { lojaDonos = s.val() || {}; refreshPanel("loja"); if (mode === "build") renderBuild(); });
   on(ref("casa/nivel/xp"), "value", s => {
     const ant = nivelCasal(), carregado = nivelCarregado; nivelXp = Math.max(0, +s.val() || 0); nivelCarregado = true;
     const n = nivelCasal();
-    if (carregado && me && n > ant) festaNivel(n);
+    if (carregado && me && n > ant) festaNivel(n, ant);
     renderNivelHud(); refreshPanel("nivel"); if (n !== ant && mode === "build") renderBuild(); checarConquistas();
   });
 }

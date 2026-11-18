@@ -1,19 +1,44 @@
 "use strict";
 // Casinha · laço principal: update e draw; boot()
 // ===================== laço =====================
-let last = performance.now(), hudT = 0, clockSkew = 0;
-function tick(now){
-  const dt = Math.min(.1, (now - last) / 1000); last = now;
-  if (me && !$("screenGame").hidden){ update(dt); draw(now); hudT += dt; if (hudT > .25){ hudT = 0; renderHudLight(); } }
-  requestAnimationFrame(tick);
+// leva 8: quadros por segundo. 60 enquanto alguém anda, há partículas ou o modo construir está mexendo;
+// parado, 30 (as animações da casa são lentas e não perdem nada). Aba escondida: o navegador já pausa o rAF.
+// PERF: contadores pra medir no console (PERF.draws, PERF.drawMs / PERF.draws = ms por quadro).
+const PERF = { draws: 0, drawMs: 0, pulados: 0 };
+let last = performance.now(), hudT = 0, ultDraw = 0;
+function precisaFluido(){
+  if (!me) return false;
+  if (me.path.length || particles.length || (mode === "build" && hover)) return true;
+  if (me.acao && me.acao.id === "escada") return true;
+  for (const id in disp) if (disp[id].moving) return true;
+  return false;
 }
+function tick(now){
+  requestAnimationFrame(tick);
+  if (!me || $("screenGame").hidden || document.hidden){ last = now; return; }
+  // telas de 90/120 Hz: no máximo 60 quadros; parado, 30
+  if (now - ultDraw < (precisaFluido() ? 1000 / 60 : 1000 / 30) - 4){ PERF.pulados++; return; }
+  ultDraw = now;
+  const dt = Math.min(.1, (now - last) / 1000); last = now;
+  update(dt);
+  const a = performance.now(); draw(now); PERF.drawMs += performance.now() - a; PERF.draws++;
+  hudT += dt; if (hudT > .25){ hudT = 0; renderHudLight(); }
+}
+// leva 8: só mexe no DOM quando o valor muda (evita recalcular estilo/layout 4x por segundo à toa)
+const setTx = (e, t) => { if (e && e.textContent !== t) e.textContent = t; };
 function renderHudLight(){
   if (!me) return;
-  const pb = $("progBar"); if (pb && me.acao) pb.style.width = clamp((Date.now() - me.acao.ini) / me.acao.dur * 100, 0, 100) + "%";
-  for (const w of $("needs").children){ const id = w.dataset.id, v = Math.round(me.needs[id]); w.querySelector(".v").textContent = v; const i = w.querySelector("i"); i.style.width = v + "%"; i.style.background = v < 25 ? "var(--bad)" : NEEDS.find(q => q.id === id).cor; }
-  $("meMood").textContent = mood(); $("money").textContent = "$ " + Math.floor(me.dinheiro);
-  if (mode === "build") $("money2").textContent = "$ " + Math.floor(me.dinheiro);
-  renderHouseCard(); renderLeva2Hud(); renderClima(); renderAndarUI(); renderLeva5Hud();
+  const pb = $("progBar"); if (pb && me.acao){ const w = Math.round(clamp((Date.now() - me.acao.ini) / me.acao.dur * 100, 0, 100)) + "%"; if (pb.style.width !== w) pb.style.width = w; }
+  for (const w of $("needs").children){
+    const id = w.dataset.id, v = Math.round(me.needs[id]);
+    if (w.dataset.v === String(v)) continue;
+    w.dataset.v = v; w.querySelector(".v").textContent = v;
+    const i = w.querySelector("i"); i.style.width = v + "%"; i.style.background = v < 25 ? "var(--bad)" : NEEDS.find(q => q.id === id).cor;
+  }
+  setTx($("meMood"), mood()); setTx($("money"), "$ " + Math.floor(me.dinheiro));
+  if (mode === "build") setTx($("money2"), "$ " + Math.floor(me.dinheiro));
+  if (mode === "live") renderHouseCard();
+  renderLeva2Hud(); renderClima(); renderAndarUI(); renderLeva5Hud();
 }
 
 const SPEED = 4.2;
@@ -75,6 +100,20 @@ function update(dt){
 
 const lo = document.createElement("canvas"); lo.width = W * T; lo.height = H * T;
 const lc = document.createElement("canvas"); lc.width = W * T; lc.height = H * T;
+// leva 8: luz radial em cache por cor e raio (tipo 0: mapa de luz, 3 paradas; tipo 1: brilho, 2 paradas, raio * .7).
+// Desenhada com globalAlpha = força; mesmo resultado do gradiente com alfa embutido.
+let luzSig = "";
+const luzCache = new Map();
+function luzSpr(c, r, tipo){
+  const key = c + "|" + r + "|" + tipo; let s = luzCache.get(key); if (s) return s;
+  const rr = tipo ? r * .7 : r, n = Math.max(2, Math.ceil(rr * 2));
+  s = document.createElement("canvas"); s.width = s.height = n;
+  const x = s.getContext("2d"), g = x.createRadialGradient(n / 2, n / 2, 0, n / 2, n / 2, n / 2);
+  g.addColorStop(0, "rgba(" + c + ",1)"); if (!tipo) g.addColorStop(.45, "rgba(" + c + ",.6)"); g.addColorStop(1, "rgba(" + c + ",0)");
+  x.fillStyle = g; x.fillRect(0, 0, n, n);
+  if (luzCache.size > 200) luzCache.clear();
+  luzCache.set(key, s); return s;
+}
 // troca o tamanho da cena (com ou sem quintal): canvases internos, vinheta e largura máxima da tela
 function tamanhoCena(){
   for (const c of [bg, lo, lc, vig]){ c.width = W * T; c.height = H * T; }
@@ -268,22 +307,27 @@ function draw(now){
     if (k > .5) for (const w of janelas()){ const [wx, wy] = w.split(",").map(Number); lights.push([wx * T + 9, wy * T + 26, 24, "150,175,255", .45]); }
     const warm = clima ? [186, 196, 224] : hr < 12 ? [255, 214, 214] : [255, 198, 156], night = [116, 110, 182];
     const A = k < .5 ? [255, 255, 255] : warm, B = k < .5 ? warm : night, t = k < .5 ? k * 2 : (k - .5) * 2;
-    const l = lc.getContext("2d");
-    l.globalCompositeOperation = "source-over";
-    l.fillStyle = "rgb(" + A.map((v, i) => Math.round(v + (B[i] - v) * t)).join(",") + ")"; l.fillRect(0, 0, lc.width, lc.height);
-    l.globalCompositeOperation = "lighter";
-    for (const [x, y, r, c, pw] of lights){
-      const a = pw * k, g = l.createRadialGradient(x, y, 0, x, y, r);
-      g.addColorStop(0, "rgba(" + c + "," + a + ")"); g.addColorStop(.45, "rgba(" + c + "," + a * .6 + ")"); g.addColorStop(1, "rgba(" + c + ",0)");
-      l.fillStyle = g; l.fillRect(x - r, y - r, r * 2, r * 2);
+    const base = "rgb(" + A.map((v, i) => Math.round(v + (B[i] - v) * t)).join(",") + ")";
+    // leva 8: o mapa de luz só é refeito quando alguma luz (ou o escuro) muda; as luzes são sprites em cache
+    // (antes: dois createRadialGradient por luz, a cada quadro)
+    let lsig = base + lc.width + "x" + lc.height;
+    for (const L of lights) lsig += "|" + Math.round(L[0]) + "," + Math.round(L[1]) + "," + L[2] + "," + L[3] + "," + Math.round(L[4] * 50);
+    if (lsig !== luzSig){
+      luzSig = lsig;
+      const l = lc.getContext("2d");
+      l.globalCompositeOperation = "source-over"; l.globalAlpha = 1;
+      l.fillStyle = base; l.fillRect(0, 0, lc.width, lc.height);
+      l.globalCompositeOperation = "lighter";
+      for (const [x, y, r, c, pw] of lights){ l.globalAlpha = clamp(pw * k, 0, 1); l.drawImage(luzSpr(c, r, 0), x - r, y - r, r * 2, r * 2); }
+      l.globalAlpha = 1; l.globalCompositeOperation = "source-over";
     }
     ctx.globalCompositeOperation = "multiply"; ctx.drawImage(lc, 0, 0);
     ctx.globalCompositeOperation = "lighter";
     for (const [x, y, r, c, pw] of lights){
       if (r < 20) continue;
-      const g = ctx.createRadialGradient(x, y, 0, x, y, r * .7); g.addColorStop(0, "rgba(" + c + "," + (.2 * k * pw) + ")"); g.addColorStop(1, "rgba(" + c + ",0)");
-      ctx.fillStyle = g; ctx.fillRect(x - r, y - r, r * 2, r * 2);
+      const r2 = r * .7; ctx.globalAlpha = clamp(.2 * k * pw, 0, 1); ctx.drawImage(luzSpr(c, r, 1), x - r2, y - r2, r2 * 2, r2 * 2);
     }
+    ctx.globalAlpha = 1;
     // vaga-lumes no jardim
     if (k > .7 && !clima) for (let i = 0; i < 7; i++){
       const fx = 10 + ((i * 41 + tm / 260 * (i % 2 ? 1 : -1)) % (W * T - 20) + (W * T - 20)) % (W * T - 20), fy = H * T - 5 + Math.sin(tm / 600 + i * 1.7) * 2.5;
@@ -303,11 +347,25 @@ function draw(now){
   const K = canvas.width / (W * T), dpr = Math.min(window.devicePixelRatio || 1, 3);
   const fs = Math.round(clamp(4.6 * K, 12 * dpr, 17 * dpr));
   mctx.font = "700 " + fs + "px 'Pixelify Sans', monospace"; mctx.textAlign = "center"; mctx.textBaseline = "bottom";
+  // leva 8: nomes de quem está lado a lado não se encavalam ("AnBeto"): quem esbarra num nome já posto sobe uma linha
+  const postos = [];
+  for (const L of labels.slice().sort((a, b) => b.by - a.by || a.cx - b.cx)){
+    L.sx = L.cx * K; L.top = (L.by - (L.deitado ? 12 : 27)) * K;
+    if (L.some || mode !== "live") continue;
+    L.nm = L.j.nome + (L.off ? " · fora" : "");
+    const w = mctx.measureText(L.nm).width + 6 * dpr, x0 = L.sx - w / 2, x1 = L.sx + w / 2;
+    for (let i = 0; i < 4; i++){
+      const bate = postos.find(r => x0 < r[1] && x1 > r[0] && L.top > r[2] - fs * .95 && L.top - fs * .95 < r[2]);
+      if (!bate) break;
+      L.top = bate[2] - fs * 1.02;
+    }
+    postos.push([x0, x1, L.top]);
+  }
   for (const L of labels){
     if (L.some) continue;
-    const sx = L.cx * K, top = (L.by - (L.deitado ? 12 : 27)) * K;
+    const sx = L.sx, top = L.top;
     if (mode === "live"){
-      const nm = L.j.nome + (L.off ? " · fora" : "");
+      const nm = L.nm;
       mctx.lineJoin = "round"; mctx.lineWidth = Math.max(3, K * 1.1); mctx.strokeStyle = "rgba(18,14,28,.9)"; mctx.strokeText(nm, sx, top);
       mctx.fillStyle = L.id === pid ? "#FFFFFF" : "#E6DEFF"; mctx.fillText(nm, sx, top);
     }
@@ -334,6 +392,26 @@ function draw(now){
   drawLabels7(mctx, K, fs, tm); // leva 7: "buá!" do bebê
   for (const L of labels){ if (L.acao && /^s-(beijo|abracar)/.test(L.acao.id || "") && Math.random() < .04) burst(L.cx / T - .5, L.by / T - 1, "heart"); }
 }
+
+// leva 8: aviso de versão nova. Quem está com a página aberta (ou com o HTML velho no cache do Pages) vê um botão
+// pra recarregar. Compara o <meta name="casinha-versao"> desta página com o version.txt publicado.
+const VERSAO = ((document.querySelector('meta[name="casinha-versao"]') || {}).content || "").trim();
+let versaoAvisada = false, versaoUlt = 0;
+function checarVersao(){
+  if (versaoAvisada || !VERSAO || document.hidden || Date.now() - versaoUlt < 60000) return;
+  versaoUlt = Date.now();
+  fetch("version.txt?" + Date.now(), { cache: "no-store" }).then(r => r.ok ? r.text() : "").then(t => {
+    t = String(t || "").trim();
+    if (!t || t === VERSAO || versaoAvisada || t.length > 20) return;
+    versaoAvisada = true;
+    const b = el("button", "versaoNova", "Versão nova! Toque pra atualizar"); b.type = "button";
+    // endereço diferente (?atualizar=N) pra não pegar o HTML velho do cache
+    b.onclick = () => location.replace(location.pathname + "?atualizar=" + encodeURIComponent(t) + location.hash);
+    document.body.append(b);
+  }).catch(() => {});
+}
+setTimeout(checarVersao, 15000); setInterval(checarVersao, 5 * 60000);
+document.addEventListener("visibilitychange", checarVersao);
 
 window.addEventListener("hashchange", boot);
 document.fonts && document.fonts.load("700 12px 'Pixelify Sans'").catch(() => {});

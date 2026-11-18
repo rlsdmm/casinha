@@ -536,7 +536,7 @@ function porNoCofre(v){
   if (temQuintal()) return;
   v = Math.min(v, QUINTAL_PRECO - (cofre.total || 0)); if (v <= 0) return;
   if (!gastar(v, "o cofrinho")) return;
-  let aceito = 0; const porta = escolherPorta();
+  let aceito = 0; const porta = noAndar(0, escolherPorta); // leva 8: a porta é do térreo, mesmo pagando lá de cima
   txn("casa/cofre", cur => {
     cur = cur || {}; aceito = 0; if (cur.liberado) return;
     const t = cur.total || 0; aceito = Math.min(v, QUINTAL_PRECO - t); if (aceito <= 0) return;

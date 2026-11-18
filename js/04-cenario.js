@@ -17,7 +17,6 @@ const HORA_TESTE = (() => { const m = /[?&]hora=(\d{1,2})(?:&|$)/.exec(location.
 function hourNow(){ if (HORA_TESTE != null) return HORA_TESTE; const d = new Date(); return d.getHours() + d.getMinutes() / 60; }
 function skyKind(h){ return h >= 7 && h < 17 ? "dia" : h >= 17 && h < 19 ? "tarde" : h >= 5 && h < 7 ? "manha" : "noite"; }
 const SKY = { dia: ["#6DBDF0", "#C4E8F8"], tarde: ["#E8797A", "#FBCB8C"], manha: ["#A99BE0", "#F9C6C6"], noite: ["#141840", "#2D3478"] };
-function skyColor(h){ return SKY[skyKind(h)][0]; }
 function darkness(h){ if (h >= 8 && h < 17) return 0; if (h >= 17 && h < 20) return (h - 17) / 3 * .5; if (h >= 6 && h < 8) return (8 - h) / 2 * .5; return .5; }
 
 const isWallAt = (x, y) => x < 0 || y < 0 || x >= W || y >= H || MAP[y][x] === 1;
@@ -271,7 +270,6 @@ function drawVistaAlta(est, chuva){
   for (let k = 0; k < 10; k++){ const q = hash(k, 3, 44); copaArvore(k * 31 + 6 + q % 10, H * T + 2 + q % 3, 8 + q % 4, q, gp, est); }
   if (chuva){ ctx.fillStyle = "rgba(30,50,90,.16)"; ctx.fillRect(0, 0, W * T, H * T); }
 }
-const ehVaranda = (x, y) => x > VX && x < W - 1 && y > 8 && y < HC;
 // varanda: folhas no outono, geada no inverno, pétalas na primavera; com chuva, deck molhado e poças
 function drawVaranda(est, chuva){
   const gp = GRAMAS[est] || GRAMAS.primavera;

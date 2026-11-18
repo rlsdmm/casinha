@@ -48,7 +48,9 @@ canvas.addEventListener("click", e => {
   const ativos = HOTSPOTS.filter(h => (h.andar || 0) === andarAtual && (!h.ativo || h.ativo()));
   const hs = ativos.find(h => h.x === tx && h.y === ty);
   if (hs) return hs.fn();
-  const f = furnAt(tx, ty);
+  // leva 8: na parede, a decoração vem antes do "toque um quadrado acima" dos móveis altos
+  // (casas antigas podem ter quadro atrás de estante; antes o toque sempre ia pro móvel)
+  const f = (occ[ty] && occ[ty][tx]) || (decorEm(tx, ty) ? null : furnAt(tx, ty));
   if (f) return furnMenu(f, p);
   if (decorClickVivo(tx, ty, p)) return; // leva 6: quadros, relógio, espelho na parede
   const fg = toque ? 7 : 3, perto = ativos.find(h => p.x >= h.x * T - fg && p.x < (h.x + 1) * T + fg && p.y >= h.y * T - fg && p.y < (h.y + 1) * T + fg);
@@ -181,6 +183,7 @@ function canPlace(t, x, y, ignore){
     if (x < m.x + o.w && x + c.w > m.x && y < m.y + o.h && y + c.h > m.y) return false; } }
   if (!c.chao){ for (const [id, j] of Object.entries(jogadores)){ if (!j.online || (id === pid && me ? me.andar : j.andar || 0) !== andarAtual) continue; const d = id === pid && me ? { x: me.tx, y: me.ty } : j; if (d.x >= x && d.x < x + c.w && d.y >= y && d.y < y + c.h) return false; } }
   if (fechaEscada(t, x, y, ignore)) return false; // leva 4: não fecha o caminho da escada
+  if (escondeDecor(t, x, y)) return false; // leva 8: móvel alto não vai na frente de quadro da parede
   return true;
 }
 function buildClick(tx, ty, p){
@@ -201,6 +204,7 @@ function buildClick(tx, ty, p){
     if (!canPlace(t, tx, ty, tool.id)){
       toast(naEscada(tx, ty) || (cima ? naLista(RESERVA_ANDAR2, tx, ty) : escadaOn && naLista(PE_ESCADA, tx, ty)) ? "Aí é a passagem da escada." :
         MAP[ty] && MAP[ty][tx] === 0 && fechaEscada(t, tx, ty, tool.id) ? "Aí fecha o caminho até a escada." :
+        escondeDecor(t, tx, ty) ? "Esse móvel é alto e esconderia a decoração da parede." :
         cima ? (CAT[t].fora && comodo(tx, ty) !== "varanda" ? "Esse vai lá fora, na varanda." : "Não cabe aí. Tente outro lugar.") :
         CAT[t].fora && ty <= HC ? "Esse vai lá fora, no quintal." : !CAT[t].fora && !CAT[t].livre && ty > HC ? "Esse móvel é de dentro de casa." : "Não cabe aí. Tente outro lugar.");
       return;
@@ -212,7 +216,8 @@ function buildClick(tx, ty, p){
       const novo = { t, x: tx, y: ty, por: pid }; if (cima) novo.andar = 1;
       ref("casa/moveis").push(novo).then(() => { toast(CAT[t].nome + (cima ? " lá em cima" : " na casa") + ". -$" + preco); if (CAT[t].loja) ref("casa/loja/" + t).set(true).catch(() => {}); });
     } else {
-      ref("casa/moveis/" + tool.id).update({ x: tx, y: ty }).then(() => toast("Móvel no lugar novo."));
+      // leva 8: se alguém vendeu enquanto isso, não recria um móvel "fantasma" só com x e y
+      txn("casa/moveis/" + tool.id, cur => cur ? Object.assign(cur, { x: tx, y: ty }) : undefined).then(ok => toast(ok ? "Móvel no lugar novo." : "Esse móvel não está mais na casa."));
       tool = null; renderBuild();
     }
     return;
@@ -222,7 +227,8 @@ function buildClick(tx, ty, p){
     const m = moveis[f], c = CAT[m.t], volta = Math.round(c.preco * .7);
     openMenu(p, c.nome, [
       { nome: "Mover", fn: () => { tool = { kind: "mover", t: m.t, id: f }; renderBuild(); toast("Toque no lugar novo."); } },
-      { nome: "Vender", info: "+$" + volta, fn: () => { ref("casa/moveis/" + f).remove().then(() => { if (m.t === "canteiro") ref("casa/jardim/" + f).remove().catch(() => {}); me.dinheiro += volta; saveNeeds(true); toast("Venda feita: " + c.nome + ". +$" + volta); }); } }
+      // leva 8: por transação, pra dois tocando "Vender" ao mesmo tempo não receberem os dois
+      { nome: "Vender", info: "+$" + volta, fn: () => { txn("casa/moveis/" + f, cur => cur ? null : undefined).then(ok => { if (!ok){ toast("Esse móvel já saiu da casa."); return; } if (m.t === "canteiro") ref("casa/jardim/" + f).remove().catch(() => {}); me.dinheiro += volta; saveNeeds(true); toast("Venda feita: " + c.nome + ". +$" + volta); }); } }
     ]);
   }
 }
@@ -309,7 +315,11 @@ function renderHud(){
     w.querySelector(".v").textContent = v;
     const i = w.querySelector("i"); i.style.width = v + "%"; i.style.background = v < 25 ? "var(--bad)" : n.cor;
   }
-  const st = $("status"); st.innerHTML = "";
+  // leva 8: só refaz a linha de status quando ela muda (antes era refeita a cada passo de qualquer jogador
+  // e o botão "Parar" podia sumir entre o toque e o clique)
+  const st = $("status"), stSig = me.acao ? "a" + me.acao.nome + me.acao.ini : me.path.length ? "w" : "l";
+  if (st.dataset.sig === stSig) return;
+  st.dataset.sig = stSig; st.innerHTML = "";
   if (me.acao){
     st.append(el("span", null, me.acao.nome));
     const pr = el("div", "prog"); const i = el("i"); i.id = "progBar"; pr.append(i); st.append(pr);
@@ -317,7 +327,10 @@ function renderHud(){
   } else st.append(el("span", "muted", me.path.length ? "Andando..." : "Livre. Toque em algo na casa."));
 }
 function renderPeople(){
-  const box = $("people"); box.innerHTML = "";
+  const box = $("people");
+  const sig = JSON.stringify(Object.entries(jogadores).map(([id, j]) => [id, j.nome, j.online, j.roupa, j.andar || 0])) + pid + andarAtual + !!me;
+  if (box.dataset.sig === sig) return; // leva 8: não refaz os chips a cada passo
+  box.dataset.sig = sig; box.innerHTML = "";
   for (const [id, j] of Object.entries(jogadores)){
     const c = el("span", "chip" + (j.online ? "" : " off")); const sw = el("span", "sw"); sw.style.background = ROUPAS[j.roupa] || ROUPAS[0];
     const outroAndar = id !== pid && j.online && me && (j.andar || 0) !== andarAtual; // leva 4

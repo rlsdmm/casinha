@@ -368,7 +368,9 @@ function bercoId(){ return Object.keys(todosMoveis).filter(k => todosMoveis[k] &
 // berço no quarto (do lado da cama de casal), se a casa ainda não tiver um
 function garantirBerco(){
   if (bercoId()) return;
-  const cama = Object.values(todosMoveis).find(m => m && (m.t === "casal" || m.t === "dossel"));
+  // leva 8: prefere a cama de casal do andar onde está quem teve o bebê (antes pegava a primeira da lista, às vezes a do outro andar)
+  const camas = Object.values(todosMoveis).filter(m => m && (m.t === "casal" || m.t === "dossel"));
+  const cama = camas.find(m => (m.andar || 0) === andarAtual) || camas[0];
   const andar = cama && cama.andar === 1 && temAndar2() ? 1 : 0;
   const pos = noAndar(andar, () => cama && (cama.andar || 0) === andar ? lugarPerto("berco", cama.x + 3, cama.y + 1) : lugarPerto("berco", 3, 3));
   if (!pos){ toast("Não coube um berço. Coloque um no modo Construir."); return; }

@@ -56,6 +56,8 @@ function freeSpot(){ for (const [x, y] of [[10,4],[11,4],[12,4],[9,3],[13,3],[11
 function ref(p){ return salaRef.child(p); }
 function on(r, ev, fn){ r.on(ev, fn); listeners.push(() => r.off(ev, fn)); }
 function stop(){
+  // leva 8: trocou de casa (hash) com o jogo aberto: sai da casa antiga em vez de ficar "online" lá até fechar a aba
+  if (me && salaRef && pid){ const r = ref("jogadores/" + pid + "/online"); r.onDisconnect().cancel().catch(() => {}); r.set(false).catch(() => {}); }
   listeners.forEach(f => f()); listeners = []; moveis = {}; pisos = {}; jogadores = {}; me = null; disp = {};
   pet = null; jardim = {}; mural = {}; despensa = {}; pratos = {}; casaPronta = false; petCarregado = false; muralCarregado = false; muralAvisado = false; petView = null;
   leva5Reset(); leva6Reset(); leva7Reset();
@@ -67,6 +69,7 @@ function stop(){
   todosMoveis = {}; pisos2 = {}; cofre2 = {}; cofre2Carregado = moveisCarregados = andar2Tentou = false; andarUISig = "";
   if (portaQ || andarAtual || escadaOn){ andarAtual = 0; escadaOn = false; montarMapa(false); tamanhoCena(); }
   if ($("andarUI")) $("andarUI").hidden = true;
+  diarioLimpo = false; lastNeedsSent = ""; if (mode !== "live") setMode("live");
 }
 
 function showScreen(id){ for (const s of ["screenRoom", "screenCreator", "screenGame"]) $(s).hidden = s !== id; }
@@ -154,17 +157,35 @@ function boot(){
       else delete disp[id];
     }
     const mine = jogadores[pid];
-    if (!mine){ if (!me && $("screenCreator").hidden) openCreator(); }
+    // leva 8: nó sem nome (sobra de um onDisconnect depois de apagarem o jogador) = jogador novo, vai pro criador
+    if (!mine || !mine.nome){ if (!me && $("screenCreator").hidden) openCreator(); }
     else if (!me) startMe(mine);
-    else { me.dados = mine; }
-    renderPeople(); renderHud(); refreshPanel("tarefas"); refreshPanel("jogo"); renderAndarUI();
+    else {
+      me.dados = mine;
+      // leva 8: presença. O onDisconnect de uma conexão velha (página recarregada no celular, outra aba fechada)
+      // pode chegar no servidor DEPOIS do set(true) desta conexão e me deixar "fora" estando aqui. Se isso acontecer, volto.
+      if (mine.online === false && conectado && Date.now() - onlineReparo > 3000){ onlineReparo = Date.now(); setOnline(); }
+    }
+    // leva 8: cada passo de qualquer jogador chega aqui; junta os redesenhos do HUD num só
+    agendarUI(renderPeople); agendarUI(renderHud); agendarUI(uiJogadores);
   });
-  on(fdb.ref(".info/connected"), "value", s => { if (s.val() && me) setOnline(); });
+  on(fdb.ref(".info/connected"), "value", s => { conectado = !!s.val(); if (conectado && me) setOnline(); });
   leva5Ouvir(); // sujeira, visitas e música
   leva6Ouvir(); // paredes, decoração, nível do casal, loja da semana
   leva7Ouvir(); // namoro, gravidez e bebê
 }
 
+let conectado = false, onlineReparo = 0;
+const uiJogadores = () => { refreshPanel("tarefas"); refreshPanel("jogo"); renderAndarUI(); };
+// junta chamadas de UI vindas do banco (vários ouvintes no mesmo instante) e roda cada função uma vez só
+const uiPend = new Set(); let uiTimer = 0;
+function agendarUI(fn){
+  uiPend.add(fn);
+  if (!uiTimer) uiTimer = setTimeout(() => { uiTimer = 0; const l = [...uiPend]; uiPend.clear(); for (const f of l){ try { f(); } catch(e){ console.error(e); } } }, 50);
+}
+// fechar/recarregar a página: desconecta limpo, pra o servidor rodar o onDisconnect já (e não depois da conexão nova)
+window.addEventListener("pagehide", () => { if (fdb) try { fdb.goOffline(); } catch(e){} });
+window.addEventListener("pageshow", e => { if (e.persisted && fdb) try { fdb.goOnline(); } catch(err){} });
 function setOnline(){
   const r = ref("jogadores/" + pid + "/online");
   r.onDisconnect().set(false); r.set(true).catch(() => {});
