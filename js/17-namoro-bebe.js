@@ -305,14 +305,23 @@ function barrigaEmPe(b, cx, ty, dir, X, col, g){
     R(X(-4, 1), ty + 2, 1, 3, col); if (b >= 2){ R(X(-5, 1), ty + 2, 1, 3, col); P(X(-4, 1), ty + 5, col); }
     if (b >= 3){ R(X(-6, 1), ty + 3, 1, 2, col); P(X(-5, 1), ty + 5, col); }
     P(X(-4, 1), ty + 2, cL); P(X(-3 - b, 1), ty + 4, cD);
-  } else if (dir === "up"){
-    if (b >= 2){ P(cx - 4 - e, ty + 5, col); P(cx + 3 + e, ty + 5, cD); }
+  } else if (dir === "up"){ // leva 16a: de costas, a barriga sai pelos dois lados, por fora dos braços (silhueta saliente)
+    barrigaCostas(b, cx, ty, g ? g.ax : 4, col, cD);
   } else {
     const w = b === 1 ? 4 : b === 2 ? 6 : 8;
     R(cx - w / 2, ty + 5, w, 1, col); R(cx - w / 2 + 1, ty + 6, w - 2, 1, cD);
     R(cx - 2, ty + 2, 2, 1, cL); if (b >= 2) P(cx - 2, ty + 3, cL);
     if (b >= 2){ R(cx - 5 - e - (b > 2 ? 1 : 0), ty + 3, 1 + (b > 2 ? 1 : 0), 3, col); R(cx + 4 + e, ty + 3, 1 + (b > 2 ? 1 : 0), 3, cD); } // aparece dos lados, por fora dos braços
   }
+}
+// leva 16a: barriga vista de costas: cresce pros lados com o estágio (1: tiquinho, 2: curva de 3px, 3: curva larga e mais baixa)
+// ax = distância do meio até o braço (g.ax): a curva fica logo por fora dele
+function barrigaCostas(b, cx, ty, ax, col, cD){
+  const s = b >= 3 ? 2 : 1, y0 = ty + (b === 1 ? 3 : 2), h = b === 1 ? 2 : 3;
+  R(cx - ax - s, y0, s, h, col); R(cx + ax, y0, s, h, cD);
+  // coluna de dentro um pouco mais comprida que a de fora = curva redonda
+  if (b >= 2){ P(cx - ax - 1, y0 + h, sh(col, -.1)); P(cx + ax, y0 + h, sh(cD, -.12)); }
+  if (b >= 3){ P(cx - ax - 1, y0 - 1, sh(col, .15)); P(cx + ax, y0 - 1, cD); }
 }
 function desejoAtual(){
   const g = gravidez; if (!g || !g.quem || !g.ini) return null;
@@ -621,22 +630,15 @@ function confirmarNome(v){
 }
 function openFamilia(){
   openPanel("familia", "Nós 💞", corpo => { // leva 9: o "Nós" abriga Presentes, Álbum, Nossa história e Datas (nosBotoes9)
-    const ajustes = el("div", "list"), gvBox = el("div", "list"), bbBox = el("div", "list"), rodape = el("p", "muted");
-    corpo.append(nosBotoes9(), bbBox, gvBox, el("h3", null, "Ajustes"), ajustes, rodape); // leva 9: presentes, álbum, história e datas
-    const chave = (txt, sub, on, fn) => { const b = btn("", "btn ghost escolha", fn); b.setAttribute("aria-pressed", String(on)); b.append(el("strong", null, txt + ": " + (on ? "sim" : "não")), el("small", null, sub)); return b; };
+    // leva 16a: os ajustes de romance e bebês moraram aqui até a leva 15; agora ficam em ⚙️ Ajustes (montarAjustesRomance)
+    const gvBox = el("div", "list"), bbBox = el("div", "list"), rodape = el("p", "muted");
+    corpo.append(nosBotoes9(), bbBox, gvBox, rodape); // leva 9: presentes, álbum, história e datas
     let sig = null;
     const upd = () => {
       const t = srvNow(), g = gravidez, est = bebe ? bebeEstado(t) : null;
-      const s = JSON.stringify([romanceOk(pid), bebesOn, g, bebe, stats.namoros || 0, est && est.k, est && Object.values(est.n).map(Math.round), Math.floor(t / 60000)]);
+      const s = JSON.stringify([bebesOn, g, bebe, stats.namoros || 0, est && est.k, est && Object.values(est.n).map(Math.round), Math.floor(t / 60000)]);
       if (s === sig) return; sig = s;
-      ajustes.textContent = "";
-      ajustes.append(chave("Aceitar convites românticos", romanceOk(pid) ? "Quem toca em você vê a opção \"Namorar\". Só acontece se você aceitar." : "Ninguém vê a opção \"Namorar\" com você.", romanceOk(pid), () => {
-        const on = romanceOk(pid); ref("jogadores/" + pid + "/romance").set(on ? false : null).then(() => toast(on ? "Convites românticos desligados." : "Convites românticos ligados 💞"));
-      }));
-      ajustes.append(chave("Bebês na casa", bebesOn ? "Namorar sem preservativo pode dar bebê. Vale pra casa toda." : "Desligado: nada de gravidez, nem sem preservativo.", bebesOn, () => {
-        const on = bebesOn; ref("casa/bebes").set(on ? false : null).then(() => toast(on ? "Bebês desligados nesta casa." : "Bebês ligados nesta casa 🍼"));
-      }));
-      rodape.textContent = (stats.namoros ? "Momentos a dois: " + stats.namoros + " 😏 · " : "") + "Cada um escolhe o próprio ajuste romântico.";
+      rodape.textContent = (stats.namoros ? "Momentos a dois: " + stats.namoros + " 😏 · " : "") + "Romance e bebês se ajustam em ⚙️ Ajustes.";
       // gravidez (só depois do positivo)
       gvBox.textContent = "";
       if (g && g.ini && t >= g.ini + GV_POS){
@@ -678,6 +680,17 @@ function openFamilia(){
     let ult = 0; painel.tick = () => { if (Date.now() - ult > 1000){ ult = Date.now(); upd(); } };
     return upd;
   });
+}
+// leva 16a: chaves de romance (de cada um) e bebês (da casa), usadas no painel ⚙️ Ajustes
+function montarAjustesRomance(box){
+  const chave = (txt, sub, on, fn) => { const b = btn("", "btn ghost escolha", fn); b.setAttribute("aria-pressed", String(on)); b.append(el("strong", null, txt + ": " + (on ? "sim" : "não")), el("small", null, sub)); return b; };
+  box.textContent = "";
+  box.append(chave("Aceitar convites românticos", romanceOk(pid) ? "Quem toca em você vê a opção \"Namorar\". Só acontece se você aceitar." : "Ninguém vê a opção \"Namorar\" com você.", romanceOk(pid), () => {
+    const on = romanceOk(pid); ref("jogadores/" + pid + "/romance").set(on ? false : null).then(() => toast(on ? "Convites românticos desligados." : "Convites românticos ligados 💞"));
+  }));
+  if (!visitando) box.append(chave("Bebês na casa", bebesOn ? "Namorar sem preservativo pode dar bebê. Vale pra casa toda." : "Desligado: nada de gravidez, nem sem preservativo.", bebesOn, () => {
+    const on = bebesOn; ref("casa/bebes").set(on ? false : null).then(() => toast(on ? "Bebês desligados nesta casa." : "Bebês ligados nesta casa 🍼"));
+  }));
 }
 function renderFamiliaBtn(){
   const b = $("bFamilia"); if (!b) return;

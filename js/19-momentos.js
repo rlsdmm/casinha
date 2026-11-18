@@ -960,14 +960,17 @@ const boloFestaSpr = () => sprite("bolo9", 12, 11, (ox, oy) => {
 function addFestaObjs(objs, tm){
   if (!festaHoje.length) return;
   const cores = ["#E8445E", "#F6C667", "#7FD1B2", "#7FB8E8", "#B49CF4"];
-  objs.push({ z: -1, f: () => { // bandeirinhas na parede de cima da casa
+  // leva 16a: bandeirinhas e balões ficam na frente dos móveis altos encostados na parede de cima (z deles: 2*T - 1)
+  // e atrás de quem está na segunda fileira pra baixo. Quem está colado na parede (fileira 1) fica atrás dos balões.
+  const zFesta = 2 * T + .5;
+  objs.push({ z: zFesta, f: () => { // bandeirinhas na parede de cima da casa
     for (let px = 17; px < W * T - 17; px++){ const yy = 3 + Math.round(2 * Math.sin(((px - 17) % 34) / 34 * Math.PI)); P(px, yy, "#8C5E3A"); }
     for (let px = 19, i = 0; px < W * T - 21; px += 6, i++){
       const yy = 4 + Math.round(2 * Math.sin(((px - 17) % 34) / 34 * Math.PI)), c = cores[i % cores.length];
       R(px, yy, 4, 1, c); R(px, yy + 1, 4, 1, c); R(px + 1, yy + 2, 2, 1, c); P(px + 1, yy + 3, sh(c, -.2)); P(px, yy, sh(c, .35));
     }
   } });
-  objs.push({ z: 14, f: () => { // balões nos cantos da sala
+  objs.push({ z: zFesta + .01, f: () => { // balões nos cantos da sala
     for (const [bx, i] of [[8 * T + 3, 0], [8 * T + 9, 1], [W * T - 22, 2], [W * T - 16, 3]]){
       const by = 2 + (i % 2) * 2 + Math.round(Math.sin(tm / 700 + i)), c = cores[(i + 1) % cores.length];
       R(bx + 2, by + 7, 1, 7, "#E9D8BE"); rbox(bx, by, 5, 6, c); P(bx + 1, by + 1, sh(c, .5)); P(bx + 2, by + 6, sh(c, -.25));

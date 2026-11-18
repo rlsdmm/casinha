@@ -176,7 +176,7 @@ function drawSentado(v, cx, by, dir, frame, pose, k){
   if (dir === "up"){ // de costas (olhando a TV, no computador, na cadeira da frente da mesa)
     const ty = by - 7 + b - dS, hy = by - 16 + b - dS;
     torso(ty, "up");
-    if (barr >= 2){ R(cx - 4 - g.e, ty + 2, 1, 2, bcol); R(cx + 3 + g.e, ty + 2, 1, 2, sh(bcol, -.22)); } // leva 7: a barriga aparece dos lados
+    if (barr) barrigaCostas(barr, cx, ty, ax, bcol, sh(bcol, -.22)); // leva 7 / 16a: a barriga aparece dos lados, por fora dos braços
     R(cx - 4 - hq, by - 2, 8 + 2 * hq, 2, lap); R(cx - 4, by - 2, 8, 1, lapD); P(cx - 4, by - 1, lapD); P(cx + 3, by - 1, lapD); P(cx - 1, by - 1, lapL);
     for (const lado of [-1, 1]){
       const x0 = lado < 0 ? cx - ax : cx + ax - 1, mc = cMao(lado, manga), pele = lado < 0 ? skin : skD;

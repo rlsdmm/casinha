@@ -2,11 +2,18 @@
 <!--
   Casinha: sem etapa de build. O código fica em css/estilo.css e js/NN-assunto.js (scripts clássicos, NA ORDEM
   abaixo, todos no mesmo escopo global: um arquivo usa funções e variáveis dos outros).
-  VERSÃO (quebra o cache do GitHub Pages): a cada publicação, troque o número em TODOS os "?v=N" desta página,
-  no <meta name="casinha-versao"> e no arquivo version.txt (o mesmo número nos três). Quem estiver com a página
-  aberta numa versão velha vê o aviso "Tem versão nova" (o jogo confere version.txt de tempos em tempos).
-  Ex.: busca e troca de "?v=13" por "?v=14", content="13" por content="14", e version.txt = 14.
-  ORDEM: 19-momentos.js, 20-perto.js, 21-construir.js e 22-vida.js e 23-espelho.js vêm antes do 18-laco.js (o laço chama os ganchos da leva 9 e o boot() roda no fim do 18).
+  PUBLICAR VERSÃO NOVA (desde a leva 16a existe service worker, sw.js, que guarda o jogo no aparelho):
+    1. troque o número em TODOS os "?v=N" desta página, no <meta name="casinha-versao"> e no arquivo version.txt
+       (o mesmo número nos três). Ex.: busca e troca de "?v=14" por "?v=15", content="14" por content="15", version.txt = 15.
+    2. arquivo novo (js/css)? Ponha a tag aqui com o mesmo ?v=N. O sw.js NÃO precisa mudar: ele é registrado como
+       "sw.js?v=N" (pelo meta) e lê a lista de arquivos deste index na instalação.
+    Por quê: o ?v=N novo muda o endereço de cada js/css (o cache do Pages e o do service worker guardam por endereço,
+    então arquivo novo nunca vem velho) e muda o endereço do service worker (o navegador instala um SW novo, que apaga
+    os caches de versões antigas). O index.html e o version.txt vêm sempre da rede primeiro, então ninguém fica preso.
+    Quem está com a página aberta numa versão velha vê "Versão nova! Toque pra atualizar" (o jogo confere version.txt
+    de tempos em tempos, e o SW novo avisa quando terminou de baixar); o toque troca o SW e recarrega.
+    Se esquecer o version.txt, ninguém é avisado (mas quem recarregar já pega a versão nova).
+  ORDEM: 19-momentos.js, 20-perto.js, 21-construir.js, 22-vida.js, 23-espelho.js e 24-acabamento.js vêm antes do 18-laco.js (o laço chama os ganchos das levas e o boot() roda no fim do 18).
 -->
 <html lang="pt-BR">
 <head>
@@ -15,13 +22,29 @@
 <title>Casinha</title>
 <meta name="description" content="Uma casa compartilhada para jogar com quem você gosta: cuide do seu bonequinho, faça coisas juntos e decore a casa.">
 <meta name="theme-color" content="#221B33">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Casinha">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' shape-rendering='crispEdges'%3E%3Crect x='2' y='7' width='12' height='8' fill='%23E7A3B8'/%3E%3Crect x='1' y='6' width='14' height='2' fill='%235246B0'/%3E%3Crect x='3' y='4' width='10' height='2' fill='%235246B0'/%3E%3Crect x='5' y='2' width='6' height='2' fill='%235246B0'/%3E%3Crect x='7' y='10' width='3' height='5' fill='%237A5A3E'/%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Pixelify+Sans:wght@500;700&family=Nunito:wght@500;700;800&display=swap">
-<meta name="casinha-versao" content="13">
-<link rel="stylesheet" href="css/estilo.css?v=13">
+<meta name="casinha-versao" content="14">
+<link rel="stylesheet" href="css/estilo.css?v=14">
 </head>
 <body>
+<div class="splash16" id="splash16" role="status" aria-live="polite">
+  <div class="sp16box">
+    <img class="sp16casa" src="icons/icon-192.png" width="120" height="120" alt="">
+    <img class="sp16foto" id="splashFoto" alt="A casa de vocês, da última vez que abriu" hidden>
+    <p class="sp16tx" id="splashTx">Carregando…</p>
+    <p class="muted" id="splashSub" hidden></p>
+    <button class="btn" type="button" id="splashTenta" hidden>Tentar de novo</button>
+  </div>
+</div>
+<div class="semRede16" id="semRede16" role="status" hidden>📡 Sem internet. Tentando reconectar…</div>
 <div class="wrap">
   <header>
     <div class="brand">
@@ -143,32 +166,40 @@
     </div>
   </section>
 </div>
+<nav class="nav16" id="nav16" aria-label="Menu principal" hidden>
+  <button type="button" id="n16casa" data-aba="casa" aria-expanded="false"><span class="ic" aria-hidden="true">🏠</span><span class="tx">Casa</span><span class="dot16" aria-hidden="true" hidden></span></button>
+  <button type="button" id="n16nos" data-aba="nos" aria-expanded="false"><span class="ic" aria-hidden="true">💞</span><span class="tx">Nós</span><span class="dot16" aria-hidden="true" hidden></span></button>
+  <button type="button" id="n16eu" data-aba="eu" aria-expanded="false"><span class="ic" aria-hidden="true">✨</span><span class="tx">Eu</span><span class="dot16" aria-hidden="true" hidden></span></button>
+  <button type="button" id="n16diversao" data-aba="diversao" aria-expanded="false"><span class="ic" aria-hidden="true">🎮</span><span class="tx">Diversão</span><span class="dot16" aria-hidden="true" hidden></span></button>
+  <button type="button" id="n16ajustes" data-aba="ajustes" aria-expanded="false"><span class="ic" aria-hidden="true">⚙️</span><span class="tx">Ajustes</span><span class="dot16" aria-hidden="true" hidden></span></button>
+</nav>
 <div class="toast" id="toast" hidden role="status"></div>
 
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
-<script src="js/01-base.js?v=13"></script>
-<script src="js/02-arte-moveis.js?v=13"></script>
-<script src="js/03-arte-boneco.js?v=13"></script>
-<script src="js/04-cenario.js?v=13"></script>
-<script src="js/05-firebase.js?v=13"></script>
-<script src="js/06-criador.js?v=13"></script>
-<script src="js/07-jogo.js?v=13"></script>
-<script src="js/08-casa.js?v=13"></script>
-<script src="js/09-tarefas-minigames.js?v=13"></script>
-<script src="js/10-clima.js?v=13"></script>
-<script src="js/11-andar2.js?v=13"></script>
-<script src="js/12-sons.js?v=13"></script>
-<script src="js/13-truques-sujeira-visitas.js?v=13"></script>
-<script src="js/14-paredes-nivel-loja.js?v=13"></script>
-<script src="js/15-moveis-novos.js?v=13"></script>
-<script src="js/16-minigames-novos.js?v=13"></script>
-<script src="js/17-namoro-bebe.js?v=13"></script>
-<script src="js/19-momentos.js?v=13"></script>
-<script src="js/20-perto.js?v=13"></script>
-<script src="js/21-construir.js?v=13"></script>
-<script src="js/22-vida.js?v=13"></script>
-<script src="js/23-espelho.js?v=13"></script>
-<script src="js/18-laco.js?v=13"></script>
+<script src="js/01-base.js?v=14"></script>
+<script src="js/02-arte-moveis.js?v=14"></script>
+<script src="js/03-arte-boneco.js?v=14"></script>
+<script src="js/04-cenario.js?v=14"></script>
+<script src="js/05-firebase.js?v=14"></script>
+<script src="js/06-criador.js?v=14"></script>
+<script src="js/07-jogo.js?v=14"></script>
+<script src="js/08-casa.js?v=14"></script>
+<script src="js/09-tarefas-minigames.js?v=14"></script>
+<script src="js/10-clima.js?v=14"></script>
+<script src="js/11-andar2.js?v=14"></script>
+<script src="js/12-sons.js?v=14"></script>
+<script src="js/13-truques-sujeira-visitas.js?v=14"></script>
+<script src="js/14-paredes-nivel-loja.js?v=14"></script>
+<script src="js/15-moveis-novos.js?v=14"></script>
+<script src="js/16-minigames-novos.js?v=14"></script>
+<script src="js/17-namoro-bebe.js?v=14"></script>
+<script src="js/19-momentos.js?v=14"></script>
+<script src="js/20-perto.js?v=14"></script>
+<script src="js/21-construir.js?v=14"></script>
+<script src="js/22-vida.js?v=14"></script>
+<script src="js/23-espelho.js?v=14"></script>
+<script src="js/24-acabamento.js?v=14"></script>
+<script src="js/18-laco.js?v=14"></script>
 </body>
 </html>

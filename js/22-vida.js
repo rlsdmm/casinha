@@ -907,7 +907,7 @@ const humorMudou = {};
   for (const [id, p] of Object.entries(pos12)){
     if (p.tm !== frame12) continue;
     const j = id === pid ? (me && me.dados) : jogadores[id]; if (!j || !j.nome || (id !== pid && !j.online)) continue;
-    const top = (p.by - (p.deitado ? 12 : 27)) * K, sx = p.cx * K;
+    const top = typeof labelTop16 !== "undefined" && labelTop16[id] != null ? labelTop16[id] : (p.by - (p.deitado ? 12 : 27)) * K, sx = p.cx * K; // leva 16a: nome empilhado
     const fala = j.fala && j.falaAt && t - j.falaAt < 7000 && t - j.falaAt > -60000;
     const fase = (t + hashStr(id) % 9000) % 20000, mostra = fase < 2600 || t - (humorMudou[id] || 0) < 3200;
     if (mostra && !fala){

@@ -175,22 +175,42 @@ function decorSpotOk(x, y, ignore){
   const k = x + "," + y;
   if (janelas().has(k) || decorAtual()[k]) return false;
   if (andarAtual === 0 && ((x === MURAL.x && y === MURAL.y) || (x === QUADRO.x && y === QUADRO.y))) return false;
-  if (moveAltoEm(x, y + 1)) return false; // leva 8: atrás de móvel alto a decoração ficaria escondida (e o toque ia pro móvel)
+  // leva 8 proibia pendurar atrás de móvel alto (ficava escondida e o toque ia pro móvel). Leva 16a libera de novo:
+  // no modo viver a decoração é desenhada por cima do móvel, 2px mais alta (addDecorFrente); no construir o móvel alto
+  // fica meio transparente (cobreDecor); e o toque na faixa da parede escolhe a decoração (07-jogo.js, leva 8).
   return !decorDoAndar().some(([id, d]) => id !== ignore && d.x === x && d.y === y);
 }
 // leva 8: móvel alto (que sobe por cima da parede de trás) encostado nessa parede
 const DECOR_ALTO = 7;
 function moveAltoEm(x, y){ const id = occ[y] && occ[y][x], m = id && moveis[id]; return !!m && (TOP[m.t] || 0) >= DECOR_ALTO; }
 // leva 8: o inverso: um móvel alto colocado logo abaixo de uma decoração esconderia ela
-function escondeDecor(t, x, y, ignore){
-  const c = CAT[t]; if (!c || c.chao || (TOP[t] || 0) < DECOR_ALTO) return false;
-  for (let dx = 0; dx < c.w; dx++) if (decorDoAndar().some(([, d]) => d.x === x + dx && d.y === y - 1)) return true;
+// leva 16a: não esconde mais (a decoração aparece por cima); fica a função porque o construir ainda pergunta
+function escondeDecor(){ return false; }
+// leva 16a: móvel alto com decoração na parede logo acima (no construir ele fica meio transparente)
+function cobreDecor(m){
+  const c = CAT[m.t]; if (!c || c.chao || (TOP[m.t] || 0) < DECOR_ALTO) return false;
+  for (let dx = 0; dx < c.w; dx++) if (decorEm(m.x + dx, m.y - 1)) return true;
   return false;
+}
+// leva 16a: no modo viver, decoração atrás de móvel alto entra na fila de desenho logo depois do móvel, 2px mais alta
+function addDecorFrente(objs, tm){
+  if (mode !== "live") return;
+  const hr = hourNow();
+  for (const [, d] of decorDoAndar()){
+    if (!isFace(d.x, d.y) || !moveAltoEm(d.x, d.y + 1)) continue;
+    const m = moveis[occ[d.y + 1][d.x]], c = CAT[m.t], def = DECOR_CAT[d.t], px = d.x * T, py = d.y * T - 2;
+    objs.push({ z: (m.y + c.h) * T - 1 + .3, f: () => {
+      R(px + 3, py + 14, 10, 1, "rgba(35,18,40,.28)"); // sombrinha no móvel, pra parecer pendurada na frente
+      if (!def.vivo) ctx.drawImage(decorSprite(d.t).c, px - 1, py - 1);
+      if (def.anim) def.anim(px, py, tm, hr);
+    } });
+  }
 }
 function drawDecorParede(tm, hr){
   for (const [id, d] of decorDoAndar()){
     if (mode === "build" && tool && tool.kind === "decorMover" && tool.id === id) continue;
     if (!isFace(d.x, d.y)) continue;
+    if (mode === "live" && moveAltoEm(d.x, d.y + 1)) continue; // leva 16a: vai por cima do móvel (addDecorFrente)
     const def = DECOR_CAT[d.t], px = d.x * T, py = d.y * T;
     if (!def.vivo) ctx.drawImage(decorSprite(d.t).c, px - 1, py - 1);
     if (def.anim) def.anim(px, py, tm, hr);

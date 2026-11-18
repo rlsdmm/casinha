@@ -124,6 +124,7 @@ function tamanhoCena(){
   if (!$("screenGame").hidden) resize();
 }
 let blinkUntil = {};
+const labelTop16 = {}; // id -> topo do nome na tela (depois de empilhar os nomes que se encavalam)
 function draw(now){
   const mctx = canvas.getContext("2d");
   ctx = lo.getContext("2d"); S = 1; ctx.imageSmoothingEnabled = false;
@@ -160,7 +161,8 @@ function draw(now){
     const c = CAT[m.t]; if (!c || c.chao) continue;
     if (tool && tool.kind === "mover" && tool.id === id) continue;
     const fr = furnFrame(m.t, !!ativo[id], tm, m.x * 3 + m.y * 5), z = (m.y + c.h) * T - 1;
-    objs.push({ z, f: () => blitFurn(m.t, m.x * T, m.y * T, fr, m.cor) }); // leva 11: cor do móvel
+    const cobre = mode === "build" && cobreDecor(m); // leva 16a: no construir, móvel alto na frente de decoração fica meio transparente
+    objs.push({ z, f: () => { if (cobre) ctx.globalAlpha = .5; blitFurn(m.t, m.x * T, m.y * T, fr, m.cor); if (cobre) ctx.globalAlpha = 1; } }); // leva 11: cor do móvel
     if (ativo[id]) objs.push({ z: z + 3, f: () => drawFx(m.t, m.x * T, m.y * T, tm) });
   }
   addCasaObjs(objs, tm); // leva 1: plantas, pratos na mesa e bichinho
@@ -169,6 +171,7 @@ function draw(now){
   addLeva7Objs(objs, tm); // leva 7: coberta/espuma/manta do namoro, roupas, berço com o bebê, teste de farmácia
   addLeva9Objs(objs, tm); // leva 9: presentes embrulhados, toalha e velas, tela do cinema, festa do dia especial
   addLeva10Objs(objs, tm); // leva 10: pelúcias de quem saiu, carrinho, luzinha do telefone
+  addDecorFrente(objs, tm); // leva 16a: decoração de parede atrás de móvel alto, desenhada por cima dele
   if (escadaOn || andarAtual === 1) objs.push({ z: ESC_Z, f: blitEscada }); // leva 4: escada / guarda-corpo do vão
   const labels = [], lights = [];
   if (andarAtual === 1){ for (const [k, d] of Object.entries(DECOR2)) if (d === "arandela"){ const [x, y] = k.split(",").map(Number); lights.push([x * T + 8, y * T + 9, 30, "255,214,150", .95]); } }
@@ -372,8 +375,29 @@ function draw(now){
       if (!bate) break;
       L.top = bate[2] - fs * 1.02;
     }
-    postos.push([x0, x1, L.top]);
+    postos.push([x0, x1, L.top, L.id]);
   }
+  for (const k in labelTop16) delete labelTop16[k];
+  for (const L of labels) labelTop16[L.id] = L.top; // leva 16a: o humor da leva 12 acompanha o nome que subiu
+  // leva 16a: balões de fala também não se encavalam (com outro balão nem com o nome de outra pessoa): quem esbarra sobe
+  const falaOn = L => L.j.fala && L.j.falaAt && tm - L.j.falaAt < 7000 && tm - L.j.falaAt > -60000;
+  const obst = postos.map(r => [r[0], r[1], r[2] - fs * .95, r[2], r[3]]);
+  mctx.font = "700 " + fs + "px Nunito, sans-serif";
+  for (const L of labels.slice().sort((a, b) => b.by - a.by || a.cx - b.cx)){
+    L.bal = null; if (L.some || !falaOn(L)) continue;
+    const txt = String(L.j.fala), tw = Math.min(mctx.measureText(txt).width, 80 * K), bh = fs * 1.5;
+    let bx = clamp(L.sx - tw / 2 - 6, 2, canvas.width - tw - 14);
+    const w = tw + 12, bate = (x, y) => obst.find(r => r[4] !== L.id && x < r[1] && x + w > r[0] && y < r[3] + 2 && y + bh > r[2] - 2);
+    // lugares possíveis, do mais perto pro mais longe: em cima da cabeça (subindo de linha em linha), depois embaixo dos pés;
+    // em cada altura tenta no meio, um pouco pra direita e pra esquerda
+    const base = L.top - fs - bh - 4, pe = (L.by + 3) * K, ys = [], xs = [0, .6, -.6, 1.2, -1.2].map(f => clamp(bx + f * w, 2, canvas.width - w - 2));
+    for (let k = 0; k < 4; k++) ys.push(base - k * (bh + 4)); for (let k = 0; k < 3; k++) ys.push(pe + k * (bh + 4));
+    let byy = Math.max(2, base), achou = false;
+    for (const y of ys){ if (y < 2 || y + bh > canvas.height - 2) continue; for (const x of xs) if (!bate(x, y)){ bx = x; byy = y; achou = true; break; } if (achou) break; }
+    obst.push([bx, bx + tw + 12, byy, byy + bh, L.id]);
+    L.bal = { txt, tw, bh, bx, byy };
+  }
+  mctx.font = "700 " + fs + "px 'Pixelify Sans', monospace";
   for (const L of labels){
     if (L.some) continue;
     const sx = L.sx, top = L.top;
@@ -391,11 +415,13 @@ function draw(now){
       mctx.fillStyle = "rgba(18,14,28,.85)"; mctx.fillRect(sx - w / 2 - 1, top + 2, w + 2, bh + 2);
       mctx.fillStyle = "#8E7CF0"; mctx.fillRect(sx - w / 2, top + 3, w * pr, bh);
     }
-    if (L.j.fala && L.j.falaAt && tm - L.j.falaAt < 7000 && tm - L.j.falaAt > -60000){
-      const txt = String(L.j.fala); mctx.font = "700 " + fs + "px Nunito, sans-serif";
-      const tw = Math.min(mctx.measureText(txt).width, 80 * K), bh = fs * 1.5, bx = clamp(sx - tw / 2 - 6, 2, canvas.width - tw - 14), byy = top - fs - bh - 4;
+    if (L.bal){
+      const { txt, tw, bh, bx, byy } = L.bal; mctx.font = "700 " + fs + "px Nunito, sans-serif";
       mctx.fillStyle = "#FFFFFF"; mctx.beginPath(); if (mctx.roundRect) mctx.roundRect(bx, byy, tw + 12, bh, 6); else mctx.rect(bx, byy, tw + 12, bh); mctx.fill();
-      mctx.fillRect(sx - 3, byy + bh - 1, 6, 5);
+      const tx0 = clamp(sx, bx + 6, bx + tw + 6); // balão que escorregou pro lado: o rabinho fica na ponta mais perto
+      if (byy > top) mctx.fillRect(tx0 - 3, byy - 4, 6, 5); // balão embaixo dos pés: rabinho pra cima
+      else mctx.fillRect(tx0 - 3, byy + bh - 1, 6, 5);
+      const pe = top - fs - 4; if (byy < top && pe > byy + bh + 4) mctx.fillRect(tx0 - 1, byy + bh, 2, pe - byy - bh); // balão que subiu: rabinho comprido até o nome
       mctx.fillStyle = "#1B1528"; mctx.textAlign = "left"; mctx.fillText(txt, bx + 6, byy + bh - fs * .25, 80 * K); mctx.textAlign = "center";
       mctx.font = "700 " + fs + "px 'Pixelify Sans', monospace";
     }
@@ -419,12 +445,16 @@ function checarVersao(){
   fetch("version.txt?" + Date.now(), { cache: "no-store" }).then(r => r.ok ? r.text() : "").then(t => {
     t = String(t || "").trim();
     if (!t || t === VERSAO || versaoAvisada || t.length > 20) return;
-    versaoAvisada = true;
-    const b = el("button", "versaoNova", "Versão nova! Toque pra atualizar"); b.type = "button";
-    // endereço diferente (?atualizar=N) pra não pegar o HTML velho do cache
-    b.onclick = () => location.replace(location.pathname + "?atualizar=" + encodeURIComponent(t) + location.hash);
-    document.body.append(b);
+    avisarVersaoNova(t);
   }).catch(() => {});
+}
+// leva 16a: o aviso também aparece quando o service worker novo já baixou tudo e está esperando (ver 24-acabamento.js).
+// O toque chama atualizarAgora(): troca o service worker (skipWaiting) e recarrega na versão nova.
+function avisarVersaoNova(t){
+  if (versaoAvisada) return; versaoAvisada = true;
+  const b = el("button", "versaoNova", "Versão nova! Toque pra atualizar"); b.type = "button";
+  b.onclick = () => { b.disabled = true; b.textContent = "Atualizando…"; atualizarAgora(t || ""); };
+  document.body.append(b);
 }
 setTimeout(checarVersao, 15000); setInterval(checarVersao, 5 * 60000);
 document.addEventListener("visibilitychange", checarVersao);

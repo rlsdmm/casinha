@@ -406,3 +406,61 @@ body.visitando .modes,body.visitando #invite,body.visitando #invitePanel,body.vi
   .creator .cprevLado #cPreview{width:120px;height:64px}
 }
 @media (max-width:360px){.espCanvas12b{width:192px;height:272px}}
+
+/* leva 16a: tela de abertura, menu principal (barra de baixo), tutorial, sem internet, instalar */
+.splash16{position:fixed;inset:0;z-index:30;background:var(--bg);display:grid;place-items:center;padding:24px;transition:opacity .35s}
+.splash16.some{opacity:0;pointer-events:none}
+.sp16box{display:flex;flex-direction:column;align-items:center;gap:14px;text-align:center;max-width:340px}
+.sp16casa{width:120px;height:120px;image-rendering:pixelated;animation:pula16 1.2s ease-in-out infinite}
+@keyframes pula16{50%{transform:translateY(-6px)}}
+.sp16tx{font-family:var(--pixel);font-size:1.35rem}
+.sp16foto{width:min(100%,320px);height:auto;image-rendering:pixelated;border-radius:12px;border:1px solid var(--line);filter:saturate(.75)}
+.splash16 .btn{min-height:44px}
+@media (prefers-reduced-motion:reduce){.sp16casa{animation:none}.splash16{transition:none}}
+.semRede16{position:fixed;left:50%;transform:translateX(-50%);top:calc(8px + env(safe-area-inset-top,0px));z-index:24;max-width:calc(100% - 24px);border-radius:999px;padding:8px 14px;background:var(--panel-2);border:2px solid var(--warn);font-weight:800;font-size:.9rem;box-shadow:0 8px 24px rgba(0,0,0,.45);pointer-events:none}
+/* o que saiu do HUD: agora mora nas abas (os botões continuam no DOM, escondidos, e as abas tocam neles) */
+#houseCard .ibar,#bVida,#invite,#invitePanel{display:none!important}
+body.comNav16{padding-bottom:calc(88px + env(safe-area-inset-bottom,0px))}
+body.comNav16 .toast{bottom:calc(84px + env(safe-area-inset-bottom,0px))}
+/* painéis abrem em cima da barra: dá pra trocar de aba com um toque */
+body.comNav16 .sheet-bg{bottom:calc(71px + env(safe-area-inset-bottom,0px))}
+body.comNav16 .sheet{padding-bottom:18px}
+@media (min-width:700px){body.comNav16 .sheet-bg{bottom:76px}}
+.nav16{position:fixed;left:0;right:0;bottom:0;z-index:11;display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:2px;
+  padding:6px max(6px,env(safe-area-inset-right,0px)) calc(6px + env(safe-area-inset-bottom,0px)) max(6px,env(safe-area-inset-left,0px));
+  background:#1B1528;border-top:1px solid var(--line);box-shadow:0 -6px 20px rgba(0,0,0,.35)}
+.nav16 button{position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;min-height:58px;min-width:0;border:0;border-radius:14px;background:transparent;color:var(--muted);font-weight:800;font-size:.78rem;padding:4px 2px;line-height:1.1}
+.nav16 .ic{font-size:1.5rem;line-height:1}
+.nav16 .tx{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.nav16 button[aria-expanded=true]{background:var(--panel-2);color:var(--fg);box-shadow:inset 0 0 0 1.5px var(--accent)}
+.nav16 button:active{background:var(--line)}
+.dot16{position:absolute;top:3px;left:calc(50% + 6px);min-width:20px;height:20px;border-radius:10px;background:var(--bad);color:#fff;font-size:.72rem;display:grid;place-items:center;padding:0 5px;font-weight:800;line-height:1}
+@media (min-width:700px){
+  .nav16{left:50%;right:auto;bottom:12px;transform:translateX(-50%);width:min(600px,calc(100% - 24px));border:1px solid var(--line);border-radius:20px;padding:6px}
+  .nav16 button{flex-direction:row;gap:8px;font-size:.92rem;min-height:52px}
+  .dot16{left:auto;right:6px;top:4px}
+}
+.menu16{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+@media (min-width:480px){.menu16{grid-template-columns:repeat(3,minmax(0,1fr))}}
+.menu16 .escolha,.comDot16{position:relative;min-width:0}
+.menu16 .escolha strong{overflow-wrap:anywhere}
+.menu16 small{max-width:100%;overflow:hidden;text-overflow:ellipsis;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+.menu16 .dot,.comDot16 .dot{top:-6px;right:-6px}
+.menu16 .escolha[aria-pressed=true]{border-color:var(--accent);background:var(--panel-2)}
+.extra16{display:flex;flex-direction:column;gap:10px}
+.extra16:empty{display:none}
+.versao16{font-size:.8rem;text-align:center}
+.passos16{margin:0;padding-left:22px;display:flex;flex-direction:column;gap:8px;font-weight:700}
+.colar16{display:flex;gap:8px}
+.colar16 input{min-height:44px}
+.colar16 .btn{min-height:44px;flex-shrink:0}
+/* tutorial */
+.tut16{position:fixed;inset:0;z-index:40}
+.alvo16{position:fixed;border-radius:14px;border:3px solid var(--money);box-shadow:0 0 0 9999px rgba(10,8,18,.66);pointer-events:none;transition:left .25s,top .25s,width .25s,height .25s}
+.bal16{position:fixed;width:min(340px,calc(100vw - 16px));background:var(--panel-2);border:2px solid var(--accent);border-radius:16px;padding:14px;display:flex;flex-direction:column;gap:12px;box-shadow:0 10px 30px rgba(0,0,0,.5)}
+.tx16{font-weight:700;font-size:1rem;line-height:1.4}
+.bb16{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.bbd16{display:flex;gap:8px}
+.bb16 .btn{min-height:44px;min-width:44px}
+.cont16{color:var(--muted);font-size:.85rem;font-weight:800;white-space:nowrap}
+@media (prefers-reduced-motion:reduce){.alvo16{transition:none}}
