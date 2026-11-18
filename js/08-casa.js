@@ -69,7 +69,9 @@ function acharLugar(t){ for (let y = 1; y < H - 1; y++) for (let x = 1; x < W - 
 
 // casa já existe: cria o que faltar (itens da leva 1 em casas antigas, bichinho)
 function garantirCasa(){
-  if (casaPronta || andarAtual !== 0) return; casaPronta = true; // migração usa o mapa do térreo
+  if (casaPronta || andarAtual !== 0) return;
+  if (!Object.keys(todosMoveis).length && !modoLido) return; // leva 11: casa ainda sendo criada (a escolha do modo vem antes)
+  casaPronta = true; // migração usa o mapa do térreo
   ref("casa/leva1").transaction(cur => cur ? undefined : true).then(r => {
     if (!r.committed) return;
     for (const [t, x, y] of EXTRAS_LEVA1){ const pos = canPlace(t, x, y) ? [x, y] : acharLugar(t); if (pos) ref("casa/moveis").push({ t, x: pos[0], y: pos[1] }); }

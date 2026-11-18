@@ -142,12 +142,14 @@ function tarefaCheck(a){
     tarefaPend[d + t.id] = 1;
     txn(base + "/feitas/" + t.id, cur => cur ? undefined : true).then(ok => {
       if (!ok) return;
-      ganhar(TAREFA_PAGA); toast("Tarefa feita: " + t.nome.toLowerCase() + ". +$" + TAREFA_PAGA);
+      const paga = pagaMudanca(TAREFA_PAGA); // leva 11: ajuda de mudança nos primeiros dias da casa do zero
+      ganhar(paga); toast("Tarefa feita: " + t.nome.toLowerCase() + ". +$" + paga + (paga > TAREFA_PAGA ? " (com ajuda de mudança)" : ""));
       const f = Object.assign({}, minhasTarefas(d).feitas || {}, { [t.id]: true });
       if (!lista.every(x => f[x.id])) return;
       txn(base + "/completo", c => c ? undefined : true).then(ok2 => {
         if (!ok2) return;
-        ganhar(DIA_COMPLETO); toastEspecial("Tarefas do dia feitas!", "+$" + DIA_COMPLETO + " de bônus. Amanhã tem outras.");
+        const bonus = pagaMudanca(DIA_COMPLETO);
+        ganhar(bonus); toastEspecial("Tarefas do dia feitas!", "+$" + bonus + " de bônus. Amanhã tem outras.");
         ref("casa/diario/" + d + "/feitos/" + pid).set(true).then(checarDupla, () => {});
       });
     });
@@ -206,7 +208,7 @@ const VIDEOS = { id: "videos", nome: "Ver vídeos", dur: 8, ganho: { diversao: 2
 MENU_EXTRA.pc = id => {
   const n = tarefasDoDia(hoje()).filter(t => (minhasTarefas().feitas || {})[t.id]).length;
   return [
-    { nome: "Trabalhar", info: "+$" + TRABALHO.dinheiro + " · " + turnosHoje() + "/" + TURNOS_DIA + " hoje", fn: () => useFurn(id, TRABALHO) },
+    { nome: "Trabalhar", info: "+$" + pagaMudanca(TRABALHO.dinheiro) + " · " + turnosHoje() + "/" + TURNOS_DIA + " hoje", fn: () => useFurn(id, TRABALHO) },
     { nome: "Ver vídeos", info: "Diversão", fn: () => useFurn(id, VIDEOS) },
     { nome: "Tarefas de hoje", info: n + "/3", fn: openTarefas }
   ].concat(jogarItens(id));
@@ -235,9 +237,11 @@ function openTarefas(){
         : "Se dois ou mais fizerem as 3 hoje, é dia em dupla: +$" + DIA_DUPLA + " pra cada.";
       trab.textContent = "";
       const tx = el("div", "tx"), tn = turnosHoje(), pc = primeiro("pc");
-      tx.append(el("strong", null, "Home office no computador"), el("small", null, "+$" + TRABALHO.dinheiro + " por turno · cansa um pouco · " + tn + "/" + TURNOS_DIA + " turnos hoje"));
-      const b = btn(tn >= TURNOS_DIA ? "Folga" : "Trabalhar", "btn small", () => { closePanel(); useFurn(pc, TRABALHO); });
-      b.disabled = !pc || tn >= TURNOS_DIA; trab.append(tx, b);
+      // leva 11: na casa do zero, sem computador, dá pra fazer bico pelo celular (mesmo pagamento)
+      const celular = !pc && casaZero;
+      tx.append(el("strong", null, celular ? "Bico pelo celular" : "Home office no computador"), el("small", null, "+$" + pagaMudanca(TRABALHO.dinheiro) + " por turno · cansa um pouco · " + tn + "/" + TURNOS_DIA + " turnos hoje"));
+      const b = btn(tn >= TURNOS_DIA ? "Folga" : "Trabalhar", "btn small", () => { closePanel(); if (celular){ if (me.acao) setAcao(null); me.path = []; startAcao(TRABALHO); } else useFurn(pc, TRABALHO); });
+      b.disabled = (!pc && !celular) || tn >= TURNOS_DIA; trab.append(tx, b);
     };
     upd(); return upd;
   });
@@ -527,7 +531,7 @@ function drawTelaJogo(g, t, x, y, tm){
 
 // ---------------- quintal (cofrinho) ----------------
 const QUINTAL_PRECO = 800;
-const temQuintal = () => !!cofre.liberado;
+const temQuintal = () => !!cofre.liberado || casaZero; // leva 11: na casa do zero, o terreno inteiro é quintal
 function aplicarQuintal(festa){
   montarMapa(temQuintal(), cofre.porta); rebuildOcc(); tamanhoCena();
   if (mode === "build") renderBuild();
@@ -587,7 +591,7 @@ function renderLeva2Hud(){
   setTxt("bTrofeus", "Troféus " + CONQUISTAS.filter(c => conquistas[c.id]).length + "/" + CONQUISTAS.length);
   const bq = $("bQuintal"); bq.hidden = !cofreCarregado || temQuintal();
   setTxt("bQuintal", "Quintal $" + (cofre.total || 0));
-  $("bAndar").hidden = !cofre2Carregado || temAndar2();
+  $("bAndar").hidden = !cofre2Carregado || temAndar2() || casaZero; // leva 11: casa do zero ainda não tem 2º andar
   setTxt("bAndar", "2º andar $" + (cofre2.total || 0));
   refreshPanel("tarefas");
 }

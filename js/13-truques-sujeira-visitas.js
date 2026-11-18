@@ -162,8 +162,8 @@ function sortearSujeira(s, novas){
     let cands = [];
     for (let y = 1; y < H - 1; y++) for (let x = 1; x < W - 1; x++){
       if (MAP[y][x] !== 0 || !walkable(x, y) || naEscada(x, y) || naLista(PE_ESCADA, x, y) || usadas.has(andar + ":" + x + ":" + y)) continue;
-      const cm = comodo(x, y);
-      if (tipo === "roupa" && cm !== "quarto" && cm !== "suite") continue;
+      const cm = tipoC(comodo(x, y)); // leva 11: na casa do zero vale o tipo do cômodo
+      if (tipo === "roupa" && cm !== "quarto" && cm !== "suite" && cm !== "kitnet") continue;
       if (tipo === "folhas" && cm !== "quintal" && cm !== "varanda") continue;
       if (tipo !== "folhas" && cm === "quintal") continue;
       cands.push([x, y]);
@@ -171,7 +171,7 @@ function sortearSujeira(s, novas){
     const perto = (x0, y0, n) => cands.sort((a, b) => Math.hypot(a[0] - x0, a[1] - y0) - Math.hypot(b[0] - x0, b[1] - y0)).slice(0, n);
     if (tipo === "migalhas"){ const m = Object.values(moveis).find(q => q.t === "mesa" || q.t === "piquenique"); if (m){ const c = CAT[m.t]; cands = cands.filter(([x, y]) => x >= m.x - 1 && x <= m.x + c.w && y >= m.y - 1 && y <= m.y + c.h); } }
     if (tipo === "pelos"){ const p = petEstado(t); cands = perto(Math.round(p.x), Math.round(p.y), 5); }
-    if (tipo === "lama") cands = portaQ ? perto(portaQ, HC - 1, 6) : cands.filter(([x, y]) => comodo(x, y) === "cozinha" || comodo(x, y) === "sala");
+    if (tipo === "lama") cands = portaQ ? perto(portaQ, HC - 1, 6) : cands.filter(([x, y]) => /^(cozinha|sala|kitnet)$/.test(tipoC(comodo(x, y))));
     return cands.length ? cands[h(2) % cands.length] : null;
   });
   return pos ? { tipo, x: pos[0], y: pos[1], andar, criada: t, v: h(3) % 4 } : null;

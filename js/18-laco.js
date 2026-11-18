@@ -72,7 +72,7 @@ function update(dt){
     }
     for (const [k, v] of Object.entries(d.ganho || {})) me.needs[k] = clamp(me.needs[k] + v * mult * dt / (a.dur / 1000), 0, 100);
     if (me.acao === a && Date.now() - a.ini >= a.dur){
-      if (d.dinheiro){ me.dinheiro += d.dinheiro; toast("+$" + d.dinheiro + " pelo trabalho."); sfx("moeda"); }
+      if (d.dinheiro){ const v = pagaMudanca(d.dinheiro); me.dinheiro += v; toast("+$" + v + " pelo trabalho" + (v > d.dinheiro ? " (com ajuda de mudança)." : ".")); sfx("moeda"); } // leva 11
       a.acabou = true; setAcao(null); saveNeeds(true);
       if (d.fim) d.fim({ junto: a.junto || null });
       acaoTerminada(a);
@@ -133,12 +133,12 @@ function draw(now){
   ctx.drawImage(bg, 0, 0);
   drawWindowAnim(tm, hr);
   const clima = climaAgora(), est = estacao(), natal = mesAgora() === 12;
-  if (natal) drawPiscaPisca(tm);
-  if (andarAtual === 0){ drawMural(tm); drawQuadroTrofeus(tm); }
+  if (natal && !zeroAqui()) drawPiscaPisca(tm);
+  if (andarAtual === 0 && !casaZero){ drawMural(tm); drawQuadroTrofeus(tm); } // leva 11: no zero, mural e troféus são itens de parede
   drawDecorParede(tm, hr); // leva 6: quadros, luzinhas, relógio e companhia
   if (andarAtual === 0 && escadaOn){ const ex = ESCADA.x * T, ey = (ESCADA.y + ESCADA.h) * T; R(ex + 1, ey - 1, ESCADA.w * T, 2, "rgba(35,18,40,.24)"); R(ex + ESCADA.w * T, ESCADA.y * T + 4, 1, ESCADA.h * T - 4, "rgba(35,18,40,.18)"); }
   // tapetes
-  for (const m of Object.values(moveis)) if (CAT[m.t] && CAT[m.t].chao){ R(m.x * T + 4, m.y * T + CAT[m.t].h * T - 2, CAT[m.t].w * T - 8, 1, "rgba(35,18,40,.18)"); blitFurn(m.t, m.x * T, m.y * T, 0); }
+  for (const m of Object.values(moveis)) if (CAT[m.t] && CAT[m.t].chao){ R(m.x * T + 4, m.y * T + CAT[m.t].h * T - 2, CAT[m.t].w * T - 8, 1, "rgba(35,18,40,.18)"); blitFurn(m.t, m.x * T, m.y * T, 0, m.cor); }
   drawSujeiraChao(); // leva 5: pó, migalhas, roupa, folhas, lama, pelos
   // sombras dos móveis (em degraus, para ficarem suaves)
   for (const [id, m] of Object.entries(moveis)){
@@ -160,7 +160,7 @@ function draw(now){
     const c = CAT[m.t]; if (!c || c.chao) continue;
     if (tool && tool.kind === "mover" && tool.id === id) continue;
     const fr = furnFrame(m.t, !!ativo[id], tm, m.x * 3 + m.y * 5), z = (m.y + c.h) * T - 1;
-    objs.push({ z, f: () => blitFurn(m.t, m.x * T, m.y * T, fr) });
+    objs.push({ z, f: () => blitFurn(m.t, m.x * T, m.y * T, fr, m.cor) }); // leva 11: cor do móvel
     if (ativo[id]) objs.push({ z: z + 3, f: () => drawFx(m.t, m.x * T, m.y * T, tm) });
   }
   addCasaObjs(objs, tm); // leva 1: plantas, pratos na mesa e bichinho
@@ -185,6 +185,7 @@ function draw(now){
   leva7Luzes(lights, tm); // leva 7: abajur baixinho no namoro
   leva9Luzes(lights, tm); // leva 9: velas do jantar, sala escura no cinema
   leva10Luzes(lights, tm); // leva 10: luzinha do telefone com recado novo
+  leva11Luzes(lights, ativo, tm); // leva 11: móveis novos e girados; mural/troféus de parede
   for (const [id, j] of Object.entries(jogadores)){
     if (!j.nome) continue;
     if (id !== pid && (j.andar || 0) !== andarAtual) continue; // leva 4: cada um vê só o próprio andar
@@ -206,7 +207,8 @@ function draw(now){
       const aqui = Object.keys(jogadores).filter(k => { const aa = k === pid ? (me && me.acao) : jogadores[k].acao; return aa && aa.mov === acao.mov && (k === pid || jogadores[k].online); });
       const nv = se0 && se0.vagas ? se0.vagas.length : 2;
       slot = Math.max(0, aqui.indexOf(id)) % nv;
-      if (acao.deitar){ deitado = true; pose = "lie"; const s2 = Object.keys(jogadores).indexOf(id) % 2; cx = m0.x * T + (m0.t === "casal" || m0.t === "dossel" ? (s2 ? 35 : 13) : m0.t === "rede" ? 24 : 16); by = m0.y * T + (m0.t === "rede" ? 8 : 21); }
+      if (acao.deitar){ deitado = true; pose = "lie"; const s2 = Object.keys(jogadores).indexOf(id) % 2; cx = m0.x * T + (m0.t === "casal" || m0.t === "dossel" ? (s2 ? 35 : 13) : m0.t === "rede" ? 24 : 16); by = m0.y * T + (m0.t === "rede" ? 8 : 21);
+        if (c.virt){ const largo = c.w > 2 && c.h > 2; cx = Math.round((m0.x + c.w / 2) * T) + (largo ? (s2 ? 10 : -10) : 0); by = Math.round((m0.y + c.h / 2) * T) + 6; } } // leva 11: cama girada
       else {
         vg = se0 ? se0.vagas[slot] : null;
         const usa = vg && (se0.fixas || aqui.length > 1);
@@ -265,7 +267,7 @@ function draw(now){
           ctx.globalAlpha = .9; R(cx - 6, my + 6, 12, 3, "#8FD0EE"); ctx.globalAlpha = off ? .55 : 1;
           for (const [a, b] of [[-6, 5], [-4, 6], [-1, 5], [2, 6], [4, 5], [-3, 4], [5, 7]]){ R(cx + a, my + b, 2, 1, "#FFFFFF"); P(cx + a, my + b + 1, "#E6F4FB"); }
         }
-        if (vg.frente){ const fr = furnFrame(mv.t, true, tm, mv.x * 3 + mv.y * 5); for (const r of vg.frente) blitFurnParte(mv.t, fr, mx, my, r); }
+        if (vg.frente){ const fr = furnFrame(mv.t, true, tm, mv.x * 3 + mv.y * 5); for (const r of vg.frente) blitFurnParte(mv.t, fr, mx, my, r, mv.cor); }
         if (vg.mesa){ // mãos em cima do tampo (a do garfo sobe até a boca)
           const ty = my + vg.mesa, levanta = /eat|drink/.test(pose) && frame === 1;
           for (const hx of levanta ? [cx - 4] : [cx - 4, cx + 2]){ R(hx - 1, ty - 1, 4, 3, "#2D1C30"); R(hx, ty - 1, 2, 2, pele); P(hx + (hx < cx ? 1 : 0), ty - 1, sh(pele, .2)); R(hx - 1, ty + 2, 4, 1, "rgba(35,18,40,.25)"); }
@@ -294,6 +296,7 @@ function draw(now){
     ctx.globalAlpha = .75; blitFurn(tool.t, hover.x * T, hover.y * T, 0); ctx.globalAlpha = 1;
   }
   leva6Fantasma(); // leva 6: onde dá pra pendurar e cômodo do papel de parede
+  leva11Fantasma(); // leva 11: prévia das obras (paredes, portas, janelas) e cômodo em foco
   if (mode === "build" && tool && tool.kind === "piso" && hover && MAP[hover.y] && MAP[hover.y][hover.x] !== 1){
     const cm = comodo(hover.x, hover.y); ctx.fillStyle = "rgba(142,124,240,.28)";
     for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) if (MAP[y][x] !== 1 && comodo(x, y) === cm) ctx.fillRect(x * T, y * T, T, T);
@@ -309,7 +312,7 @@ function draw(now){
   ctx.globalAlpha = 1;
   // chuva (leva 3): gotas no jardim, no quintal e nas janelas
   if (clima) drawChuva(tm, clima);
-  if (natal) for (let i = 0; i < 8; i++) lights.push([24 + i * 34, 6, 18, ["255,110,120", "255,220,120", "130,220,170", "140,180,255"][i % 4], .95]);
+  if (natal && !zeroAqui()) for (let i = 0; i < 8; i++) lights.push([24 + i * 34, 6, 18, ["255,110,120", "255,220,120", "130,220,170", "140,180,255"][i % 4], .95]);
   // luz do dia e da noite: um mapa de luz colorido multiplicado sobre a cena (chuva escurece o céu)
   let dk = darkness(hr); if (clima) dk = Math.min(.5, dk + (clima === "garoa" ? .08 : .15));
   const k = dk * 2;
@@ -402,6 +405,7 @@ function draw(now){
   drawLabels7(mctx, K, fs, tm); // leva 7: "buá!" do bebê
   drawLabels9(mctx, K, fs, tm); // leva 9: balões do jantar, reações do cinema, "!" no presente
   drawLabels10(mctx, K, fs, tm); // leva 10: nome da pelúcia, "foram à praia", telefone com recado
+  drawLabels11(mctx, K, fs); // leva 11: nome dos cômodos no modo construir (casa do zero)
   for (const L of labels){ if (L.acao && /^s-(beijo|abracar)/.test(L.acao.id || "") && Math.random() < .04) burst(L.cx / T - .5, L.by / T - 1, "heart"); }
 }
 

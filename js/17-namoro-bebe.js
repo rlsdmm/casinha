@@ -327,7 +327,7 @@ const testeSpr = () => sprite("testeFarmacia", 9, 3, (ox, oy) => { R(ox, oy, 9, 
 function testeVisivel(){ const g = gravidez; if (!g || !g.ini) return false; const t = srvNow(); return t >= g.ini + GV_POS && t < g.ini + GV_POS + 24 * HORA; }
 function piaDoTeste(){
   const pias = Object.keys(moveis).filter(k => moveis[k].t === "pia").sort();
-  return pias.find(k => /banheiro|lavabo/.test(comodo(moveis[k].x, moveis[k].y))) || pias[0] || null;
+  return pias.find(k => /banheiro|lavabo|lavanderia/.test(tipoC(comodo(moveis[k].x, moveis[k].y)))) || pias[0] || null;
 }
 { const base = MENU_EXTRA.pia; MENU_EXTRA.pia = (id, m) => { const l = base(id, m); if (testeVisivel() && piaDoTeste() === id) l.unshift({ nome: "Olhar o teste de farmácia", info: "🍼", fn: () => toast("Dois risquinhos cor-de-rosa: positivo! 🍼") }); return l; }; }
 function avisoPositivo(){

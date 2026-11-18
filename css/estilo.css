@@ -333,3 +333,23 @@ body.viajando #hud,body.viajando #buildPanel,body.viajando .andarUI,body.viajand
 .visitaBar .btn{min-height:44px}
 body.visitando .visitaBar{display:flex}
 body.visitando .modes,body.visitando #invite,body.visitando #invitePanel,body.visitando #bDespensa,body.visitando #bTarefas,body.visitando #bQuintal,body.visitando #bAndar{display:none!important}
+
+/* leva 11: escolha do modo, aba Obras, metas */
+.modos11{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,220px),1fr));gap:10px}
+.modos11 .escolha{min-height:76px;padding:12px 14px}
+.modos11 strong{font-size:1.02rem}
+.modos11 .btn:not(.ghost) small{color:var(--accent-ink);opacity:.8}
+.tabs{flex-wrap:wrap}
+.obraBox{display:flex;flex-direction:column;gap:10px}
+.obraTools{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px}
+.obraT{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;min-height:64px;padding:6px 2px;font-size:.86rem}
+.obraT .ic{font-size:1.25rem;line-height:1}
+.obraT small{font-weight:700;color:var(--muted);font-size:.72rem;white-space:nowrap}
+.obraT[aria-pressed=true]{border-color:var(--accent);background:var(--panel-2)}
+.obraConf{display:flex;flex-wrap:wrap;gap:8px;align-items:center;background:var(--bg);border:1.5px solid var(--accent);border-radius:12px;padding:8px 10px}
+.obraConf span{flex:1 1 160px;font-weight:800}
+.obraConf .btn{min-height:44px}
+.obraBox .rowi select{min-height:44px;border-radius:10px;border:1.5px solid var(--line);background:var(--panel-2);color:var(--fg);font:inherit;font-weight:700;padding:0 8px;max-width:52%}
+.obraBox .escolha{width:100%}
+.ajuda11{font-size:.85rem;font-weight:700;color:var(--money)}
+.vh{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}

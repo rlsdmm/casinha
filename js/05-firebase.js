@@ -66,7 +66,7 @@ function stop(){
   }
   moveis = {}; pisos = {}; jogadores = {}; me = null; disp = {};
   pet = null; jardim = {}; mural = {}; despensa = {}; pratos = {}; casaPronta = false; petCarregado = false; muralCarregado = false; muralAvisado = false; petView = null;
-  leva5Reset(); leva6Reset(); leva7Reset(); leva9Reset(); leva10Reset();
+  leva5Reset(); leva6Reset(); leva7Reset(); leva9Reset(); leva10Reset(); leva11Reset();
   if (typeof closePanel === "function") closePanel();
   // leva 2
   jogos = {}; stats = {}; conquistas = {}; cofre = {}; diario = {};
@@ -100,15 +100,18 @@ function boot(){
   // leva 9: decide por casa/criada (não por casa/moveis: uma casa com todos os móveis vendidos era recriada e o bichinho
   // voltava a ser o Pipoca). Casa antiga sem o marcador, mas com qualquer dado, ganha o marcador e não é recriada.
   const MARCAS_CASA = ["moveis", "pisos", "pet", "leva1", "stats", "nivel", "mural", "despensa", "cofre"];
+  // leva 11: casa nova escolhe o modo (casa pronta ou começar do zero) antes de ser criada; casa existente não muda
+  const sr = salaRef;
   if (!visitando) Promise.all([ref("casa/criada").once("value")].concat(MARCAS_CASA.map(k => ref("casa/" + k).once("value")), [ref("jogadores").once("value")])).then(([cr, ...resto]) => {
     if (cr.exists()) return;
     if (resto.some(s => s.exists())) return ref("casa/criada").transaction(cur => cur ? undefined : Date.now());
-    return ref("casa/criada").transaction(cur => cur ? undefined : Date.now()).then(r => {
+    return escolherModoNovo().then(modo => { if (salaRef !== sr) return; return ref("casa/criada").transaction(cur => cur ? undefined : Date.now()).then(r => {
       if (!r.committed) return;
-      const mv = {}; MOVEIS_INICIAIS.forEach(([t, x, y], i) => mv["m" + i] = { t, x, y });
       const t = srvNow();
-      return ref("casa").update({ moveis: mv, pisos: PISO_PADRAO, leva1: true, pet: { nome: "Pipoca", tipo: "gato", comeu: t, carinho: t } });
-    });
+      if (modo === "zero") return ref("casa").update(casaZeroDados(t)).then(() => historia("casa_zero", "🧱", "Começaram do zero: um terreno, uma kitnet e muitos planos"));
+      const mv = {}; MOVEIS_INICIAIS.forEach(([t, x, y], i) => mv["m" + i] = { t, x, y });
+      return ref("casa").update({ moveis: mv, pisos: PISO_PADRAO, leva1: true, modo: "pronta", pet: { nome: "Pipoca", tipo: "gato", comeu: t, carinho: t } });
+    }); });
   }).catch(() => {});
 
   on(fdb.ref(".info/serverTimeOffset"), "value", s => { srvOff = s.val() || 0; });
@@ -189,6 +192,7 @@ function boot(){
   leva7Ouvir(); // namoro, gravidez e bebê
   leva9Ouvir(); // presentes, jantar, cinema, álbum, datas e história
   leva10Ouvir(); // saudade, recados de voz, passeio, bairro
+  leva11Ouvir(); // modo da casa, obras e metas do lar
 }
 
 let conectado = false, onlineReparo = 0;

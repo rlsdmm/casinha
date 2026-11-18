@@ -50,7 +50,8 @@ function crescAte(p, t){
 function drawChuva(tm, tipo){
   const garoa = tipo === "garoa", Ww = W * T, Hh = H * T, cor = garoa ? "rgba(228,238,255,.55)" : "rgba(212,230,255,.78)", len = garoa ? 2 : 4;
   ctx.save(); ctx.beginPath();
-  ctx.rect(0, 0, 9, Hh); ctx.rect(Ww - 9, 0, 9, Hh); ctx.rect(0, HC * T + 7, Ww, Hh - HC * T - 7);
+  if (zeroAqui()) chuvaClipZero(); // leva 11: casa do zero: chove em todo o lado de fora
+  else { ctx.rect(0, 0, 9, Hh); ctx.rect(Ww - 9, 0, 9, Hh); ctx.rect(0, HC * T + 7, Ww, Hh - HC * T - 7); }
   if (andarAtual === 1) ctx.rect((VX + 1) * T, 9 * T, (W - VX - 1) * T, 3 * T + 7); // varanda é aberta
   const jan = [...janelas()].map(w => w.split(",").map(Number));
   for (const [x, y] of jan) ctx.rect(x * T + 4, y * T + 5, 9, 7);

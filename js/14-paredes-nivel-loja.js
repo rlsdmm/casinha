@@ -321,6 +321,7 @@ function renderParedes(){
   const cat = el("div", "cat");
   for (const [t, d] of Object.entries(DECOR_CAT)){
     if (d.loja && !lojaDonos["dc-" + t]) continue;
+    if (d.soZero && !casaZero) continue; // leva 11: mural e quadro de troféus de parede (casa do zero)
     const trava = !!d.nivel && nv < d.nivel, b = el("button", "item"); b.type = "button";
     const cv = decorIcone(t); if (trava) cv.style.opacity = ".45";
     b.append(cv, el("span", null, d.nome), trava ? el("span", "lk", "🔒 Nível " + d.nivel) : el("span", "pr", "$" + d.preco));
