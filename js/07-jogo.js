@@ -43,6 +43,7 @@ canvas.addEventListener("click", e => {
   const other = playerAt(p.x, p.y, toque ? 4 : 0);
   if (other) return socialMenu(other, p);
   if (petAt(p.x, p.y, toque ? 5 : 0)) return petMenu(p);
+  if (leva9Click(p, tx, ty, toque)) return; // leva 9: presente embrulhado no chão
   if (leva5Click(p, tx, ty, toque)) return; // leva 5: visitas e sujeira
   if (naEscada(tx, ty)) return irEscada(); // leva 4: toque na escada sobe ou desce
   const ativos = HOTSPOTS.filter(h => (h.andar || 0) === andarAtual && (!h.ativo || h.ativo()));

@@ -612,7 +612,7 @@ function leva5Ouvir(){
   on(ref("casa/visita"), "value", s => { visitaDB = s.val() || {}; visitaCarregada = true; limparVisitasVelhas(); refreshPanel("pet"); });
   on(ref("casa/musica"), "value", s => {
     const ant = musica; musica = s.val();
-    if (musicaCarregada && me && musica && musica.por && musica.por !== pid && (!ant || ant.desde !== musica.desde)){ const fx = FAIXAS.find(f => f.id === musica.faixa); if (fx) toast(nomeDe(musica.por) + " colocou “" + fx.nome + "” no toca-discos."); }
+    if (musicaCarregada && me && musica && musica.por && musica.por !== pid && (!ant || ant.desde !== musica.desde) && !musica.jantar && !(ant && ant.jantar)){ /* leva 9: a trilha do jantar não avisa */ const fx = FAIXAS.find(f => f.id === musica.faixa); if (fx) toast(nomeDe(musica.por) + " colocou “" + fx.nome + "” no toca-discos."); }
     musicaCarregada = true; refreshPanel("som");
   });
 }

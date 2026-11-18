@@ -95,6 +95,7 @@ function update(dt){
   particles.forEach(p => { if (p.kind === "conf") p.vy = Math.min(p.vy + 6 * dt, 40); });
   leva5Update(dt); // passos, sons das ações, casa bagunçada
   leva7Update(dt); // namoro (corações, toc toc), gravidez (cansaço), choro do bebê
+  leva9Update(dt); // jantar (corações), cinema (sons das reações)
   if (performance.now() - lastSave > 4000){ lastSave = performance.now(); saveNeeds(false); }
 }
 
@@ -165,6 +166,7 @@ function draw(now){
   addJogoObjs(objs, tm); // leva 2: tabuleiro na tela da TV/PC
   addLeva5Objs(objs, tm); // leva 5: visitas e louça na pia
   addLeva7Objs(objs, tm); // leva 7: coberta/espuma/manta do namoro, roupas, berço com o bebê, teste de farmácia
+  addLeva9Objs(objs, tm); // leva 9: presentes embrulhados, toalha e velas, tela do cinema, festa do dia especial
   if (escadaOn || andarAtual === 1) objs.push({ z: ESC_Z, f: blitEscada }); // leva 4: escada / guarda-corpo do vão
   const labels = [], lights = [];
   if (andarAtual === 1){ for (const [k, d] of Object.entries(DECOR2)) if (d === "arandela"){ const [x, y] = k.split(",").map(Number); lights.push([x * T + 8, y * T + 9, 30, "255,214,150", .95]); } }
@@ -179,6 +181,7 @@ function draw(now){
   }
   leva6Luzes(lights, ativo, tm); // leva 6: luzinhas, neon, lareira, luminárias novas
   leva7Luzes(lights, tm); // leva 7: abajur baixinho no namoro
+  leva9Luzes(lights, tm); // leva 9: velas do jantar, sala escura no cinema
   for (const [id, j] of Object.entries(jogadores)){
     if (!j.nome) continue;
     if (id !== pid && (j.andar || 0) !== andarAtual) continue; // leva 4: cada um vê só o próprio andar
@@ -213,7 +216,7 @@ function draw(now){
     }
     if (sentado){
       // atividade sentada: comer/piquenique leva o garfo à boca, café a xícara, computador e jogo nas mãos; comemora de vez em quando
-      let act = aid === "comer" || aid === "piquenique" ? "eat" : aid === "cafe" ? "drink" : aid === "minigame" || movT === "pc" ? "pc" : "";
+      let act = aid === "comer" || aid === "piquenique" || aid === "jantar" ? "eat" : aid === "cafe" ? "drink" : aid === "minigame" || movT === "pc" ? "pc" : "";
       if (aid === "minigame" && Math.floor((tm + id.charCodeAt(1) * 131) / 900) % 5 === 0) act = "arms";
       frame = act === "pc" ? Math.floor((tm + id.charCodeAt(1) * 53) / 170) % 2 : act === "eat" || act === "drink" ? (Math.floor((tm + id.charCodeAt(1) * 211) / 650) % 3 === 2 ? 1 : 0) : 0;
       pose = "sit" + act + (pisca ? "blink" : "") + (respira && !act ? "breath" : "");
@@ -225,6 +228,9 @@ function draw(now){
     // leva 7: namorando: os dois juntinhos no lugar escolhido (posição e carinha dependem da fase)
     const n7 = aid === "namoro" && m0 ? namoroPose(id, acao, m0, tm, pisca) : null;
     if (n7){ cx = n7.cx; by = n7.by; pose = n7.pose; dir = n7.dir; frame = 0; deitado = !!n7.lie; sentado = !n7.lie; if (n7.semVaga) vg = null; }
+    // leva 9: jantar (conversa corada) e cinema (rir, susto, abraço, choro, comemorar, pipoca)
+    const p9 = sentado && (id === pid || j.online) ? leva9Pose(id, aid, acao, m0, tm, cx, by, pisca) : null;
+    if (p9){ cx += p9.dx || 0; by += p9.dy || 0; if (p9.pose) pose = p9.pose; if (p9.frame != null) frame = p9.frame; }
     // leva 4: subindo ou descendo a escada (anda pelos degraus e some no alto, ou afunda no vão)
     if (aid === "escada" && acao.esc){
       const p = clamp((tm - acao.ini) / acao.dur, 0, 1), sobe = acao.esc > 0, xm = (ESCADA.x + ESCADA.w / 2) * T;
@@ -371,7 +377,7 @@ function draw(now){
     }
     let icon = null;
     if (L.off) icon = "zZ";
-    else if (L.acao){ const id = L.acao.id || ""; icon = /dormir|cochilo/.test(id) ? "zZ" : /dancar/.test(id) ? "♪" : /^s-(beijo|abracar|chute)|^namoro|^bebe-/.test(id) ? "♥" :/^s-/.test(id) ? "…" : /trabalhar/.test(id) ? "$" : id === "minigame" ? "★" : /pet-carinho/.test(id) ? "♥" : /^coz-|lanche|cafe|comer/.test(id) ? "~" : null; }
+    else if (L.acao){ const id = L.acao.id || ""; icon = /dormir|cochilo/.test(id) ? "zZ" : /dancar/.test(id) ? "♪" : /^s-(beijo|abracar|chute)|^namoro|^bebe-|^jantar/.test(id) ? "♥" :/^s-/.test(id) ? "…" : /trabalhar/.test(id) ? "$" : id === "minigame" ? "★" : /pet-carinho/.test(id) ? "♥" : /^coz-|lanche|cafe|comer/.test(id) ? "~" : null; }
     if (icon){ mctx.fillStyle = icon === "♥" ? "#F0707A" : icon === "$" ? "#FAC775" : "#CECBF6"; mctx.fillText(icon, sx + 8 * K, top - fs * .9 - Math.sin(tm / 300) * K * 1.5); }
     if (L.id === pid && L.acao && L.acao.id !== "minigame"){
       const w = 16 * K, pr = clamp((tm - L.acao.ini) / L.acao.dur, 0, 1), bh = Math.max(4, K * 1.2);
@@ -390,6 +396,7 @@ function draw(now){
   drawCasaLabels(mctx, K, fs, tm);
   drawVisitaLabels(mctx, K, fs, tm); // leva 5
   drawLabels7(mctx, K, fs, tm); // leva 7: "buá!" do bebê
+  drawLabels9(mctx, K, fs, tm); // leva 9: balões do jantar, reações do cinema, "!" no presente
   for (const L of labels){ if (L.acao && /^s-(beijo|abracar)/.test(L.acao.id || "") && Math.random() < .04) burst(L.cx / T - .5, L.by / T - 1, "heart"); }
 }
 

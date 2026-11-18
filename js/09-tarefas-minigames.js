@@ -429,6 +429,7 @@ function renderBannerJogo(){
     partes = () => [el("span", null, (minha && !JOGO6[g.tipo] ? "Sua vez: " : "Jogando: ") + JOGO_TIPOS[g.tipo].toLowerCase() + "."), btn("Abrir", "btn small", () => abrirJogo(id))];
   }
   if (!partes){ const b7 = bannerLeva7(); if (b7){ key = b7.key; partes = b7.partes; } } // leva 7: convite pra namorar, bebê
+  if (!partes){ const b9 = bannerLeva9(); if (b9){ key = b9.key; partes = b9.partes; } } // leva 9: convite pro jantar, filme passando
   if (key === bannerKey) return; bannerKey = key;
   b.className = "banner jogo"; b.textContent = ""; b.hidden = !partes;
   if (partes) b.append(...partes());

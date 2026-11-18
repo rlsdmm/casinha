@@ -282,6 +282,7 @@ function decorClickVivo(tx, ty, p){
   const d = decor[id], def = DECOR_CAT[d.t], items = [];
   if (d.t === "espelho") items.push({ nome: "Trocar o visual", info: "Espelho", fn: () => irParede(tx, ty, () => openCreator(true)) });
   if (d.t === "relogio"){ const h = hourNow(); items.push({ nota: 1, nome: "São " + Math.floor(h) + "h" + String(Math.floor((h % 1) * 60)).padStart(2, "0") + "." }); }
+  if (def.menu) items.push(...def.menu(id, d)); // leva 9: mural de fotos abre o álbum, calendário abre as datas
   items.push({ nome: "Admirar", info: "Diversão", fn: () => irParede(tx, ty, () => startAcao({ id: "admirar", nome: "Admirando: " + def.nome.toLowerCase(), dur: 3, ganho: { diversao: 6 } })) });
   openMenu(p, def.nome, items);
   return true;

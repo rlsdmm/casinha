@@ -60,7 +60,7 @@ function stop(){
   if (me && salaRef && pid){ const r = ref("jogadores/" + pid + "/online"); r.onDisconnect().cancel().catch(() => {}); r.set(false).catch(() => {}); }
   listeners.forEach(f => f()); listeners = []; moveis = {}; pisos = {}; jogadores = {}; me = null; disp = {};
   pet = null; jardim = {}; mural = {}; despensa = {}; pratos = {}; casaPronta = false; petCarregado = false; muralCarregado = false; muralAvisado = false; petView = null;
-  leva5Reset(); leva6Reset(); leva7Reset();
+  leva5Reset(); leva6Reset(); leva7Reset(); leva9Reset();
   if (typeof closePanel === "function") closePanel();
   // leva 2
   jogos = {}; stats = {}; conquistas = {}; cofre = {}; diario = {};
@@ -88,8 +88,12 @@ function boot(){
   salaSeed = [...sala].reduce((h, ch) => (Math.imul(h, 31) + ch.charCodeAt(0)) | 0, 7);
   // Cria a casa uma vez só. A transação fica numa folha (casa/criada), nunca no nó "casa" inteiro:
   // transação no nó pai, com o cache local parcial, chegou a sobrescrever a casa toda num teste.
-  ref("casa/moveis").once("value").then(s => {
-    if (s.exists()) return;
+  // leva 9: decide por casa/criada (não por casa/moveis: uma casa com todos os móveis vendidos era recriada e o bichinho
+  // voltava a ser o Pipoca). Casa antiga sem o marcador, mas com qualquer dado, ganha o marcador e não é recriada.
+  const MARCAS_CASA = ["moveis", "pisos", "pet", "leva1", "stats", "nivel", "mural", "despensa", "cofre"];
+  Promise.all([ref("casa/criada").once("value")].concat(MARCAS_CASA.map(k => ref("casa/" + k).once("value")), [ref("jogadores").once("value")])).then(([cr, ...resto]) => {
+    if (cr.exists()) return;
+    if (resto.some(s => s.exists())) return ref("casa/criada").transaction(cur => cur ? undefined : Date.now());
     return ref("casa/criada").transaction(cur => cur ? undefined : Date.now()).then(r => {
       if (!r.committed) return;
       const mv = {}; MOVEIS_INICIAIS.forEach(([t, x, y], i) => mv["m" + i] = { t, x, y });
@@ -173,6 +177,7 @@ function boot(){
   leva5Ouvir(); // sujeira, visitas e música
   leva6Ouvir(); // paredes, decoração, nível do casal, loja da semana
   leva7Ouvir(); // namoro, gravidez e bebê
+  leva9Ouvir(); // presentes, jantar, cinema, álbum, datas e história
 }
 
 let conectado = false, onlineReparo = 0;

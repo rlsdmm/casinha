@@ -351,7 +351,7 @@ function acessLeva6(a, cx, hy, dir, v){
     const y = st === 8 ? hy - 3 : hy - 2 + yo, c1 = "#7FB8E8", c2 = "#F6C667", px = side ? X(-1, 6) : cx - 3;
     R(px, y, 6, 1, c1); R(px + 1, y - 1, 4, 1, c2); R(px + 1, y - 2, 4, 1, c1); R(px + 2, y - 3, 2, 1, c2); R(px + 2, y - 4, 2, 1, c1); R(px + 2, y - 5, 2, 1, "#FFFFFF");
     P(px + 1, y - 1, "#E8607A"); P(px + 4, y - 2, "#E8607A");
-  }
+  } else if (a >= 8) acessLeva9(a, cx, hy, dir, v); // leva 9: colar de presente
 }
 
 // ---------------- minigames novos: reflexo, desenhar e adivinhar, perguntas sobre o outro ----------------

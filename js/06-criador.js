@@ -36,6 +36,7 @@ function opcoes(id, itens){
   });
 }
 function itemPago(campo, i, it){
+  if (it.presente && !guardaDe()[campo + "-" + i]) return { nome: it.nome + " 🎁", on: creator[campo] === i, off: true, tit: "Só ganhando de presente", fn: () => {} }; // leva 9
   if (it.nivel && nivelCasal() < it.nivel) return { nome: it.nome + " 🔒 Nível " + it.nivel, on: creator[campo] === i, off: true, tit: "Libera no nível " + it.nivel + " do casal", fn: () => {} }; // leva 6
   const tem = !it.preco || guardaDe()[campo + "-" + i], trava = !tem && !creatorEdit;
   return { nome: it.nome + (tem ? "" : trava ? " 🔒" : " · $" + it.preco), on: creator[campo] === i, off: trava, fn: () => creator[campo] = i };
@@ -85,6 +86,7 @@ $("cGo").onclick = () => {
   const v = visual(creator);
   const travado = [[TRAJES[v.traje], "roupa"], [ACESS[v.acess], "acessório"]].find(([it]) => it && it.nivel && nivelCasal() < it.nivel); // leva 6
   if (travado){ toast("Esse " + travado[1] + " libera no nível " + travado[0].nivel + " do casal."); return; }
+  if (ACESS[v.acess] && ACESS[v.acess].presente && !guardaDe()["acess-" + v.acess]){ toast("Esse acessório só ganhando de presente 🎁"); return; } // leva 9
   const base = { nome, roupa: v.roupa, cabelo: v.cabelo, estilo: v.estilo, pele: v.pele, corpo: v.corpo, traje: v.traje, barba: v.barba, acess: v.acess };
   if (creatorEdit && me){
     const novos = itensPagos(v).filter(([k]) => !guardaDe()[k]), custo = novos.reduce((s, x) => s + x[1], 0);

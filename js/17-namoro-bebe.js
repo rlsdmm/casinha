@@ -618,9 +618,9 @@ function confirmarNome(v){
   txn("casa/bebe/nome", c => c ? undefined : v).then(ok => { closePanel(); if (!ok) toast("Já escolheram: " + ((bebe && bebe.nome) || "") + " 💞"); });
 }
 function openFamilia(){
-  openPanel("familia", "Nós 💞", corpo => {
+  openPanel("familia", "Nós 💞", corpo => { // leva 9: o "Nós" abriga Presentes, Álbum, Nossa história e Datas (nosBotoes9)
     const ajustes = el("div", "list"), gvBox = el("div", "list"), bbBox = el("div", "list"), rodape = el("p", "muted");
-    corpo.append(bbBox, gvBox, el("h3", null, "Ajustes"), ajustes, rodape);
+    corpo.append(nosBotoes9(), bbBox, gvBox, el("h3", null, "Ajustes"), ajustes, rodape); // leva 9: presentes, álbum, história e datas
     const chave = (txt, sub, on, fn) => { const b = btn("", "btn ghost escolha", fn); b.setAttribute("aria-pressed", String(on)); b.append(el("strong", null, txt + ": " + (on ? "sim" : "não")), el("small", null, sub)); return b; };
     let sig = null;
     const upd = () => {

@@ -134,6 +134,12 @@ function sfx(tipo, vol){
       case "choro": tom(d, t, { f: 560, curva: [[720, .12], [500, .42]], dur: .45, g: .04 * v, tipo: "triangle", lp: 1700, at: .05 }); tom(d, t + .55, { f: 600, curva: [[760, .12], [470, .5]], dur: .55, g: .035 * v, tipo: "triangle", lp: 1700, at: .05 }); break;
       case "chute": tom(d, t, { f: 180, f2: 110, dur: .1, g: .1 * v, tipo: "triangle", lp: 600 }); tom(d, t + .12, { f: 520, f2: 1100, dur: .12, g: .06 * v }); break;
       case "risada": [86, 90, 88, 93].forEach((m, i) => tom(d, t + i * .09, { f: mtof(m), dur: .1, g: .035 * v, tipo: "triangle", lp: 3000 })); break;
+      // leva 9
+      case "foto": ruido(d, t, { filtro: "highpass", f: 3000, dur: .05, g: .08 * v }); tom(d, t + .05, { f: 1800, f2: 900, dur: .05, g: .05 * v, tipo: "square", lp: 3000 }); ruido(d, t + .08, { filtro: "bandpass", f: 1500, dur: .14, g: .05 * v }); break;
+      case "papel": for (let i = 0; i < 5; i++) ruido(d, t + i * .05, { filtro: "bandpass", f: 2400 + i * 450, q: .8, dur: .07, g: .06 * v }); break;
+      case "pipoca": for (let i = 0; i < 4; i++) tom(d, t + Math.random() * .5, { f: 600 + Math.random() * 500, f2: 220, dur: .04, g: .07 * v, tipo: "triangle" }); break;
+      case "susto": tom(d, t, { f: 180, f2: 90, dur: .3, g: .12 * v, tipo: "sawtooth", lp: 800 }); tom(d, t + .02, { f: 1400, f2: 2200, dur: .25, g: .03 * v, tipo: "square", lp: 3000 }); break;
+      case "fosforo": ruido(d, t, { filtro: "bandpass", f: 2000, f2: 5000, q: .9, dur: .28, at: .02, g: .05 * v }); break;
       default: return false;
     }
   } catch(e){ AUD.erro = String(e); return false; }
@@ -161,7 +167,10 @@ const FAIXAS = [
   { id: "noite", nome: "Noite Estrelada", desc: "Sininhos pra pegar no sono", bpm: 60, inst: "sino",
     acordes: [[38, [57, 61, 62, 66]], [35, [57, 59, 62, 66]], [43, [59, 62, 66, 67]], [45, [57, 61, 64, 69]]], escala: [69, 71, 74, 76, 78, 81, 83, 86] },
   { id: "cafune", nome: "Cafuné", desc: "Dengo de fim de tarde", bpm: 74, inst: "piano", batida: 2,
-    acordes: [[43, [59, 62, 66, 67]], [40, [55, 59, 62, 67]], [36, [55, 59, 64, 67]], [38, [57, 62, 66, 69]]], escala: [67, 69, 71, 74, 76, 79, 81, 83] }
+    acordes: [[43, [59, 62, 66, 67]], [40, [55, 59, 62, 67]], [36, [55, 59, 64, 67]], [38, [57, 62, 66, 69]]], escala: [67, 69, 71, 74, 76, 79, 81, 83] },
+  // leva 9: toca sozinha no jantar à luz de velas (casa/musica.jantar); também dá pra pôr no toca-discos
+  { id: "velas", nome: "Luz de Velas", desc: "Pra jantar a dois, bem juntinho", bpm: 64, inst: "piano", batida: 2,
+    acordes: [[41, [57, 60, 64, 65]], [40, [55, 59, 62, 64]], [38, [57, 60, 62, 65]], [43, [55, 59, 62, 65]]], escala: [64, 67, 69, 72, 74, 76, 79, 81] }
 ];
 FAIXAS.forEach((fx, i) => {
   fx.mel = [];
@@ -200,8 +209,10 @@ const MUS = { key: null, bus: null, prox: 0 };
 function musicaAtiva(){
   if (!musica || !musica.desde) return null;
   const fx = FAIXAS.find(f => f.id === musica.faixa), m = todosMoveis[musica.mov];
-  if (!fx || !m || m.t !== "som" || srvNow() - musica.desde > MUSICA_MAX) return null;
-  return { fx, desde: musica.desde, mov: musica.mov, por: musica.por, andar: m.andar || 0, m };
+  // leva 9: no jantar à luz de velas a música sai da mesa (mov = mesa) enquanto o jantar dura
+  const jt = !!musica.jantar && typeof jantarTocando === "function" && jantarTocando(musica.jantar);
+  if (!fx || !m || (musica.jantar ? !jt : m.t !== "som") || srvNow() - musica.desde > MUSICA_MAX) return null;
+  return { fx, desde: musica.desde, mov: jt ? null : musica.mov, por: musica.por, andar: m.andar || 0, m, jantar: jt };
 }
 function musParar(){
   MUS.key = null; if (!MUS.bus) return;
