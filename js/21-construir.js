@@ -1110,7 +1110,7 @@ function aplicarObra(){
   }
 }
 function leva11Ouvir(){
-  on(ref("casa/modo"), "value", s => { const z = s.val() === "zero"; modoLido = s.exists(); if (z !== casaZero){ casaZero = z; aplicarObra(); } if (modoLido && me) garantirCasa(); });
+  on(ref("casa/modo"), "value", s => { const z = s.val() === "zero"; modoLido = s.exists(); if (z !== casaZero){ casaZero = z; aplicarObra(); } if (modoLido){ marcarCasaOk(); if (me) garantirCasa(); } });
   on(ref("casa/obra"), "value", s => { obra = s.val() || {}; obraCarregada = true; if (casaZero) aplicarObra(); });
   on(ref("casa/criada"), "value", s => { const v = s.val(); casaCriada = typeof v === "number" ? v : 0; });
   on(ref("casa/metas"), "value", s => {

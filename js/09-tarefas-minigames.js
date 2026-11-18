@@ -197,7 +197,7 @@ function checarNoite(a){
   txn("casa/diario/" + dataDe(srvNow() - 12 * HORA) + "/noite", c => c ? undefined : srvNow()).then(ok => { if (ok){ statMais("noites"); xpCasal(15); toast("Dormindo de conchinha com " + nomeDe(par[0]) + "."); } });
 }
 const turnosHoje = () => minhasTarefas().turnos || 0;
-const TRABALHO = { id: "trabalhar", nome: "Trabalhando (home office)", dur: 15, ganho: { diversao: -10, energia: -8 }, dinheiro: 90,
+const TRABALHO = { id: "trabalhar", nome: "Fazendo um freela", dur: 15, ganho: { diversao: -10, energia: -8 }, dinheiro: 90,
   antes: () => {
     if (turnosHoje() >= TURNOS_DIA){ toast("Chega de trabalho por hoje. Amanhã tem mais."); return false; }
     if (me.needs.energia < 12){ toast("Cansado(a) demais pra trabalhar. Vá dormir um pouco."); return false; }
@@ -208,7 +208,7 @@ const VIDEOS = { id: "videos", nome: "Ver vídeos", dur: 8, ganho: { diversao: 2
 MENU_EXTRA.pc = id => {
   const n = tarefasDoDia(hoje()).filter(t => (minhasTarefas().feitas || {})[t.id]).length;
   return [
-    { nome: "Trabalhar", info: "+$" + pagaMudanca(TRABALHO.dinheiro) + " · " + turnosHoje() + "/" + TURNOS_DIA + " hoje", fn: () => useFurn(id, TRABALHO) },
+    { nome: "Freela 💻", info: "+$" + pagaMudanca(TRABALHO.dinheiro) + " · " + turnosHoje() + "/" + TURNOS_DIA + " hoje", fn: () => useFurn(id, TRABALHO) },
     { nome: "Ver vídeos", info: "Diversão", fn: () => useFurn(id, VIDEOS) },
     { nome: "Tarefas de hoje", info: n + "/3", fn: openTarefas }
   ].concat(jogarItens(id));
@@ -218,7 +218,7 @@ function openTarefas(){
   openPanel("tarefas", "Tarefas de hoje", corpo => {
     const info = el("p", "muted"), lista = el("div", "list"), dupla = el("p"), trab = el("div", "rowi");
     dupla.style.fontWeight = "700";
-    corpo.append(info, lista, dupla, el("h3", null, "Emprego"), trab);
+    corpo.append(info, lista, dupla, el("h3", null, "Freela (bico rápido)"), trab);
     let sig = null;
     const upd = () => {
       const d = hoje(), ts = tarefasDoDia(d), mt = minhasTarefas(d), f = mt.feitas || {}, dia = diario[d] || {};
@@ -239,8 +239,8 @@ function openTarefas(){
       const tx = el("div", "tx"), tn = turnosHoje(), pc = primeiro("pc");
       // leva 11: na casa do zero, sem computador, dá pra fazer bico pelo celular (mesmo pagamento)
       const celular = !pc && casaZero;
-      tx.append(el("strong", null, celular ? "Bico pelo celular" : "Home office no computador"), el("small", null, "+$" + pagaMudanca(TRABALHO.dinheiro) + " por turno · cansa um pouco · " + tn + "/" + TURNOS_DIA + " turnos hoje"));
-      const b = btn(tn >= TURNOS_DIA ? "Folga" : "Trabalhar", "btn small", () => { closePanel(); if (celular){ if (me.acao) setAcao(null); me.path = []; startAcao(TRABALHO); } else useFurn(pc, TRABALHO); });
+      tx.append(el("strong", null, celular ? "Bico pelo celular" : "Freela no computador"), el("small", null, "+$" + pagaMudanca(TRABALHO.dinheiro) + " por turno · cansa um pouco · " + tn + "/" + TURNOS_DIA + " turnos hoje"));
+      const b = btn(tn >= TURNOS_DIA ? "Folga" : "Fazer freela", "btn small", () => { closePanel(); if (celular){ if (me.acao) setAcao(null); me.path = []; startAcao(TRABALHO); } else useFurn(pc, TRABALHO); });
       b.disabled = (!pc && !celular) || tn >= TURNOS_DIA; trab.append(tx, b);
     };
     upd(); return upd;

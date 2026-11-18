@@ -1090,7 +1090,7 @@ const MENUS_VISITA = new Set(["pc", "tv", "som", "pia"]);
   if (!visitando) return f0(id, p);
   const m = moveis[id]; if (!m) return; const c = CAT[m.t];
   const items = c.acoes.map(a => ({ nome: a.nome, info: ganhoTxt(a), fn: () => useFurn(id, a) }));
-  if (MENU_EXTRA[m.t] && MENUS_VISITA.has(m.t)) items.push(...MENU_EXTRA[m.t](id, m).filter(it => !/Trabalhar|Tarefas|Loja/.test(it.nome))); // dinheiro e tarefas são da casa dela
+  if (MENU_EXTRA[m.t] && MENUS_VISITA.has(m.t)) items.push(...MENU_EXTRA[m.t](id, m).filter(it => !/Trabalhar|Freela|Tarefas|Loja/.test(it.nome))); // dinheiro e tarefas são da casa dela
   if (!items.length){ toast(c.nome + " é só decoração. Fica lindo, né?"); return; }
   openMenu(p, c.nome, items);
 }; }
@@ -1175,7 +1175,7 @@ function drawLabels10(mctx, K, fs, tm){
 }
 function leva10Update(dt){ syncViagemUI(); renderVisitaBar(); }
 function garantirLeva10(){
-  if (leva10Tentou || !me || visitando || !moveisCarregados || andarAtual !== 0) return; leva10Tentou = true;
+  if (leva10Tentou || !me || !casaOk || visitando || !moveisCarregados || andarAtual !== 0) return; leva10Tentou = true;
   txn("casa/leva10", c => c ? undefined : srvNow()).then(ok => {
     if (!ok || Object.values(todosMoveis).some(m => m && (m.t === "telmesa" || m.t === "telefone"))) return;
     let pos = null;

@@ -488,3 +488,17 @@ body.comNav16 .sheet{padding-bottom:18px}
 .pbtn13{flex:1 1 100%}
 .pbtn13 .btn{min-height:44px;flex:1 1 auto}
 .grid2 .btn{min-height:44px}
+/* leva 14: trabalho, contas e serviços */
+.aviso14{background:var(--panel-2);border:1.5px solid var(--warn);border-radius:12px;padding:10px 12px;font-weight:700}
+.conta14{display:flex;flex-direction:column;gap:8px;background:var(--bg);border:1px solid var(--line);border-radius:12px;padding:10px 12px}
+.conta14 .tx{display:flex;flex-direction:column;min-width:0}
+.conta14 .tx small{color:var(--muted)}
+.conta14.ok{opacity:.75}
+.conta14.mal{border-color:var(--bad)}
+.conta14 .btn,.svc14 .btn,#trab14 .btn{min-height:44px}
+.sheet .rowi .btn.small{min-height:44px}
+.rowi.svc14{flex-wrap:wrap}
+.svc14 .hbtns{flex:1 1 100%;justify-content:flex-end}
+.svc14 .tx{flex:1 1 180px}
+.req14{margin:0;padding-left:4px;list-style:none;display:flex;flex-direction:column;gap:4px;font-size:.92rem}
+.escolha.atual14{border-color:var(--accent)}

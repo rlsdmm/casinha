@@ -177,7 +177,7 @@ function sortearSujeira(s, novas){
   return pos ? { tipo, x: pos[0], y: pos[1], andar, criada: t, v: h(3) % 4 } : null;
 }
 function gerarSujeira(){
-  if (!sujCarregada || !moveisCarregados || mode !== "live" || Date.now() - sujTentou < 20000) return;
+  if (!casaOk || !sujCarregada || !moveisCarregados || mode !== "live" || Date.now() - sujTentou < 20000) return;
   const k = Math.floor(srvNow() / SUJ_SLOT); if (sujAte >= k) return;
   sujTentou = Date.now();
   let de = 0;
@@ -601,7 +601,7 @@ $("bSom").onclick = () => openSom(null);
 // migração: casa sem toca-discos ganha um (a música precisa dele)
 let leva5Tentou = false;
 function garantirLeva5(){
-  if (leva5Tentou || !moveisCarregados || andarAtual !== 0 || !casaPronta) return; leva5Tentou = true;
+  if (leva5Tentou || !casaOk || !moveisCarregados || andarAtual !== 0 || !casaPronta) return; leva5Tentou = true;
   ref("casa/leva5").transaction(cur => cur ? undefined : true).then(r => {
     if (!r.committed || Object.values(todosMoveis).some(m => m && m.t === "som")) return;
     const pos = lugarPerto("som", 8, 1); if (pos) ref("casa/moveis").push({ t: "som", x: pos[0], y: pos[1] }).catch(() => {});

@@ -65,6 +65,7 @@ function stop(){
     else { const r = ref("jogadores/" + pid + "/online"); r.onDisconnect().cancel().catch(() => {}); r.set(false).catch(() => {}); }
   }
   moveis = {}; pisos = {}; jogadores = {}; me = null; disp = {};
+  casaOk = false; casaNova = false; casaCriando = false; // leva 14
   pet = null; pets = {}; petPid = null; criarPetTentou = false; jardim = {}; mural = {}; despensa = {}; pratos = {}; casaPronta = false; petCarregado = false; muralCarregado = false; muralAvisado = false; petView = null;
   leva5Reset(); leva6Reset(); leva7Reset(); leva9Reset(); leva10Reset(); leva11Reset();
   if (typeof closePanel === "function") closePanel();
@@ -79,6 +80,34 @@ function stop(){
 }
 
 function showScreen(id){ for (const s of ["screenRoom", "screenCreator", "screenGame"]) $(s).hidden = s !== id; }
+
+// leva 14 (correção da criação): casaOk = a casa existe de verdade (casa/modo ou casa/pisos gravados)
+let casaOk = false, casaNova = false, casaCriando = false;
+function marcarCasaOk(){
+  if (casaOk) return; casaOk = true; casaNova = false;
+  if (painel && painel.id === "modo") closePanel(); // outra pessoa criou enquanto eu escolhia
+  const mine = jogadores[pid];
+  if (!me && !visitando && mine && mine.nome) startMe(mine);
+  else if (me) garantirCasa();
+}
+function criarCasaNova(sr){
+  if (casaCriando || casaOk) return; casaCriando = true;
+  escolherModoNovo().then(modo => {
+    if (salaRef !== sr || casaOk) return;
+    const eu = pid;
+    return ref("casa/criando").transaction(cur => cur && (cur.feito || (cur.por !== eu && Date.now() - (cur.at || 0) < 60000)) ? undefined : { por: eu, at: Date.now() }).then(r => {
+      if (!r.committed || salaRef !== sr || casaOk) return;
+      const t = srvNow();
+      let dados;
+      if (modo === "zero") dados = casaZeroDados(t);
+      else { const mv = {}; MOVEIS_INICIAIS.forEach(([tp, x, y], i) => mv["m" + i] = { t: tp, x, y }); dados = { moveis: mv, pisos: PISO_PADRAO, leva1: true, modo: "pronta", pet: { nome: "Pipoca", tipo: "gato", comeu: t, carinho: t } }; }
+      // casa quebrada pelo bug antigo: apaga o que as migrações gravaram antes da hora (elas rodam de novo, agora na ordem certa)
+      dados = Object.assign({ leva5: null, leva6: null, leva9: null, leva10: null, leva13: null, sujeira: null, sujeiraAte: null, historia: null, pets: null }, dados);
+      dados.criada = t; dados.criando = { por: eu, at: t, feito: 1 };
+      return ref("casa").update(dados).then(() => { if (modo === "zero") historia("casa_zero", "🧱", "Começaram do zero: um terreno, uma kitnet e muitos planos"); });
+    });
+  }).catch(() => {}).then(() => { casaCriando = false; });
+}
 
 function boot(){
   stop(); closeMenu();
@@ -95,23 +124,19 @@ function boot(){
   }
 
   salaSeed = [...sala].reduce((h, ch) => (Math.imul(h, 31) + ch.charCodeAt(0)) | 0, 7);
-  // Cria a casa uma vez só. A transação fica numa folha (casa/criada), nunca no nó "casa" inteiro:
-  // transação no nó pai, com o cache local parcial, chegou a sobrescrever a casa toda num teste.
-  // leva 9: decide por casa/criada (não por casa/moveis: uma casa com todos os móveis vendidos era recriada e o bichinho
-  // voltava a ser o Pipoca). Casa antiga sem o marcador, mas com qualquer dado, ganha o marcador e não é recriada.
-  const MARCAS_CASA = ["moveis", "pisos", "pet", "leva1", "stats", "nivel", "mural", "despensa", "cofre"];
-  // leva 11: casa nova escolhe o modo (casa pronta ou começar do zero) antes de ser criada; casa existente não muda
+  // Cria a casa uma vez só (nunca transação no nó "casa" inteiro: com o cache parcial ela chegou a sobrescrever a casa toda).
+  // leva 14 (correção): a casa só EXISTE quando casa/modo ou casa/pisos estão gravados (toda casa pronta grava pisos desde
+  // a versão 1; a do zero grava modo). Antes disso ninguém entra (startMe espera) e, como toda migração (levaN, pets,
+  // história, sujeira…) depende de "me", nada é gravado. Antes, quem entrava com a escolha do modo ainda aberta disparava
+  // as migrações, a da leva 9 gravava casa/criada e a criação (transação em casa/criada) desistia: casa sem os móveis.
+  // Quem decide quem cria é a folha casa/criando (trava de 60 s; "feito" depois de criada). Casa quebrada por aquele bug
+  // (sem modo e sem pisos) volta a mostrar a escolha e é criada por cima (moveis é trocado inteiro).
   const sr = salaRef;
-  if (!visitando) Promise.all([ref("casa/criada").once("value")].concat(MARCAS_CASA.map(k => ref("casa/" + k).once("value")), [ref("jogadores").once("value")])).then(([cr, ...resto]) => {
-    if (cr.exists()) return;
-    if (resto.some(s => s.exists())) return ref("casa/criada").transaction(cur => cur ? undefined : Date.now());
-    return escolherModoNovo().then(modo => { if (salaRef !== sr) return; return ref("casa/criada").transaction(cur => cur ? undefined : Date.now()).then(r => {
-      if (!r.committed) return;
-      const t = srvNow();
-      if (modo === "zero") return ref("casa").update(casaZeroDados(t)).then(() => historia("casa_zero", "🧱", "Começaram do zero: um terreno, uma kitnet e muitos planos"));
-      const mv = {}; MOVEIS_INICIAIS.forEach(([t, x, y], i) => mv["m" + i] = { t, x, y });
-      return ref("casa").update({ moveis: mv, pisos: PISO_PADRAO, leva1: true, modo: "pronta", pet: { nome: "Pipoca", tipo: "gato", comeu: t, carinho: t } });
-    }); });
+  if (visitando) casaOk = true;
+  else Promise.all([ref("casa/modo").once("value"), ref("casa/pisos").once("value"), ref("casa/criada").once("value")]).then(([mo, pi, cr]) => {
+    if (salaRef !== sr) return;
+    if (mo.exists() || pi.exists()){ marcarCasaOk(); if (!cr.exists()) ref("casa/criada").transaction(cur => cur ? undefined : Date.now()).catch(() => {}); return; }
+    if (!casaOk){ casaNova = true; criarCasaNova(sr); }
   }).catch(() => {});
 
   on(fdb.ref(".info/serverTimeOffset"), "value", s => { srvOff = s.val() || 0; });
@@ -150,7 +175,7 @@ function boot(){
     if (muralCarregado && me) for (const [k, b] of Object.entries(mural)) if (!ant[k] && b && b.autor !== pid) { toast((b.nome || "Alguém") + " deixou um bilhete no mural."); avisar("mural", (b.nome || "Alguém") + " deixou um bilhete no mural 📌"); }
     muralCarregado = true; avisoMural(); refreshPanel("mural");
   });
-  on(ref("casa/pisos"), "value", s => { pisos = s.val() || {}; });
+  on(ref("casa/pisos"), "value", s => { pisos = s.val() || {}; if (s.exists()) marcarCasaOk(); }); // leva 14: casa criada de verdade
   // leva 2: quintal (cofrinho), jogos, tarefas do dia, contadores e conquistas
   on(ref("casa/cofre"), "value", s => {
     const tinha = temQuintal(), carregado = cofreCarregado; cofre = s.val() || {}; cofreCarregado = true;
@@ -176,7 +201,10 @@ function boot(){
     const mine = jogadores[pid];
     // leva 8: nó sem nome (sobra de um onDisconnect depois de apagarem o jogador) = jogador novo, vai pro criador
     if (!mine || !mine.nome){ if (visitando) entrarVisita(); else if (!me && $("screenCreator").hidden) openCreator(); } // leva 10: visita entra com o visual que trouxe
-    else if (!me) startMe(mine);
+    else if (!me){
+      if (casaOk || visitando) startMe(mine);
+      else if (casaNova && !casaCriando){ toast("Primeiro, escolham como vai ser a casa 🏠"); criarCasaNova(salaRef); } // leva 14: casa ainda não criada
+    }
     else {
       me.dados = mine;
       // leva 8: presença. O onDisconnect de uma conexão velha (página recarregada no celular, outra aba fechada)

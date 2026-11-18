@@ -416,7 +416,7 @@ function openNivel(){
 }
 // migração: casas antigas começam com um pouco de XP pelo que já fizeram juntos (até o nível 8)
 function garantirLeva6(){
-  if (leva6Tentou || !me || !statsCarregados || !nivelCarregado) return; leva6Tentou = true;
+  if (leva6Tentou || !me || !casaOk || !statsCarregados || !nivelCarregado) return; leva6Tentou = true;
   txn("casa/leva6", cur => cur ? undefined : srvNow()).then(ok => {
     if (!ok) return;
     const s = stats, xp = ((s.dancas || 0) + (s.abracos || 0) + (s.beijos || 0)) * 2 + (s.noites || 0) * 15 + (s.pratosJuntos || 0) * 6 + (s.partidas || 0) * 8 + (s.diasDupla || 0) * 20 + (s.limpezas || 0);

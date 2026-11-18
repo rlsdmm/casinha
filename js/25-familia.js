@@ -1352,7 +1352,7 @@ CONQUISTAS.push(
 // =====================================================================
 let l13Migrou = false, l13BebeTentou = 0;
 function migrarLeva13(){
-  if (!me || visitando || l13Migrou || !relCarregado || !bbCarregado || !statsCarregados || !moveisCarregados) return;
+  if (!me || !casaOk || visitando || l13Migrou || !relCarregado || !bbCarregado || !statsCarregados || !moveisCarregados) return;
   l13Migrou = true;
   Promise.all([ref("casa/bebe").once("value"), ref("casa/leva13").once("value")]).then(([sb, sl]) => {
     const b = sb.val();

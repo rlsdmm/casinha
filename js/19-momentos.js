@@ -1185,7 +1185,7 @@ function drawLabels9(mctx, K, fs, tm){
 
 // migração: casa antiga ganha o marcador casa/criada (nunca é recriada) e a história começa com o que já aconteceu
 function garantirLeva9(){
-  if (leva9Tentou || !me || !conqCarregadas || !moveisCarregados || !nivelCarregado) return; leva9Tentou = true;
+  if (leva9Tentou || !me || !casaOk || !conqCarregadas || !moveisCarregados || !nivelCarregado) return; leva9Tentou = true;
   txn("casa/leva9", c => c ? undefined : srvNow()).then(ok => {
     if (!ok) return;
     ref("casa/criada").transaction(c => c ? undefined : srvNow()).catch(() => {});
