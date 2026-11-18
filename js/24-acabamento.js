@@ -258,7 +258,7 @@ function contadores16(){
   if (!me) return {};
   const c = {};
   if (!visitando){
-    const n = muralNovos() + meusPresentes().length + vozNovas().length, chora = !!bebe && bebeEstado(srvNow()).k === "chora";
+    const n = muralNovos() + meusPresentes().length + vozNovas().length, chora = algumBebeChorando(); // leva 13: qualquer filho bebê
     c.nos = chora ? "😢" : n || 0;
     c.eu = meusTracos().length < 3 ? "!" : 0;
   }

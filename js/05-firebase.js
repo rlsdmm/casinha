@@ -65,7 +65,7 @@ function stop(){
     else { const r = ref("jogadores/" + pid + "/online"); r.onDisconnect().cancel().catch(() => {}); r.set(false).catch(() => {}); }
   }
   moveis = {}; pisos = {}; jogadores = {}; me = null; disp = {};
-  pet = null; jardim = {}; mural = {}; despensa = {}; pratos = {}; casaPronta = false; petCarregado = false; muralCarregado = false; muralAvisado = false; petView = null;
+  pet = null; pets = {}; petPid = null; criarPetTentou = false; jardim = {}; mural = {}; despensa = {}; pratos = {}; casaPronta = false; petCarregado = false; muralCarregado = false; muralAvisado = false; petView = null;
   leva5Reset(); leva6Reset(); leva7Reset(); leva9Reset(); leva10Reset(); leva11Reset();
   if (typeof closePanel === "function") closePanel();
   // leva 2
@@ -131,15 +131,16 @@ function boot(){
   });
   on(ref("casa/pisos2"), "value", s => { pisos2 = s.val() || {}; });
   // leva 1: dados compartilhados da casa
-  on(ref("casa/pet"), "value", s => {
-    const ant = pet; pet = s.val(); petCarregado = true;
-    if (!pet){ criarPet(); return; }
-    if (ant && me){
+  // leva 13: casa/pets/<id> (até 3). "pet" é o bichinho principal (o primeiro gato/cachorro); os outros ficam no 25-familia.js
+  on(ref("casa/pets"), "value", s => {
+    const ant = pet, antId = petPid; pets = s.val() || {}; petPid = petPrincipalId(); pet = petPid ? pets[petPid] : null; petCarregado = true;
+    if (!pet){ criarPet(); refreshPanel("pets"); return; }
+    if (ant && me && antId === petPid){
       if (pet.carinho !== ant.carinho){ if (petView) burst(petView.cx / T - .5, petView.by / T - .6, "heart"); if (pet.carinhoPor && pet.carinhoPor !== pid) toast(nomeDe(pet.carinhoPor) + " fez carinho em " + petNome() + "."); }
       if (pet.comeu !== ant.comeu && pet.comeuPor && pet.comeuPor !== pid) toast(nomeDe(pet.comeuPor) + " deu comida pra " + petNome() + ".");
       aoMudarPet(ant); // leva 5: som do truque
     }
-    refreshPanel("pet");
+    petsAoMudar(); refreshPanel("pet"); refreshPanel("pets");
   });
   on(ref("casa/jardim"), "value", s => { jardim = s.val() || {}; });
   on(ref("casa/despensa"), "value", s => { despensa = s.val() || {}; refreshPanel("cozinha"); });

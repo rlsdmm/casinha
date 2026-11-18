@@ -13,19 +13,21 @@
 //   jogadores/<pid>/romance = false      não aceita convites românticos (a opção some pra quem tenta)
 //   jogadores/<pid>/nuvens = ts          humor "Nas nuvens" até essa hora
 //   Teste: L7.chance = 1 (força a gravidez sem preservativo) · gvAvancar(horas) · bbAvancar(horas)
-//   Gancho: bebeFase() devolve "engatinhando" depois de BB_CRESCE; gêmeos/mais filhos ficariam em casa/filhos.
+//   leva 13: casa/bebe virou casa/filhos/<id> (vários filhos, gêmeos; ver 25-familia.js). Aqui ficou o cuidado do bebê
+//   (fases "bebe" e "engatinhando"): "bebe" é o bebê EM FOCO (o primeiro, ou o escolhido por comBebe(id, fn)).
 // =====================================================================
 const NM_GRUPO = { casal: "cama", dossel: "cama", banheira: "banheira", sofa: "sofa", namoradeira: "sofa", rede: "rede" };
 const NM_LUGAR = { cama: "na cama", banheira: "na banheira", sofa: "no sofá", rede: "na rede" };
 const NM_PAQ = 6000, NM_DUR = 24000, NM_DEP = 8000, NM_TOTAL = NM_PAQ + NM_DUR + NM_DEP;
 const NM_CONVITE = 45000, NM_ESPERA = 75000, NM_XP = 25, NM_CHANCE = .25, NUVENS_MS = 40 * 60000;
 const GV_POS = 6 * HORA, GV_DUR = 4 * 24 * HORA, GV_DESEJO = 3 * HORA;
-const BB_FOME = 5 * HORA, BB_FRALDA = 7 * HORA, BB_CARINHO = 4 * HORA, BB_CRESCE = 7 * 24 * HORA;
+const BB_FOME = 5 * HORA, BB_FRALDA = 7 * HORA, BB_CARINHO = 4 * HORA; // leva 13: o crescimento ficou em FAMILIA.tempos
 const FRASES_NM = ["Que momento, hein? 😏", "Os vizinhos nem desconfiam 🤫", "Coração acelerado 💕", "Isso que é cuidar da relação 😌", "Ficou um clima bom na casa ✨"];
 const L7 = { chance: null };
 let namoros = {}, nmCarregado = false, gravidez = null, gvCarregada = false, bebe = null, bbCarregado = false, bebesOn = true;
 let nmTx = {}, nmFeito = {}, nmSpots = {}, nmBeijou = {}, nmFalou = {}, nmSom = 0, nmPart = 0;
-let gvTentou = 0, nasceuTentou = 0, quemAberto = false, bbChoroSom = 0, bbChorava = false, bbVoltou = 0, bbColoLimpo = false, bebeView = null;
+let gvTentou = 0, nasceuTentou = 0, quemAberto = false, bbChoroSom = 0, bbChorava = {}, bbVoltou = 0, bbColoLimpo = false, bebeViews = [];
+let filhos = {}, bebeSel = null, bercoTentou = 0; // leva 13
 Object.assign(SFX_MIN, { cabeceira: 600, choro: 4000, chute: 400, risada: 1200 });
 
 const romanceOk = id => !!jogadores[id] && jogadores[id].romance !== false && !jogadores[id].visita; // leva 10: visita não namora
@@ -45,7 +47,7 @@ function nmTxn(k, path, fn){ if (nmTx[k] && Date.now() - nmTx[k] < 5000) return;
 function menuSocial7(id){
   const it = [];
   if (romanceOk(id) && romanceOk(pid)) it.push({ nome: "Namorar 😏", info: "Chamar pra namorar", fn: () => escolherNamoro(id) });
-  if (bebe && coloDe() === id) for (const a of BEBE_ACOES) if (a.k !== "ninar" && a.k !== "dormir") it.push({ nome: a.menu, info: "No colo de " + nomeDe(id), fn: () => irBebe(a) });
+  for (const fid of infantes()) comBebe(fid, () => { if (coloDe() === id) for (const a of BEBE_ACOES) if (a.k !== "ninar" && a.k !== "dormir") it.push({ nome: a.menu + (infantes().length > 1 ? " · " + (bebe.nome || "bebê") : ""), info: "No colo de " + nomeDe(id), fn: () => comBebe(fid, () => irBebe(a)) }); });
   return it;
 }
 function escolherNamoro(outro){
@@ -53,7 +55,7 @@ function escolherNamoro(outro){
   if (!romanceOk(outro)) return;
   if (namoroDe(pid)){ toast("Já tem um convite seu no ar 😉"); return; }
   if (namoroDe(outro)){ toast(nomeDe(outro) + " está ocupado(a) agora 😉"); return; }
-  if (coloDe() === pid){ toast("Coloque o bebê no berço antes 😅"); return; }
+  if (quemSegura(pid)){ toast("Coloque o bebê no berço antes 😅"); return; }
   const lugares = Object.entries(moveis).filter(([, m]) => NM_GRUPO[m.t]).sort((a, b) => Object.keys(NM_LUGAR).indexOf(NM_GRUPO[a[1].t]) - Object.keys(NM_LUGAR).indexOf(NM_GRUPO[b[1].t]) || (a[0] < b[0] ? -1 : 1)).slice(0, 8);
   openPanel("namoro", "Namorar com " + nomeDe(outro) + " 😏", corpo => {
     corpo.append(el("p", "muted", nomeDe(outro) + " recebe o convite e decide se topa. \"Agora não\" também é resposta 💞"));
@@ -77,7 +79,7 @@ function convidarNamoro(outro, mov, prot){
     .then(() => { toast("Convite enviado 💌 Agora é com " + nomeDe(outro) + "."); sfx("pop"); }, () => toast("Não deu pra chamar agora."));
 }
 function aceitarNamoro(id){
-  if (coloDe() === pid){ toast("Coloque o bebê no berço antes 😅"); return; }
+  if (quemSegura(pid)){ toast("Coloque o bebê no berço antes 😅"); return; }
   txn("casa/namoro/" + id, cur => { if (!cur || cur.estado !== "convite" || cur.b !== pid) return; cur.estado = "aceito"; cur.aceitoAt = srvNow(); return cur; })
     .then(ok => { if (!ok){ toast("Esse convite já era."); return; } irNamoro(id); });
 }
@@ -156,7 +158,7 @@ function deixarRoupas(g){
   if (Object.keys(novas).length) ref("casa/sujeira").update(novas).catch(() => {});
 }
 function sortearGravidez(g){
-  if (g.prot || !bebesOn || gravidez || bebe) return;
+  if (g.prot || !bebesOn || gravidez || numFilhos() >= FAMILIA.max) return; // leva 13: mais filhos (até FAMILIA.max)
   const ch = L7.chance != null ? L7.chance : NM_CHANCE; if (Math.random() >= ch) return;
   const ca = visual(jogadores[g.a]).corpo, cb = visual(jogadores[g.b]).corpo;
   const quem = ca === "ela" && cb !== "ela" ? g.a : cb === "ela" && ca !== "ela" ? g.b : null; // senão, perguntam no dia do positivo
@@ -369,16 +371,29 @@ function vigiarGravidez(){
   if (g.quem === pid && t >= g.ini + GV_DUR && Date.now() - nasceuTentou > 10000){ nasceuTentou = Date.now(); nascer(); }
 }
 function nascer(){
-  const g = gravidez; if (!g || g.quem !== pid || bebe) return;
-  const ja = jogadores[g.a] || {}, jb = jogadores[g.b] || {}, t = srvNow();
-  const pele = Math.round((visual(ja).pele + visual(jb).pele) / 2), cabelo = visual(hash(g.ini | 0, 3, 5) % 2 ? ja : jb).cabelo;
-  txn("casa/bebe", cur => cur ? undefined : { nasceu: t, pais: { [g.a]: true, [g.b]: true }, quem: pid, pele, cabelo, fome: t, fralda: t, carinho: t, dormindo: true })
-    .then(ok => { if (!ok) return; ref("casa/gravidez").remove().catch(() => {}); statMais("bebes"); garantirBerco(); });
+  const g = gravidez; if (!g || g.quem !== pid) return;
+  const ja = jogadores[g.a] || {}, jb = jogadores[g.b] || {}, t = srvNow(), base = "f" + Math.floor(g.ini).toString(36);
+  if (filhos[base + "a"]){ ref("casa/gravidez").remove().catch(() => {}); return; }
+  // leva 13: gêmeos (FAMILIA.gemeos; L13.gemeos força), decidido pelo início da gravidez: tentar de novo dá o mesmo
+  const gem = (L13.gemeos != null ? !!L13.gemeos : hash(g.ini | 0, salaSeed, 13) % 1000 < FAMILIA.gemeos * 1000) && numFilhos() + 2 <= FAMILIA.max;
+  const ids = gem ? [base + "a", base + "b"] : [base + "a"];
+  const up = {};
+  ids.forEach((fid, i) => { up[fid] = Object.assign({ nasceu: t, pais: { [g.a]: true, [g.b]: true }, quem: pid, fome: t, fralda: t, carinho: t, dormindo: true }, visualFilho(ja, jb, (g.ini | 0) + i * 7919), gem ? { gemeo: ids[1 - i] } : {}); });
+  // trava numa folha da gravidez: só um aparelho faz o parto; os gêmeos chegam juntos num update só
+  txn("casa/gravidez/parto", cur => cur ? undefined : pid).then(ok => {
+    if (!ok) return;
+    const w = {}; for (const fid of ids) w["filhos/" + fid] = up[fid]; w.gravidez = null;
+    ref("casa").update(w).then(() => { statMais("bebes", ids.length); bercoTentou = 0; }).catch(() => {});
+  });
 }
-function bercoId(){ return Object.keys(todosMoveis).filter(k => todosMoveis[k] && todosMoveis[k].t === "berco").sort()[0] || null; }
-// berço no quarto (do lado da cama de casal), se a casa ainda não tiver um
+// leva 13: um berço por bebê (bebê e engatinhando), na ordem de nascimento
+function bercosTodos(){ return Object.keys(todosMoveis).filter(k => todosMoveis[k] && todosMoveis[k].t === "berco").sort(); }
+function bercoDe(fid){ const i = infantes().indexOf(fid); return i >= 0 ? bercosTodos()[i] || null : null; }
+function bercoId(){ return bercoDe(bebeSel); }
+function bebeDoBerco(mid){ const i = bercosTodos().indexOf(mid); return i >= 0 ? infantes()[i] || null : null; }
+// berço no quarto (do lado da cama de casal) pra cada bebê que ainda não tem; um por vez (o próximo depois que o banco devolver)
 function garantirBerco(){
-  if (bercoId()) return;
+  if (bercosTodos().length >= infantes().length) return;
   // leva 8: prefere a cama de casal do andar onde está quem teve o bebê (antes pegava a primeira da lista, às vezes a do outro andar)
   const camas = Object.values(todosMoveis).filter(m => m && ["casal", "dossel"].includes(baseT(m.t)));
   const cama = camas.find(m => (m.andar || 0) === andarAtual) || camas[0];
@@ -391,7 +406,15 @@ function garantirBerco(){
 
 // ---------------- bebê ----------------
 function coloDe(){ const c = bebe && bebe.colo; return c && jogadores[c] && jogadores[c].online ? c : null; }
-function bebeFase(t){ return bebe && t - (bebe.nasceu || t) > BB_CRESCE ? "engatinhando" : "recem"; } // gancho pra crescer
+function bebeFase(t){ return bebe ? filhoFase(bebe, t) : "bebe"; } // leva 13: bebe → engatinhando → crianca → adolescente (FAMILIA.tempos)
+// leva 13: filhos em fase de bebê (berço/colo), em ordem de nascimento; comBebe(id, fn) roda fn com esse bebê em foco
+function infantes(){ return Object.keys(filhos).filter(k => filhos[k] && filhos[k].nasceu && ehInfante(filhos[k])).sort((a, b) => (filhos[a].nasceu - filhos[b].nasceu) || (a < b ? -1 : 1)); }
+function numFilhos(){ return Object.values(filhos).filter(f => f && f.nasceu).length; }
+function selBebePadrao(){ const l = infantes(); bebeSel = l[0] || null; bebe = bebeSel ? filhos[bebeSel] : null; }
+function comBebe(fid, fn){ const s = bebeSel, b = bebe; bebeSel = fid; bebe = filhos[fid] || null; try { return fn(); } finally { bebeSel = s; bebe = b; } }
+function quemSegura(p){ return infantes().find(f => filhos[f].colo === p && jogadores[p] && jogadores[p].online) || null; }
+const bbPath = (sub, fid) => "casa/filhos/" + (fid || bebeSel) + (sub ? "/" + sub : "");
+function algumBebeChorando(){ return infantes().some(f => comBebe(f, () => { const e = bebeEstado(srvNow()); return !!e && e.k === "chora"; })); }
 function bebeNeeds(t){
   const b = bebe; if (!b) return null;
   const v = (ts, ms) => clamp(100 - (t - (ts || t)) / ms * 100, 0, 100);
@@ -414,26 +437,31 @@ const BEBE_ACOES = [
   { k: "dormir", menu: "Colocar pra dormir", nome: "Colocando pra dormir", dur: 3, ganho: {} }
 ];
 function acaoBebe(a){
+  const fid = bebeSel, B = () => filhos[fid] || null; // leva 13: a ação guarda qual bebê é
   return { id: "bebe-" + a.k, nome: a.nome, dur: a.dur, ganho: a.ganho, junto: ja => /^bebe-/.test(ja.id), juntoMult: 1.3, juntoSocial: 3,
     aoJuntar: (x, oid) => toast("Cuidando junto com " + nomeDe(oid) + " 💞"),
     antes: () => {
-      if (!bebe){ toast("Cadê o bebê?"); return false; }
+      if (!B()){ toast("Cadê o bebê?"); return false; }
       if (a.k === "mamadeira"){
         if ((despensa.leite || 0) > 0) return mexerDespensa({ leite: -1 }).then(ok => ok || gastar(6, "o leite em pó"));
         if (!gastar(6, "o leite em pó")) return false;
         toast("Sem leite na despensa: leite em pó, -$6."); return true;
       }
-      if (a.k === "ninar") return txn("casa/bebe/colo", c => c && c !== pid && jogadores[c] && jogadores[c].online ? undefined : pid)
-        .then(ok => { if (!ok){ toast("Alguém pegou o bebê antes 🥰"); return false; } if (bebe) ref("casa/bebe/dormindo").set(false).catch(() => {}); return true; });
+      if (a.k === "ninar"){
+        const outro = quemSegura(pid); if (outro && outro !== fid){ toast("Você já está com um bebê no colo 😅"); return false; }
+        return txn(bbPath("colo", fid), c => c && c !== pid && jogadores[c] && jogadores[c].online ? undefined : pid)
+          .then(ok => { if (!ok){ toast("Alguém pegou o bebê antes 🥰"); return false; } if (B()) ref(bbPath("dormindo", fid)).set(false).catch(() => {}); return true; });
+      }
       return true;
     },
     fim: () => {
-      if (!bebe) return;
+      const b = B(); if (!b) return;
       const t = srvNow();
-      if (a.campo) ref("casa/bebe/" + a.campo).set(t).catch(() => {});
+      if (a.campo) ref(bbPath(a.campo, fid)).set(t).catch(() => {});
       if (a.k === "fralda"){ statMais("fraldas"); if (me) for (let i = 0; i < 6; i++) particles.push({ x: me.px * T + 4 + Math.random() * 10, y: me.py * T + Math.random() * 6, vx: Math.random() * 6 - 3, vy: -6 - Math.random() * 6, life: 1.2, kind: "brilho" }); }
       if (a.k === "brincar") sfx("risada");
-      if (a.k === "dormir"){ ref("casa/bebe").update({ colo: null, dormindo: true, carinho: t }).catch(() => {}); toast((bebe.nome || "O bebê") + " dormiu 😴"); }
+      if (a.k === "dormir"){ ref(bbPath("", fid)).update({ colo: null, dormindo: true, carinho: t }).catch(() => {}); toast((b.nome || "O bebê") + " dormiu 😴"); }
+      relMudar(pid, fid, { amizade: 2 }); // leva 13
     } };
 }
 function irPessoa(oid, def){
@@ -451,6 +479,7 @@ function irBebe(a){
     if ((j.andar || 0) !== andarAtual){ toast(nomeDe(colo) + " está com o bebê " + ondeTxt(j.andar || 0) + "."); return; }
     return irPessoa(colo, def);
   }
+  if (filhoFase(bebe) === "engatinhando" && !engDorme(bebe)) return famIrAte(bebeSel, def); // leva 13: engatinhando pelo chão
   if (cr && moveis[cr]) return useFurn(cr, def);
   if (cr){ toast("O berço fica " + ondeTxt(todosMoveis[cr].andar || 0) + "."); return; }
   startAcao(def); // sem berço: cuida ali mesmo
@@ -471,15 +500,20 @@ Object.assign(FURN_EXTRA, {
   }
 });
 MENU_EXTRA.berco = id => {
-  if (!bebe) return [{ nota: 1, nome: "Berço vazio, esperando alguém 🍼" }];
-  const colo = coloDe(), aqui = !colo && bercoId() === id, nm = bebe.nome || "o bebê", l = [];
+  const fid = bebeDoBerco(id); // leva 13: cada berço é de um bebê
+  if (!fid) return [{ nota: 1, nome: "Berço vazio, esperando alguém 🍼" }];
+  return comBebe(fid, () => menuBerco(id, fid));
+};
+function menuBerco(id, fid){
+  const colo = coloDe(), aqui = !colo && bercoId() === id && (filhoFase(bebe) === "bebe" || engDorme(bebe)), nm = bebe.nome || "o bebê", l = [];
   if (aqui || colo === pid) for (const a of BEBE_ACOES){
     if (a.k === "dormir" && aqui && bebe.dormindo) continue;
-    l.push({ nome: a.k === "ninar" && colo === pid ? "Ninar mais um pouco" : a.menu, info: a.k === "mamadeira" ? ((despensa.leite || 0) > 0 ? "Leite da despensa" : "Leite em pó $6") : "", fn: () => irBebe(a) });
+    l.push({ nome: a.k === "ninar" && colo === pid ? "Ninar mais um pouco" : a.menu, info: a.k === "mamadeira" ? ((despensa.leite || 0) > 0 ? "Leite da despensa" : "Leite em pó $6") : "", fn: () => comBebe(fid, () => irBebe(a)) });
   } else if (colo) l.push({ nota: 1, nome: nomeDe(colo) + " está com " + nm + " no colo 🥰" });
+  else l.push({ nota: 1, nome: nm + " está engatinhando pela casa 👶" });
   l.push({ nome: "Ver como " + (bebe.nome ? bebe.nome + " está" : "o bebê está"), fn: openFamilia });
   return l;
-};
+}
 // arte do bebê: cabecinha com tufinho, olhos (aberto, dormindo com chupeta, chorando com lágrima), trouxinha no colo
 function drawBebe(tipo, k, ox, oy, pele, cab, esp){
   const skD = sh(pele, -.16), eye = hexRGB(pele)[0] < 170 ? "#1E1220" : "#3A2433", bl = "rgba(238,96,110,.65)", fe = sh(pele, -.38);
@@ -506,26 +540,30 @@ function drawBebeColo(cx, by, dir, pose, tm){
   const sit = pose.indexOf("sit") === 0, ty = by - (sit ? 7 : 9), mama = alguemFazendo(/^bebe-mamadeira/);
   const bal = alguemFazendo(/^bebe-ninar/) ? Math.round(Math.sin(tm / 300)) : 0; // ninando: balança de leve
   const k = est.k === "dorme" ? "acordado" : est.k;
-  if (dir === "up"){ ctx.drawImage(bebeSprite("berco", k).c, cx, ty - 5); bebeView = { x: cx + 4, y: ty - 6, chora: est.k === "chora" }; return; } // cabecinha por cima do ombro
+  if (dir === "up"){ ctx.drawImage(bebeSprite("berco", k).c, cx, ty - 5); bebeViews.push({ x: cx + 4, y: ty - 6, chora: est.k === "chora" }); return; } // cabecinha por cima do ombro
   const esq = dir === "left", dir2 = dir === "right", esp = dir2;
   const x = dir === "down" ? cx - 6 + bal : esq ? cx - 10 : cx - 1;
   ctx.drawImage(bebeSprite("colo", k, esp).c, x, ty + 1);
   if (mama) ctx.drawImage(mamadeiraSpr().c, esp ? x + 4 : x + 5, ty + 2);
-  bebeView = { x: esp ? x + 9 : x + 4, y: ty, chora: est.k === "chora" };
+  bebeViews.push({ x: esp ? x + 9 : x + 4, y: ty, chora: est.k === "chora" });
 }
 function addBebeObjs(objs, tm){
-  if (!bebe || coloDe()) return;
-  const cr = bercoId(), m = cr && moveis[cr]; if (!m) return;
-  const x = m.x * T, y = m.y * T, est = bebeEstado(srvNow()); if (!est) return;
-  objs.push({ z: (m.y + 1) * T - .8, f: () => {
-    const pulo = est.k === "chora" ? Math.floor(tm / 180) % 2 : 0;
-    ctx.drawImage(bebeSprite("berco", est.k).c, x + 3, y - 2 - pulo);
-    if (alguemFazendo(/^bebe-mamadeira/)) ctx.drawImage(mamadeiraSpr().c, x + 11, y);
-    bebeView = { x: x + 8, y: y - 2, chora: est.k === "chora", dorme: est.k === "dorme" };
-  } });
+  // leva 13: cada bebê no seu berço (engatinhando só quando está dormindo; acordado ele anda pelo chão, ver 25-familia.js)
+  for (const fid of infantes()) comBebe(fid, () => {
+    if (coloDe() || (filhoFase(bebe) !== "bebe" && !engDorme(bebe))) return;
+    const cr = bercoId(), m = cr && moveis[cr]; if (!m) return;
+    const x = m.x * T, y = m.y * T, est = bebeEstado(srvNow()); if (!est) return;
+    const spr = bebeSprite("berco", est.k), mama = alguemFazendo(/^bebe-mamadeira/);
+    objs.push({ z: (m.y + 1) * T - .8, f: () => {
+      const pulo = est.k === "chora" ? Math.floor(tm / 180) % 2 : 0;
+      ctx.drawImage(spr.c, x + 3, y - 2 - pulo);
+      if (mama) ctx.drawImage(mamadeiraSpr().c, x + 11, y);
+      bebeViews.push({ x: x + 8, y: y - 2, chora: est.k === "chora", dorme: est.k === "dorme" });
+    } });
+  });
 }
 function addLeva7Objs(objs, tm){
-  bebeView = null;
+  bebeViews = [];
   const t = srvNow();
   for (const g of Object.values(namoros)){
     if (!g || g.estado !== "aceito") continue;
@@ -549,11 +587,11 @@ function sobreAvatar7(id, cx, by, dir, pose, deitado, sentado, movT, tm){
     R(x0 + 1, yy - 2, w - 2, 1, cO); P(x0, yy - 1, cO); P(x0 + w - 1, yy - 1, cO); R(x0 - 1, yy, 1, 3, cO); R(x0 + w, yy, 1, 3, cO);
     R(x0 + 1, yy - 1, w - 2, 1, sh(c, .35)); R(x0, yy, w, 3, sh(c, .14)); R(x0 + 1, yy, 2, 1, sh(c, .4)); R(x0, yy + 3, w, 1, sh(c, -.3));
   }
-  if (bebe && coloDe() === id && !deitado) drawBebeColo(cx, by, dir, pose, tm);
+  if (!deitado) for (const fid of infantes()) comBebe(fid, () => { if (coloDe() === id) drawBebeColo(cx, by, dir, pose, tm); }); // leva 13: cada bebê no colo de alguém
   if (b && !deitado && gravidez.quem === id){ const dz = desejoAtual(); if (dz && !dz.feito && Math.floor(tm / 6000) % 3 === 0) drawDesejo(cx, by - (sentado ? 37 : 39), dz.rk, tm); }
 }
-function drawLabels7(mctx, K, fs, tm){
-  const v = bebeView; if (!v) return;
+function drawLabels7(mctx, K, fs, tm){ for (const v of bebeViews) drawLabelBebe(mctx, K, fs, tm, v); }
+function drawLabelBebe(mctx, K, fs, tm, v){
   const sx = v.x * K, sy = v.y * K;
   if (v.chora){
     const txt = "buá!", f2 = Math.round(fs * .85); mctx.font = "700 " + f2 + "px Nunito, sans-serif";
@@ -564,11 +602,16 @@ function drawLabels7(mctx, K, fs, tm){
   } else if (v.dorme){ mctx.fillStyle = "#CECBF6"; mctx.fillText("z", sx + 6 * K, sy - Math.sin(tm / 400) * K * 1.5); }
 }
 function vigiarBebe(){
-  if (!me || !bbCarregado || !bebe) return;
-  if (!bbColoLimpo){ bbColoLimpo = true; if (bebe.colo === pid && !(me.acao && /^bebe-/.test(me.acao.id))) ref("casa/bebe/colo").set(null).catch(() => {}); } // recarregou a página: o bebê volta pro berço
-  const est = bebeEstado(srvNow()), chora = !!est && est.k === "chora";
-  if (chora && !bbChorava && (bebe.pais || {})[pid]){ const falta = Object.entries(est.n).sort((a, b) => a[1] - b[1])[0][0]; toast((bebe.nome || "O bebê") + " está chorando 😢 " + { fome: "Acho que é fome.", fralda: "Hora de trocar a fralda.", carinho: "Quer um colinho." }[falta]); avisar("bebe", (bebe.nome || "O bebê") + " está chorando 😢"); }
-  bbChorava = chora;
+  if (!me || !bbCarregado) return;
+  for (const fid of infantes()) comBebe(fid, () => {
+    if (!bbColoLimpo && bebe.colo === pid && !(me.acao && /^bebe-/.test(me.acao.id))) ref(bbPath("colo")).set(null).catch(() => {}); // recarregou a página: o bebê volta pro berço
+    const est = bebeEstado(srvNow()), chora = !!est && est.k === "chora";
+    if (chora && !bbChorava[fid] && (bebe.pais || {})[pid]){ const falta = Object.entries(est.n).sort((a, b) => a[1] - b[1])[0][0]; toast((bebe.nome || "O bebê") + " está chorando 😢 " + { fome: "Acho que é fome.", fralda: "Hora de trocar a fralda.", carinho: "Quer um colinho." }[falta]); avisar("bebe", (bebe.nome || "O bebê") + " está chorando 😢"); }
+    bbChorava[fid] = chora;
+  });
+  bbColoLimpo = true;
+  // leva 13: falta berço pra algum bebê (gêmeos): quem teve o bebê põe um de cada vez
+  const fl = infantes(); if (fl.length > bercosTodos().length && fl.some(f => filhos[f].quem === pid) && Date.now() - bercoTentou > 6000){ bercoTentou = Date.now(); garantirBerco(); }
 }
 function leva7Update(dt){
   const t = srvNow(), b = barrigaDe(pid);
@@ -584,15 +627,17 @@ function leva7Update(dt){
     if (F.f === "dur" && NM_GRUPO[m.t] === "cama" && Date.now() - nmSom > 1700){ nmSom = Date.now(); sfx("cabeceira", clamp(1 - Math.hypot(me.px - m.x - 1.5, me.py - m.y - 1.5) / 16, .25, 1) * .8); }
     if (F.f === "dep" && (g.a === pid || g.b === pid) && !nmFalou[id]){ nmFalou[id] = 1; ref("jogadores/" + pid).update({ fala: g.a === pid ? "😏" : "💕", falaAt: TS() }).catch(() => {}); }
   }
-  if (!bebe) return;
-  // segurando o bebê e foi deitar/sentar em outra coisa: ele volta pro berço
-  if (bebe.colo === pid && me.acao && (me.acao.sobre || me.acao.deitar) && !/^bebe-/.test(me.acao.id) && Date.now() - bbVoltou > 5000){ bbVoltou = Date.now(); ref("casa/bebe").update({ colo: null }).catch(() => {}); toast((bebe.nome || "O bebê") + " voltou pro berço."); }
-  // chorinho curto, mais baixo longe (só no andar onde ele está)
-  if (bbChorava && Date.now() - bbChoroSom > 6000){
-    const colo = coloDe(), cr = bercoId(), j = colo && (colo === pid ? { x: me.px, y: me.py, andar: me.andar } : jogadores[colo]), m = !colo && cr && moveis[cr];
-    const pos = j && (j.andar || 0) === andarAtual ? [j.x, j.y] : m ? [m.x, m.y] : null;
-    if (pos){ bbChoroSom = Date.now(); sfx("choro", clamp(1 - Math.hypot(me.px - pos[0], me.py - pos[1]) / 18, .2, 1) * .8); }
-  }
+  for (const fid of infantes()) comBebe(fid, () => {
+    // segurando o bebê e foi deitar/sentar em outra coisa: ele volta pro berço
+    if (bebe.colo === pid && me.acao && (me.acao.sobre || me.acao.deitar) && !/^bebe-/.test(me.acao.id) && Date.now() - bbVoltou > 5000){ bbVoltou = Date.now(); ref(bbPath()).update({ colo: null }).catch(() => {}); toast((bebe.nome || "O bebê") + " voltou pro berço."); }
+    // chorinho curto, mais baixo longe (só no andar onde ele está)
+    if (bbChorava[fid] && Date.now() - bbChoroSom > 6000){
+      const colo = coloDe(), cr = bercoId(), j = colo && (colo === pid ? { x: me.px, y: me.py, andar: me.andar } : jogadores[colo]), m = !colo && cr && moveis[cr];
+      const np = !colo && filhoFase(bebe) === "engatinhando" && !engDorme(bebe) && andarAtual === 0 ? famPos(fid) : null;
+      const pos = np ? [np.x, np.y] : j && (j.andar || 0) === andarAtual ? [j.x, j.y] : m ? [m.x, m.y] : null;
+      if (pos){ bbChoroSom = Date.now(); sfx("choro", clamp(1 - Math.hypot(me.px - pos[0], me.py - pos[1]) / 18, .2, 1) * .8); }
+    }
+  });
 }
 function acaoTerminada7(a){
   const r = /^coz-(.+)$/.exec(a.id || "");
@@ -607,26 +652,27 @@ function acaoTerminada7(a){
 SOCIAL.push({ id: "chute", nome: "Sentir o bebê chutar 🥹", dur: 4, eu: { social: 25, diversao: 10 }, outro: { social: 25 }, txt: "sentiu o bebê chutar", mostrar: id => barrigaDe(id) >= 2 });
 
 // ---------------- painel "Nós": ajustes, gravidez e bebê ----------------
-function openNomeBebe(){
-  if (!bebe) return;
+function openNomeBebe(fid){
+  fid = fid || bebeSel; if (!fid || !filhos[fid]) return; // leva 13: o nome de qualquer filho
   openPanel("nome", "Nome do bebê 👶", corpo => {
     const linha = el("div", "nomein"), inp = el("input"), lista = el("div", "list");
     inp.type = "text"; inp.maxLength = 20; inp.placeholder = "Ex.: Luna, Theo, Bia..."; inp.setAttribute("aria-label", "Nome do bebê");
-    linha.append(inp, btn("Sugerir", "btn ghost", () => { const v = limpaNome(inp.value); if (!v){ toast("Escreva um nome."); return; } ref("casa/bebe/sugest/" + pid).set(v).then(() => toast("Sugestão enviada 💌")); }), btn("Confirmar", "btn", () => confirmarNome(inp.value)));
+    linha.append(inp, btn("Sugerir", "btn ghost", () => { const v = limpaNome(inp.value); if (!v){ toast("Escreva um nome."); return; } ref("casa/filhos/" + fid + "/sugest/" + pid).set(v).then(() => toast("Sugestão enviada 💌")); }), btn("Confirmar", "btn", () => confirmarNome(inp.value, fid)));
     corpo.append(el("p", "muted", "Os dois podem sugerir. O primeiro nome confirmado é o que vale."), linha, lista);
     let sig = null;
     const upd = () => {
+      const bebe = filhos[fid];
       if (!bebe || bebe.nome){ closePanel(); return; }
       const sg = bebe.sugest || {}, k = JSON.stringify(sg); if (k === sig) return; sig = k; lista.textContent = "";
-      for (const [p, n] of Object.entries(sg)){ if (!n) continue; const row = el("div", "rowi"), tx = el("div", "tx"); tx.append(el("strong", null, n), el("small", null, "Sugestão de " + (p === pid ? "você" : nomeDe(p)))); row.append(tx, btn("Esse!", "btn small", () => confirmarNome(n))); lista.append(row); }
+      for (const [p, n] of Object.entries(sg)){ if (!n) continue; const row = el("div", "rowi"), tx = el("div", "tx"); tx.append(el("strong", null, n), el("small", null, "Sugestão de " + (p === pid ? "você" : nomeDe(p)))); row.append(tx, btn("Esse!", "btn small", () => confirmarNome(n, fid))); lista.append(row); }
     };
     upd(); return upd;
   });
 }
 const limpaNome = v => String(v || "").replace(/\s+/g, " ").trim().slice(0, 20);
-function confirmarNome(v){
-  v = limpaNome(v); if (!v){ toast("Escreva um nome."); return; } if (!bebe) return;
-  txn("casa/bebe/nome", c => c ? undefined : v).then(ok => { closePanel(); if (!ok) toast("Já escolheram: " + ((bebe && bebe.nome) || "") + " 💞"); });
+function confirmarNome(v, fid){
+  fid = fid || bebeSel; v = limpaNome(v); if (!v){ toast("Escreva um nome."); return; } if (!filhos[fid]) return;
+  txn("casa/filhos/" + fid + "/nome", c => c ? undefined : v).then(ok => { closePanel(); if (!ok) toast("Já escolheram: " + ((filhos[fid] && filhos[fid].nome) || "") + " 💞"); });
 }
 function openFamilia(){
   openPanel("familia", "Nós 💞", corpo => { // leva 9: o "Nós" abriga Presentes, Álbum, Nossa história e Datas (nosBotoes9)
@@ -635,8 +681,8 @@ function openFamilia(){
     corpo.append(nosBotoes9(), bbBox, gvBox, rodape); // leva 9: presentes, álbum, história e datas
     let sig = null;
     const upd = () => {
-      const t = srvNow(), g = gravidez, est = bebe ? bebeEstado(t) : null;
-      const s = JSON.stringify([bebesOn, g, bebe, stats.namoros || 0, est && est.k, est && Object.values(est.n).map(Math.round), Math.floor(t / 60000)]);
+      const t = srvNow(), g = gravidez;
+      const s = JSON.stringify([bebesOn, g, filhos, stats.namoros || 0, infantes().map(f => comBebe(f, () => { const e = bebeEstado(t); return e && [e.k, Object.values(e.n).map(Math.round)]; })), Math.floor(t / 60000), famSig()]);
       if (s === sig) return; sig = s;
       rodape.textContent = (stats.namoros ? "Momentos a dois: " + stats.namoros + " 😏 · " : "") + "Romance e bebês se ajustam em ⚙️ Ajustes.";
       // gravidez (só depois do positivo)
@@ -656,13 +702,15 @@ function openFamilia(){
       }
       // bebê
       bbBox.textContent = "";
-      if (bebe){
+      if (numFilhos()) bbBox.append(el("h3", null, numFilhos() > 1 ? "Nossos filhos" : "Nosso filho(a)"));
+      for (const fid of famOrdem()){ if (!ehInfante(filhos[fid])){ famSecaoFilho(fid, bbBox); continue; } comBebe(fid, () => {
+        const est = bebeEstado(t);
         const head = el("div", "rowi"), esq = el("div", "me"), tx = el("div", "tx"), cv = el("canvas", "bebeav");
         cv.width = 24; cv.height = 24; const x = cv.getContext("2d"); x.imageSmoothingEnabled = false; x.drawImage(bebeSprite("berco", est.k).c, 7, 7);
         const colo = coloDe(), fase = bebeFase(t);
-        tx.append(el("strong", null, (bebe.nome || "Bebê sem nome") + (fase === "engatinhando" ? " · já engatinha" : "")), el("small", null, { dorme: "Dormindo 😴", acordado: "Acordadinho 👀", chora: "Chorando 😢", feliz: "Rindo à toa 😊" }[est.k] + (colo ? " · no colo de " + (colo === pid ? "você" : nomeDe(colo)) : "") + " · nasceu " + quando(bebe.nasceu)));
+        tx.append(el("strong", null, (bebe.nome || "Bebê sem nome") + (fase === "engatinhando" ? " · já engatinha" : "") + (bebe.gemeo ? " · gêmeo(a)" : "")), el("small", null, { dorme: "Dormindo 😴", acordado: "Acordadinho 👀", chora: "Chorando 😢", feliz: "Rindo à toa 😊" }[est.k] + (colo ? " · no colo de " + (colo === pid ? "você" : nomeDe(colo)) : "") + " · nasceu " + quando(bebe.nasceu)));
         esq.style.gap = "10px"; esq.append(cv, tx); head.append(esq);
-        if (!bebe.nome) head.append(btn("Dar nome", "btn small", openNomeBebe));
+        if (!bebe.nome) head.append(btn("Dar nome", "btn small", () => openNomeBebe(fid)));
         bbBox.append(head);
         const nb = el("div", "bbneeds");
         for (const [k, v] of Object.entries(est.n)){ const w = el("div", "need"), r = el("div", "row"); r.append(el("span", null, BB_NOMES[k]), el("span", "v", String(Math.round(v)))); w.append(r, barra(v, "#7FB8E8")); nb.append(w); }
@@ -671,10 +719,10 @@ function openFamilia(){
         for (const a of BEBE_ACOES){
           if (a.k === "dormir" && !(colo === pid || (!colo && !bebe.dormindo))) continue;
           if (a.k === "ninar" && colo && colo !== pid) continue;
-          acoes.append(btn(a.menu, "btn ghost", () => irBebe(a)));
+          acoes.append(btn(a.menu, "btn ghost", () => comBebe(fid, () => irBebe(a))));
         }
-        bbBox.append(acoes, el("p", "muted", "Cuidar junto (um nina, o outro dá mamadeira) rende XP do casal. Se ninguém cuidar, o bebê só fica tristinho até alguém chegar."));
-      }
+        bbBox.append(acoes, el("p", "muted", "Cuidar junto (um nina, o outro dá mamadeira) rende XP do casal. Se ninguém cuidar, o bebê só fica tristinho até alguém chegar. " + famProxFaseTxt(fid)));
+      }); }
     };
     upd();
     let ult = 0; painel.tick = () => { if (Date.now() - ult > 1000){ ult = Date.now(); upd(); } };
@@ -694,7 +742,7 @@ function montarAjustesRomance(box){
 }
 function renderFamiliaBtn(){
   const b = $("bFamilia"); if (!b) return;
-  const g = gravidez, gvOk = g && g.quem && srvNow() >= g.ini + GV_POS, est = bebe && bebeEstado(srvNow());
+  const g = gravidez, gvOk = g && g.quem && srvNow() >= g.ini + GV_POS, est = bebe && bebeEstado(srvNow()); // bebe = o primeiro em foco
   const [ic, tx, lbl] = bebe ? [est && est.k === "chora" ? "😢" : "👶", bebe.nome || "Bebê", "Bebê" + (bebe.nome ? " " + bebe.nome : "") + (est && est.k === "chora" ? ", chorando" : "") + ", ajustes"] : gvOk ? ["🤰", "Gravidez", "Gravidez e ajustes"] : ["💞", "Nós", "Nós: ajustes, gravidez e bebê"];
   const i = b.querySelector(".ic"), t = b.querySelector(".tx");
   if (i.textContent !== ic) i.textContent = ic; if (t.textContent !== tx) t.textContent = tx; b.setAttribute("aria-label", lbl);
@@ -709,12 +757,13 @@ function bannerLeva7(){
   }
   const g = gravidez;
   if (g && g.ini && !g.quem && (g.a === pid || g.b === pid) && srvNow() >= g.ini + GV_POS) return { key: "q", partes: () => [el("span", null, "Teste positivo! 🍼 Quem vai carregar?"), btn("Escolher", "btn small", openQuem)] };
-  if (bebe && !bebe.nome && (bebe.pais || {})[pid]) return { key: "b", partes: () => [el("span", null, "O bebê chegou e ainda não tem nome 👶"), btn("Dar um nome", "btn small", openNomeBebe)] };
+  const sem = famOrdem().find(f => !filhos[f].nome && (filhos[f].pais || {})[pid]); // leva 13: cada filho
+  if (sem) return { key: "b" + sem, partes: () => [el("span", null, "O bebê chegou e ainda não tem nome 👶"), btn("Dar um nome", "btn small", () => openNomeBebe(sem))] };
   return null;
 }
 // teste: adianta a gestação / envelhece as necessidades do bebê (horas)
 function gvAvancar(h){ return gravidez ? ref("casa/gravidez/ini").set(gravidez.ini - h * HORA) : null; }
-function bbAvancar(h){ if (!bebe) return null; const d = h * HORA; return ref("casa/bebe").update({ fome: (bebe.fome || srvNow()) - d, fralda: (bebe.fralda || srvNow()) - d, carinho: (bebe.carinho || srvNow()) - d }); }
+function bbAvancar(h){ const d = h * HORA, up = {}; for (const f of infantes()){ const b = filhos[f]; for (const k of ["fome", "fralda", "carinho"]) up[f + "/" + k] = (b[k] || srvNow()) - d; } return infantes().length ? ref("casa/filhos").update(up) : null; }
 CONQUISTAS.push(
   { id: "namoro1", nome: "Primeira vez a dois", txt: "Um momento só de vocês 😏", st: "namoros", meta: 1 },
   { id: "namoro10", nome: "Fogo no parquinho", txt: "10 momentos a dois.", st: "namoros", meta: 10 },
@@ -734,17 +783,25 @@ function leva7Ouvir(){
     }
     gvCarregada = true; refreshPanel("familia"); refreshPanel("quem");
   });
-  on(ref("casa/bebe"), "value", s => {
-    const ant = bebe; bebe = s.val();
-    if (bbCarregado && me && bebe && !ant){
-      toastEspecial("Nasceu! 👶", "Um bebê novinho chegou na casinha!"); confete(); setTimeout(() => sfx("risada"), 500);
-      if ((bebe.pais || {})[pid] && !bebe.nome) setTimeout(() => { if (!painel && bebe && !bebe.nome) openNomeBebe(); }, 4800);
-    } else if (bbCarregado && me && bebe && ant && bebe.nome && !ant.nome) toastEspecial("Bem-vindo(a), " + bebe.nome + "! 👶", "Agora é cuidar com carinho.");
+  // leva 13: casa/filhos (o casa/bebe antigo é migrado no 25-familia.js)
+  on(ref("casa/filhos"), "value", s => {
+    const ant = filhos; filhos = s.val() || {}; selBebePadrao();
+    if (bbCarregado && me){
+      const novos = Object.keys(filhos).filter(k => filhos[k] && !ant[k] && !filhos[k].migrado && srvNow() - (filhos[k].nasceu || 0) < 30 * 60000);
+      if (novos.length){
+        toastEspecial(novos.length > 1 ? "Nasceram gêmeos! 👶👶" : "Nasceu! 👶", novos.length > 1 ? "Dois bebês novinhos chegaram na casinha!" : "Um bebê novinho chegou na casinha!"); confete(); setTimeout(() => sfx("risada"), 500);
+        const meu = novos.find(k => (filhos[k].pais || {})[pid] && !filhos[k].nome);
+        if (meu) setTimeout(() => { if (!painel && filhos[meu] && !filhos[meu].nome) openNomeBebe(meu); }, 4800);
+      }
+      for (const [k, f] of Object.entries(filhos)) if (f && ant[k] && f.nome && !ant[k].nome) toastEspecial("Bem-vindo(a), " + f.nome + "! 👶", "Agora é cuidar com carinho.");
+    }
+    famAoMudarFilhos(ant, bbCarregado);
     bbCarregado = true; refreshPanel("familia"); refreshPanel("nome");
   });
 }
 function leva7Reset(){
   namoros = {}; nmCarregado = false; gravidez = null; gvCarregada = false; bebe = null; bbCarregado = false; bebesOn = true;
-  nmTx = {}; nmFeito = {}; nmSpots = {}; nmBeijou = {}; nmFalou = {}; quemAberto = false; bbChorava = false; bbColoLimpo = false; bebeView = null;
+  nmTx = {}; nmFeito = {}; nmSpots = {}; nmBeijou = {}; nmFalou = {}; quemAberto = false; bbChorava = {}; bbColoLimpo = false; bebeViews = [];
+  filhos = {}; bebeSel = null; bercoTentou = 0;
 }
 setInterval(() => { if (!me) return; vigiarNamoro(); vigiarGravidez(); vigiarBebe(); renderFamiliaBtn(); }, 1000);

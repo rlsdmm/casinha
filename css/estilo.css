@@ -464,3 +464,27 @@ body.comNav16 .sheet{padding-bottom:18px}
 .bb16 .btn{min-height:44px;min-width:44px}
 .cont16{color:var(--muted);font-size:.85rem;font-weight:800;white-space:nowrap}
 @media (prefers-reduced-motion:reduce){.alvo16{transition:none}}
+
+/* leva 13: relações, pedido, casamento, filhos e bichinhos */
+.rosto13{width:40px;height:35px;image-rendering:pixelated;flex-shrink:0;background:var(--bg);border-radius:10px;border:1px solid var(--line)}
+.rel13{display:flex;flex-direction:column;gap:6px;background:var(--bg);border:1px solid var(--line);border-radius:12px;padding:8px 10px}
+.relcab13{display:flex;align-items:center;gap:10px;min-width:0}
+.relcab13 .tx{display:flex;flex-direction:column;min-width:0}
+.relcab13 .tx strong{overflow-wrap:anywhere}
+.relcab13 .tx small{color:var(--muted)}
+.faces13{display:flex;gap:4px;flex-shrink:0}
+.amz13{position:relative}
+.amz13 i{position:absolute;top:0;bottom:0}
+.amz13::after{content:"";position:absolute;left:50%;top:0;bottom:0;width:1px;background:var(--line)}
+.dica13 summary{cursor:pointer;font-weight:800;min-height:44px;display:flex;align-items:center}
+.dica13 ul{margin:0;padding-left:20px;color:var(--muted);font-size:.9rem}
+.anel13{width:88px;height:88px;image-rendering:pixelated;align-self:center}
+.pedido13{font-size:1.05rem;font-weight:700;text-align:center;margin:0}
+.votos13{width:100%;box-sizing:border-box;border-radius:10px;border:1px solid var(--line);background:var(--bg);color:var(--fg);padding:10px 12px;font:inherit;resize:vertical;min-height:72px}
+.rowi .me canvas.rosto13{width:40px;height:35px}
+.pet13{flex-wrap:wrap}
+.pet13 .me{flex:1 1 200px;min-width:0}
+.pet13 .tx{flex:1;min-width:0}
+.pbtn13{flex:1 1 100%}
+.pbtn13 .btn{min-height:44px;flex:1 1 auto}
+.grid2 .btn{min-height:44px}

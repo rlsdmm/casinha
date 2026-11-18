@@ -17,7 +17,7 @@ function pedirTruque(tq){
   if (truqueAtivo(srvNow())){ toast(petNome() + " ainda está no meio do truque."); return; }
   petIrAte({ id: "pet-truque", nome: "Pedindo: " + tq.fala, dur: 1.2, ganho: {}, fim: () => {
     ref("jogadores/" + pid).update({ fala: tq.fala, falaAt: TS() }).catch(() => {});
-    ref("casa/pet/truque").set({ tipo: tq.id, at: TS(), por: pid }).catch(() => {});
+    ref(petNo("truque")).set({ tipo: tq.id, at: TS(), por: pid }).catch(() => {});
     ganharNeeds({ diversao: 6 });
   } });
 }

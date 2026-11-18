@@ -1003,11 +1003,11 @@ function historiaNivel(xp){
   if (nivel9 != null && me && n > nivel9) for (let k = Math.max(2, nivel9 + 1); k <= n; k++) historia("nivel_" + k, "♥", "Chegaram ao nível " + k + " do casal");
   nivel9 = n;
 }
-function historiaBebe(b){
+function historiaBebe(b, fid){
   if (!b || !b.nasceu || !me) return;
-  const tx = b.nome ? "Nasceu " + String(b.nome).slice(0, 20) + ", o bebê da casa" : "Nasceu o bebê da casa", sig = b.nasceu + tx;
-  if (sig === bebeSig9) return; bebeSig9 = sig;
-  txn("casa/historia/bebe_" + b.nasceu, cur => cur && cur.texto === tx ? undefined : Object.assign({ at: b.nasceu, emoji: "👶" }, cur || {}, { texto: tx }));
+  const tx = b.nome ? "Nasceu " + String(b.nome).slice(0, 20) + ", o bebê da casa" : "Nasceu o bebê da casa", sig = b.nasceu + tx + (fid || "");
+  if (bebeSig9.indexOf("|" + sig + "|") >= 0) return; bebeSig9 += "|" + sig + "|";
+  txn("casa/historia/bebe_" + b.nasceu + (b.gemeo ? "_" + fid : ""), cur => cur && cur.texto === tx ? undefined : Object.assign({ at: b.nasceu, emoji: "👶" }, cur || {}, { texto: tx }));
 }
 const COLHEITAS9 = [1, 10, 25, 50, 100, 200];
 function vigiarHistoria(){
@@ -1211,7 +1211,7 @@ function leva9Ouvir(){
   on(ref("casa/datas"), "value", s => { datas = s.val() || {}; dtCarregadas = true; refreshPanel("datas"); vigiarDatas(); });
   on(ref("casa/conquistas"), "value", s => historiaConquistas(s.val() || {}));
   on(ref("casa/nivel/xp"), "value", s => historiaNivel(Math.max(0, +s.val() || 0)));
-  on(ref("casa/bebe"), "value", s => historiaBebe(s.val()));
+  on(ref("casa/filhos"), "value", s => { for (const [k, b] of Object.entries(s.val() || {})) historiaBebe(b, k); }); // leva 13: casa/filhos
 }
 function leva9Reset(){
   presentes = {}; prCarregado = false; prAvisou = false; prVis = [];

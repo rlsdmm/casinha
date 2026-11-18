@@ -240,6 +240,9 @@ function draw(now){
     // leva 9: jantar (conversa corada) e cinema (rir, susto, abraço, choro, comemorar, pipoca)
     const p9 = sentado && (id === pid || j.online) ? leva9Pose(id, aid, acao, m0, tm, cx, by, pisca) : null;
     if (p9){ cx += p9.dx || 0; by += p9.dy || 0; if (p9.pose) pose = p9.pose; if (p9.frame != null) frame = p9.frame; }
+    // leva 13: pedido de casamento (ajoelhado), noivos no altar, convidados sentados, cuidando dos filhos
+    const p13 = leva13Pose(id, aid, acao, tm, pisca, dir, pose);
+    if (p13){ cx += p13.dx || 0; by += p13.dy || 0; if (p13.pose) pose = p13.pose; if (p13.dir) dir = p13.dir; if (p13.frame != null) frame = p13.frame; if (p13.sentado) sentado = true; }
     // leva 4: subindo ou descendo a escada (anda pelos degraus e some no alto, ou afunda no vão)
     if (aid === "escada" && acao.esc){
       const p = clamp((tm - acao.ini) / acao.dur, 0, 1), sobe = acao.esc > 0, xm = (ESCADA.x + ESCADA.w / 2) * T;

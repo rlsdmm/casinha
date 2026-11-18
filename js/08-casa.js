@@ -10,6 +10,7 @@ const srvNow = () => Date.now() + srvOff;
 const TS = () => firebase.database.ServerValue.TIMESTAMP;
 const HORA = 3600000;
 let pet = null, jardim = {}, mural = {}, despensa = {}, pratos = {};
+let pets = {}, petPid = null, criarPetTentou = false; // leva 13: casa/pets/<id>; pet = pets[petPid] (o principal)
 let casaPronta = false, muralCarregado = false, muralAvisado = false, salaSeed = 1;
 let petView = null;
 
@@ -80,10 +81,21 @@ function garantirCasa(){
 }
 // só depois de ler casa/pet (senão a transação mostra um bichinho "fantasma" antes da resposta do servidor)
 let petCarregado = false;
+// leva 13: o bichinho antigo (casa/pet) vira casa/pets/pet0 com tudo dele (casa/pet fica lá, só pra versões antigas)
 function criarPet(){
-  if (!casaPronta || !petCarregado || pet) return;
-  ref("casa/pet").transaction(cur => cur ? undefined : { nome: "Pipoca", tipo: "gato", comeu: srvNow(), carinho: srvNow() }).catch(() => {});
+  if (!casaPronta || !petCarregado || pet || criarPetTentou) return;
+  criarPetTentou = true;
+  ref("casa/pet").once("value").then(s => {
+    const v = s.val(), novo = v && v.tipo ? Object.assign({}, v, { migrado: srvNow() }) : { nome: "Pipoca", tipo: "gato", comeu: srvNow(), carinho: srvNow() };
+    return ref("casa/pets/pet0").transaction(cur => cur ? undefined : novo);
+  }).catch(() => { criarPetTentou = false; });
 }
+// principal = primeiro gato/cachorro (pela ordem de chegada); é ele que aprende truques e aparece no HUD
+function petPrincipalId(){
+  const l = Object.keys(pets).filter(k => pets[k] && (pets[k].tipo === "gato" || pets[k].tipo === "cachorro")).sort((a, b) => ((pets[a].criado || 0) - (pets[b].criado || 0)) || (a < b ? -1 : 1));
+  return l[0] || null;
+}
+const petNo = sub => "casa/pets/" + (petPid || "pet0") + (sub ? "/" + sub : "");
 
 // ---------------- bichinho ----------------
 // casa/pet = { nome, tipo: "gato"|"cachorro", comeu, carinho, comeuPor, carinhoPor }
@@ -242,7 +254,7 @@ function petAt(wx, wy, folga){ return petView && Math.hypot(wx - petView.cx, wy 
 // cuidar: grava o timestamp e quem cuidou (todos veem e o bichinho pula)
 function petCuidar(campo){
   if (!pet) return;
-  ref("casa/pet").update({ [campo]: TS(), [campo + "Por"]: pid }).catch(() => {});
+  ref(petNo()).update({ [campo]: TS(), [campo + "Por"]: pid }).catch(() => {});
   if (campo === "carinho"){ ganharNeeds({ social: 10, diversao: 8 }); toast(petNome() + (pet.tipo === "cachorro" ? " abanou o rabinho de felicidade." : " ronronou de felicidade.")); statMais("carinhos"); sfx(pet.tipo === "cachorro" ? "latido" : "ronronar"); }
   else { toast(petNome() + " comeu tudinho."); sfx("comida"); }
 }
@@ -275,7 +287,7 @@ function openPetPanel(){
     pinta();
     const salvar = btn("Salvar", "btn", () => {
       const nome = inp.value.trim().slice(0, 16); if (!nome){ toast("Dê um nome pro bichinho."); inp.focus(); return; }
-      ref("casa/pet").update({ nome, tipo: tipo.v }).then(() => { toast("Agora é " + nome + "."); closePanel(); }).catch(() => toast("Não deu pra salvar."));
+      ref(petNo()).update({ nome, tipo: tipo.v }).then(() => { toast("Agora é " + nome + "."); closePanel(); }).catch(() => toast("Não deu pra salvar."));
     });
     const est = el("div", "petbars"), dica = el("p", "muted");
     const acoes = el("div", "hbtns");
@@ -600,7 +612,7 @@ function renderHouseCard(){
 }
 $("bMural").onclick = () => openMural();
 $("bDespensa").onclick = () => openCozinha({});
-$("bPet").onclick = () => openPetPanel();
+$("bPet").onclick = () => openPets(); // leva 13: todos os bichinhos
 
 function mesaPrincipal(){ const id = primeiro("mesa"); return id ? moveis[id] : null; }
 // plantas, pratos e bichinho entram na lista de objetos ordenados pela base

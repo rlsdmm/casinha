@@ -15,7 +15,7 @@ function openCreator(edit){
   const d = edit && me ? me.dados : null;
   if (d) creator = Object.assign({ nome: d.nome || "", sorteado: true, tracos: tracosDe(d) }, visual(d)); // leva 12: traços
   else if (!creator.sorteado){
-    const rnd = n => Math.floor(Math.random() * n), gratis = TRAJES.map((t, i) => t.preco || t.nivel ? -1 : i).filter(i => i >= 0);
+    const rnd = n => Math.floor(Math.random() * n), gratis = TRAJES.map((t, i) => t.preco || t.nivel || t.casamento ? -1 : i).filter(i => i >= 0);
     Object.assign(creator, { sorteado: true, corpo: "neutro", barba: 0, acess: 0, roupa: rnd(ROUPAS.length), cabelo: rnd(6), estilo: rnd(ESTILOS.length), pele: rnd(PELES.length), traje: gratis[rnd(gratis.length)] });
   }
   creatorEdit = !!d;
