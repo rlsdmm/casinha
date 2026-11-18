@@ -17,7 +17,7 @@ function vigiarJogo6(id, g, t){
 function cardJogador(p, txt, vez){
   const c = el("div", "pl" + (vez ? " vez" : "")), av = el("canvas"), tx = el("div", "tx");
   av.width = 18; av.height = 22; const x = av.getContext("2d"); x.imageSmoothingEnabled = false;
-  x.drawImage(avatarSprite(jogadores[p] || {}, "down", 0, "stand").c, 0, 0, 18, 22, 0, 0, 18, 22);
+  x.drawImage(avatarSprite(jogadores[p] || {}, "down", 0, "stand").c, 0, AV_Y0, 18, 22, 0, 0, 18, 22);
   tx.append(el("strong", null, p === pid ? "Você" : nomeDe(p)), el("small", null, txt)); c.append(av, tx); return c;
 }
 function abrirJogo6(id){

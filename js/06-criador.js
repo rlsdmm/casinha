@@ -47,6 +47,11 @@ function montarCriador(){
   $("cGo").textContent = ed ? "Salvar o visual" : "Entrar na casa";
   $("cBack").hidden = !ed;
   opcoes("swCorpo", CORPOS.map(([k, n]) => ({ nome: n, on: creator.corpo === k, fn: () => { creator.corpo = k; if (k !== "ele") creator.barba = 0; } })));
+  const vc = visual(creator); // leva 12b: formato do corpo, altura e físico (com desenhinho em cada botão)
+  opcoes("swForma", FORMAS.map(([k, n]) => ({ nome: n, on: vc.forma === k, fn: () => creator.forma = k })));
+  opcoes("swAltura", ALTURAS.map(([k, n]) => ({ nome: n, on: vc.altura === k, fn: () => creator.altura = k })));
+  opcoes("swFisico", FISICOS.map(([k, n]) => ({ nome: n, on: vc.fisico === k, fn: () => creator.fisico = k })));
+  if (typeof iconesCorpo12b === "function") iconesCorpo12b();
   $("rowBarba").hidden = creator.corpo !== "ele";
   opcoes("swBarba", [["Sem barba", 0], ["Com barba", 1]].map(([n, b]) => ({ nome: n, on: (creator.barba || 0) === b, fn: () => creator.barba = b })));
   opcoes("swTraje", TRAJES.map((t, i) => itemPago("traje", i, t)));
@@ -73,7 +78,7 @@ function drawCreator(){
     if (ps === "walk") fr = Math.floor(t / 150) % 4;
     else if (ps === "arms"){ const k = Math.floor(t / 300) % 2; pose = k ? "arms" : "stand"; fr = k ? 1 : 3; }
     else if (t % 3200 < 160) pose = "blink";
-    x.drawImage(avatarSprite(creator, dir, fr, pose).c, 1 + i * 20, 1);
+    x.drawImage(avatarSprite(creator, dir, fr, pose).c, 0, AV_Y0, 18, 29, 1 + i * 20, 1, 18, 29);
   });
   const lp = $("cPose"); if (lp.textContent !== nome) lp.textContent = nome;
 }
@@ -90,7 +95,7 @@ $("cGo").onclick = () => {
   if (ACESS[v.acess] && ACESS[v.acess].presente && !guardaDe()["acess-" + v.acess]){ toast("Esse acessório só ganhando de presente 🎁"); return; } // leva 9
   const tr = (creator.tracos || []).filter(k => TRACOS[k]); // leva 12: 3 traços de personalidade
   if (tr.length !== 3){ toast("Escolha 3 traços do jeito de ser (faltam " + (3 - tr.length) + ")."); const b = $("swTracos"); if (b) b.scrollIntoView({ block: "center", behavior: "smooth" }); return; }
-  const base = { nome, roupa: v.roupa, cabelo: v.cabelo, estilo: v.estilo, pele: v.pele, corpo: v.corpo, traje: v.traje, barba: v.barba, acess: v.acess, tracos: tr.slice(0, 3) };
+  const base = { nome, roupa: v.roupa, cabelo: v.cabelo, estilo: v.estilo, pele: v.pele, corpo: v.corpo, traje: v.traje, barba: v.barba, acess: v.acess, forma: v.forma, altura: v.altura, fisico: v.fisico, tracos: tr.slice(0, 3) };
   if (creatorEdit && me){
     const novos = itensPagos(v).filter(([k]) => !guardaDe()[k]), custo = novos.reduce((s, x) => s + x[1], 0);
     if (custo && !gastar(custo, "o visual novo")) return;

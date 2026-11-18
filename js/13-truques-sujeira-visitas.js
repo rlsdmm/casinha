@@ -479,7 +479,7 @@ function visitaAcao(v, k){
       fim: () => { mexerDespensa({ [ing]: -1 }); ganhar(40); toast("Dona Cida agradeceu e deixou $40. Que vizinha!"); } },
     pacote: { id: "v-pacote", nome: "Abrindo o pacote", dur: 3, ganho: { diversao: 10 },
       antes: () => reivindica("pacote", { por: pid, at: srvNow() }, "Alguém já pegou o pacote."),
-      fim: () => abrirPresente(v), cancel: () => abrirPresente(v) },
+      fim: () => abrirPacoteCarteiro(v), cancel: () => abrirPacoteCarteiro(v) },
     sache: { id: "v-sache", nome: "Dando um sachê pro gatinho", dur: 3, ganho: { diversao: 8 },
       antes: () => { if (!gastar(5, "o sachê")) return false; return txn("casa/visita/gato/dias/" + hoje(), c => c ? undefined : pid).then(ok => { if (!ok){ ganhar(5); toast("Alguém já deu comida pra ele hoje."); } return ok; }); },
       fim: () => {
@@ -498,8 +498,8 @@ function visitaAcao(v, k){
   goTo(null, goal, () => { faceTo(sx, sy); startAcao(a); });
 }
 // presente do carteiro: um enfeite pra casa (perto de quem abriu) ou um envelope com moedas
-function abrirPresente(v){
-  if (abrirPresente.feito === v.id) return; abrirPresente.feito = v.id;
+function abrirPacoteCarteiro(v){
+  if (abrirPacoteCarteiro.feito === v.id) return; abrirPacoteCarteiro.feito = v.id;
   const r = v.premio % 100, t = ["urso", "planta", "abajur"][(v.premio >>> 8) % 3];
   if (r < 55 && me){
     const pos = lugarPerto(t, me.tx, me.ty);

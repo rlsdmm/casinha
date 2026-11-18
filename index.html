@@ -5,8 +5,8 @@
   VERSÃO (quebra o cache do GitHub Pages): a cada publicação, troque o número em TODOS os "?v=N" desta página,
   no <meta name="casinha-versao"> e no arquivo version.txt (o mesmo número nos três). Quem estiver com a página
   aberta numa versão velha vê o aviso "Tem versão nova" (o jogo confere version.txt de tempos em tempos).
-  Ex.: busca e troca de "?v=12" por "?v=13", content="12" por content="13", e version.txt = 13.
-  ORDEM: 19-momentos.js, 20-perto.js, 21-construir.js e 22-vida.js vêm antes do 18-laco.js (o laço chama os ganchos da leva 9 e o boot() roda no fim do 18).
+  Ex.: busca e troca de "?v=13" por "?v=14", content="13" por content="14", e version.txt = 14.
+  ORDEM: 19-momentos.js, 20-perto.js, 21-construir.js e 22-vida.js e 23-espelho.js vêm antes do 18-laco.js (o laço chama os ganchos da leva 9 e o boot() roda no fim do 18).
 -->
 <html lang="pt-BR">
 <head>
@@ -18,8 +18,8 @@
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' shape-rendering='crispEdges'%3E%3Crect x='2' y='7' width='12' height='8' fill='%23E7A3B8'/%3E%3Crect x='1' y='6' width='14' height='2' fill='%235246B0'/%3E%3Crect x='3' y='4' width='10' height='2' fill='%235246B0'/%3E%3Crect x='5' y='2' width='6' height='2' fill='%235246B0'/%3E%3Crect x='7' y='10' width='3' height='5' fill='%237A5A3E'/%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Pixelify+Sans:wght@500;700&family=Nunito:wght@500;700;800&display=swap">
-<meta name="casinha-versao" content="12">
-<link rel="stylesheet" href="css/estilo.css?v=12">
+<meta name="casinha-versao" content="13">
+<link rel="stylesheet" href="css/estilo.css?v=13">
 </head>
 <body>
 <div class="wrap">
@@ -45,13 +45,20 @@
     <h2 id="cTitulo">Monte seu bonequinho</h2>
     <div class="creator">
       <div class="cprev">
-        <canvas id="cPreview" width="60" height="32" role="img" aria-label="Prévia do bonequinho de frente, de lado e de costas"></canvas>
-        <p class="muted" id="cPose" aria-hidden="true"></p>
+        <button type="button" class="espBtn12b" id="cEspBtn" aria-label="Ver no espelho grande"><canvas id="cEspelho" width="96" height="136" role="img" aria-label="Você no espelho, de corpo inteiro"></canvas></button>
+        <div class="cprevLado">
+          <canvas id="cPreview" width="60" height="32" role="img" aria-label="Prévia do bonequinho de frente, de lado e de costas"></canvas>
+          <p class="muted" id="cPose" aria-hidden="true"></p>
+          <div class="espGira12b"><button type="button" class="btn ghost small" id="cGiraE" aria-label="Girar para a esquerda">◀</button><button type="button" class="btn ghost small" id="cGiraD" aria-label="Girar para a direita">▶</button></div>
+        </div>
       </div>
       <div class="opts">
         <label class="lbl" for="cName">Nome</label>
         <input type="text" id="cName" maxlength="16" placeholder="Como você quer aparecer">
         <span class="lbl" id="lCorpo">Corpo</span><div class="swatches" id="swCorpo" role="group" aria-labelledby="lCorpo"></div>
+        <span class="lbl" id="lForma">Formato do corpo</span><div class="swatches formas12b" id="swForma" role="group" aria-labelledby="lForma"></div>
+        <span class="lbl" id="lAltura">Altura</span><div class="swatches formas12b" id="swAltura" role="group" aria-labelledby="lAltura"></div>
+        <span class="lbl" id="lFisico">Físico</span><div class="swatches formas12b" id="swFisico" role="group" aria-labelledby="lFisico"></div>
         <div id="rowBarba" class="opts" hidden><span class="lbl" id="lBarba">Barba</span><div class="swatches" id="swBarba" role="group" aria-labelledby="lBarba"></div></div>
         <span class="lbl" id="lTraje">Roupa</span><div class="swatches" id="swTraje" role="group" aria-labelledby="lTraje"></div>
         <span class="lbl" id="lRoupa">Cor da roupa</span><div class="swatches" id="swRoupa" role="group" aria-labelledby="lRoupa"></div>
@@ -140,27 +147,28 @@
 
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
-<script src="js/01-base.js?v=12"></script>
-<script src="js/02-arte-moveis.js?v=12"></script>
-<script src="js/03-arte-boneco.js?v=12"></script>
-<script src="js/04-cenario.js?v=12"></script>
-<script src="js/05-firebase.js?v=12"></script>
-<script src="js/06-criador.js?v=12"></script>
-<script src="js/07-jogo.js?v=12"></script>
-<script src="js/08-casa.js?v=12"></script>
-<script src="js/09-tarefas-minigames.js?v=12"></script>
-<script src="js/10-clima.js?v=12"></script>
-<script src="js/11-andar2.js?v=12"></script>
-<script src="js/12-sons.js?v=12"></script>
-<script src="js/13-truques-sujeira-visitas.js?v=12"></script>
-<script src="js/14-paredes-nivel-loja.js?v=12"></script>
-<script src="js/15-moveis-novos.js?v=12"></script>
-<script src="js/16-minigames-novos.js?v=12"></script>
-<script src="js/17-namoro-bebe.js?v=12"></script>
-<script src="js/19-momentos.js?v=12"></script>
-<script src="js/20-perto.js?v=12"></script>
-<script src="js/21-construir.js?v=12"></script>
-<script src="js/22-vida.js?v=12"></script>
-<script src="js/18-laco.js?v=12"></script>
+<script src="js/01-base.js?v=13"></script>
+<script src="js/02-arte-moveis.js?v=13"></script>
+<script src="js/03-arte-boneco.js?v=13"></script>
+<script src="js/04-cenario.js?v=13"></script>
+<script src="js/05-firebase.js?v=13"></script>
+<script src="js/06-criador.js?v=13"></script>
+<script src="js/07-jogo.js?v=13"></script>
+<script src="js/08-casa.js?v=13"></script>
+<script src="js/09-tarefas-minigames.js?v=13"></script>
+<script src="js/10-clima.js?v=13"></script>
+<script src="js/11-andar2.js?v=13"></script>
+<script src="js/12-sons.js?v=13"></script>
+<script src="js/13-truques-sujeira-visitas.js?v=13"></script>
+<script src="js/14-paredes-nivel-loja.js?v=13"></script>
+<script src="js/15-moveis-novos.js?v=13"></script>
+<script src="js/16-minigames-novos.js?v=13"></script>
+<script src="js/17-namoro-bebe.js?v=13"></script>
+<script src="js/19-momentos.js?v=13"></script>
+<script src="js/20-perto.js?v=13"></script>
+<script src="js/21-construir.js?v=13"></script>
+<script src="js/22-vida.js?v=13"></script>
+<script src="js/23-espelho.js?v=13"></script>
+<script src="js/18-laco.js?v=13"></script>
 </body>
 </html>

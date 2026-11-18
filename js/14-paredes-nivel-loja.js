@@ -280,7 +280,7 @@ function irParede(x, y, fn){
 function decorClickVivo(tx, ty, p){
   const id = decorEm(tx, ty); if (!id) return false;
   const d = decor[id], def = DECOR_CAT[d.t], items = [];
-  if (d.t === "espelho") items.push({ nome: "Trocar o visual", info: "Espelho", fn: () => irParede(tx, ty, () => openCreator(true)) });
+  if (d.t === "espelho") items.push({ nome: "Me ver no espelho", info: "🪞", fn: () => irParede(tx, ty, () => openEspelho(pid)) }, { nome: "Trocar o visual", info: "Espelho", fn: () => irParede(tx, ty, () => openCreator(true)) }); // leva 12b
   if (d.t === "relogio"){ const h = hourNow(); items.push({ nota: 1, nome: "São " + Math.floor(h) + "h" + String(Math.floor((h % 1) * 60)).padStart(2, "0") + "." }); }
   if (def.menu) items.push(...def.menu(id, d)); // leva 9: mural de fotos abre o álbum, calendário abre as datas
   items.push({ nome: "Admirar", info: "Diversão", fn: () => irParede(tx, ty, () => startAcao({ id: "admirar", nome: "Admirando: " + def.nome.toLowerCase(), dur: 3, ganho: { diversao: 6 } })) });
@@ -355,7 +355,7 @@ function premioIcone(p){
   const cv = el("canvas"); cv.width = 40; cv.height = 40; const x = cv.getContext("2d"); x.imageSmoothingEnabled = false;
   if (p.tipo === "movel"){ const s = furnSprite(p.k, 0), k = Math.min(40 / s.c.width, 40 / s.c.height); x.drawImage(s.c, (40 - s.c.width * k) / 2, (40 - s.c.height * k) / 2, s.c.width * k, s.c.height * k); }
   else if (p.tipo === "papel") withCtx(x, 2.5, () => drawPapel(0, 0, { p: PAPEL_PADROES[p.k].id, a: "#F5C6D6" }));
-  else { const base = Object.assign({}, (me && me.dados) || {}), v = visual(base); if (p.tipo === "traje") v.traje = p.k; else v.acess = p.k; x.drawImage(avatarSprite(v, "down", 0, "stand").c, 6, 2, 27, 36); }
+  else { const base = Object.assign({}, (me && me.dados) || {}), v = visual(base); if (p.tipo === "traje") v.traje = p.k; else v.acess = p.k; x.drawImage(avatarSprite(v, "down", 0, "stand").c, 0, AV_Y0, 18, 29, 6, 2, 27, 36); }
   return cv;
 }
 // leva 8: subiu vários níveis de uma vez (ex.: migração de XP): mostra os presentes de todos, não só do último

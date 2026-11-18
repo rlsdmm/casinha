@@ -306,18 +306,18 @@ TRAJES.push({ nome: "Pijama de bichinho", nivel: 6 }, { nome: "Vestido de festa"
 ACESS.push({ nome: "Coroa de flores", nivel: 2 }, { nome: "Cachecol", nivel: 8 }, { nome: "Chapéu de festa", nivel: 17 });   // 5, 6, 7
 // detalhes do tronco (ty = primeira linha do tronco; by = chão, ou null sentado)
 function trajeLeva6(tj, cx, ty, by, dir, k){
-  const { cor, corD, corL, skin, top, ela, o, X, side } = k;
+  const { cor, corD, corL, skin, top, ela, o, X, side } = k, g = k.g || corpoGeo({}); // leva 12b: formato do corpo
   if (tj === 6){ // pijama: barriguinha clara e rabinho
     if (dir === "down"){ R(cx - 1, ty + 2, 2, 2, corL); P(cx - 2, ty + 3, corL); P(cx + 1, ty + 3, sh(cor, .15)); }
     else if (dir === "up"){ if (by != null){ R(cx - 1, ty + 5, 2, 2, corL); P(cx, ty + 5, "#FFFFFF"); } }
     else if (side && by != null) R(X(3, 2), ty + 5, 2, 2, corL);
   } else if (tj === 7){ // vestido de festa: tomara que caia, cinto dourado e saia até o chão
-    if (ela) R(cx - 2, ty, 4, 1, skin); else R(cx - 3 - o, ty, 6 + 2 * o, 1, skin);
-    R(cx - 3, ty + 3, 6, 1, C.gold);
+    R(cx - g.w[0], ty, 2 * g.w[0], 1, skin);
+    R(cx - g.w[3], ty + 3, 2 * g.w[3], 1, C.gold);
     if (by != null){
-      const h = by - 1 - (ty + 4);
-      R(cx - 4, ty + 4, 8, h, cor); R(cx - 5, by - 2, 10, 2, cor); R(cx - 5, by - 1, 10, 1, corD); R(cx + 2, ty + 5, 2, h - 1, corD);
-      P(cx - 2, ty + 5, "#FFFFFF"); P(cx + 1, ty + 7, "#FCE9B8"); P(cx - 3, by - 3, "#FFFFFF");
+      const h = by - 1 - (ty + 4), s = g.sw;
+      R(cx - s, ty + 4, 2 * s, h, cor); R(cx - s - 1, by - 2, 2 * s + 2, 2, cor); R(cx - s - 1, by - 1, 2 * s + 2, 1, corD); R(cx + s - 2, ty + 5, 2, h - 1, corD);
+      P(cx - 2, ty + 5, "#FFFFFF"); P(cx + 1, ty + 7, "#FCE9B8"); P(cx - s + 1, by - 3, "#FFFFFF");
     }
   } else if (tj === 8){ // terno: camisa branca, gravata e lapela
     if (dir === "down"){ R(cx - 1, ty, 2, 1, "#FFFFFF"); R(cx - 1, ty + 1, 2, 2, "#D9483D"); P(cx - 1, ty + 3, "#B8303A"); P(cx - 2, ty, sh(top, .3)); P(cx + 1, ty, sh(top, .3)); P(cx + 1, ty + 3, C.gold); }

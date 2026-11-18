@@ -6,20 +6,49 @@ const idxDe = (v, arr) => Number.isInteger(v) && v >= 0 && v < arr.length ? v : 
 function visual(p){
   p = p || {};
   const corpo = p.corpo === "ele" || p.corpo === "ela" ? p.corpo : "neutro";
-  return { corpo, roupa: idxDe(p.roupa, ROUPAS), traje: idxDe(p.traje, TRAJES), cabelo: idxDe(p.cabelo, CABELOS), estilo: idxDe(p.estilo, ESTILOS), pele: idxDe(p.pele, PELES), barba: corpo === "ele" && p.barba ? 1 : 0, acess: idxDe(p.acess, ACESS), barriga: p.barriga >= 1 && p.barriga <= 3 ? p.barriga | 0 : 0 };
+  return { corpo, roupa: idxDe(p.roupa, ROUPAS), traje: idxDe(p.traje, TRAJES), cabelo: idxDe(p.cabelo, CABELOS), estilo: idxDe(p.estilo, ESTILOS), pele: idxDe(p.pele, PELES), barba: corpo === "ele" && p.barba ? 1 : 0, acess: idxDe(p.acess, ACESS), barriga: p.barriga >= 1 && p.barriga <= 3 ? p.barriga | 0 : 0,
+    forma: FORMA_DW[p.forma] ? p.forma : "retangulo", altura: p.altura === "baixinho" || p.altura === "alto" ? p.altura : "medio", fisico: p.fisico === "magro" || p.fisico === "cheinho" ? p.fisico : "medio" }; // leva 12b
+}
+// ---- leva 12b: formato do corpo, altura e físico (valem pra ele, ela e neutro) ----
+// jogador antigo (sem os campos) = retângulo, médio, médio: exatamente o boneco de antes.
+const FORMAS = [["ampulheta", "Ampulheta"], ["pera", "Pera"], ["maca", "Maçã"], ["retangulo", "Retângulo"], ["triangulo", "Triângulo invertido"], ["atletico", "Atlético"]];
+const ALTURAS = [["baixinho", "Baixinho"], ["medio", "Médio"], ["alto", "Alto"]];
+const FISICOS = [["magro", "Magro"], ["medio", "Médio"], ["cheinho", "Cheinho"]];
+// meia-largura do tronco por linha (0 ombro, 1 peito, 2 cintura alta, 3 cintura, 4 barra), somada à base do corpo
+const FORMA_DW = { retangulo: [0, 0, 0, 0, 0], ampulheta: [0, 0, 0, -1, 1], pera: [-1, 0, 0, 0, 1], maca: [0, 0, 1, 1, 0], triangulo: [1, 1, 1, 0, 0], atletico: [1, 1, 0, -1, 0] };
+const FISICO_DW = { magro: [-1, -1, -1, -1, 0], medio: [0, 0, 0, 0, 0], cheinho: [0, 1, 1, 1, 1] };
+function corpoGeo(v){
+  const base = v.corpo === "ela" ? [2, 3, 3, 3, 3] : v.corpo === "ele" ? [4, 4, 3, 3, 3] : [3, 3, 3, 3, 3];
+  const f = FORMA_DW[v.forma] || FORMA_DW.retangulo, g = FISICO_DW[v.fisico] || FISICO_DW.medio;
+  const w = base.map((b, i) => clamp(b + f[i] + g[i], 2, 5));
+  const hq = Math.min(2, (v.forma === "ampulheta" || v.forma === "pera" ? 1 : 0) + (v.fisico === "cheinho" ? 1 : 0));
+  const ax = Math.max(w[0], w[1], w[2]) + 1, e = ax - (v.corpo === "ele" ? 5 : 4);
+  const sw = 4 + Math.max(hq, w[4] - 3, 0); // meia-largura da saia
+  return { w, hq, ax, e, sw, dh: v.altura === "alto" ? 1 : v.altura === "baixinho" ? -1 : 0 };
+}
+// tronco por linhas + sombra do lado direito (mesmos pixels de antes no retângulo médio)
+function troncoLinhas(cx, ty, g, top, shD, n){
+  for (let r = 0; r < n; r++){
+    const w = g.w[r]; R(cx - w, ty + r, 2 * w, 1, top);
+    if (r >= 1 || w > 3) P(cx + w - 1, ty + r, shD);
+    if (r >= 1 && w > 3) P(cx + w - 2, ty + r, shD);
+  }
 }
 function avatarSprite(p, dir, frame, pose){
   const v = visual(p);
-  const key = ["av", v.corpo, v.roupa, v.traje, v.cabelo, v.estilo, v.pele, v.barba, v.acess, v.barriga, dir, frame, pose].join(":");
-  return sprite(key, 16, 27, (ox, oy) => drawAvatarLocal(v, ox + 8, oy + 25, dir, frame, pose));
+  const key = ["av", v.corpo, v.roupa, v.traje, v.cabelo, v.estilo, v.pele, v.barba, v.acess, v.barriga, v.forma, v.altura, v.fisico, dir, frame, pose].join(":");
+  return sprite(key, 16, 29, (ox, oy) => drawAvatarLocal(v, ox + 8, oy + 27, dir, frame, pose)); // leva 12b: 2px a mais em cima (alto + chapéu)
 }
-function blitAvatar(p, cx, by, dir, frame, pose){ const s = avatarSprite(p, dir, frame, pose); ctx.drawImage(s.c, Math.round(cx - 9), Math.round(by - 26)); }
+// leva 12b: o sprite tem 2 linhas vazias a mais em cima; quem recorta um pedaço do sprite soma AV_Y0 no y
+const AV_Y0 = 2;
+function blitAvatar(p, cx, by, dir, frame, pose){ const s = avatarSprite(p, dir, frame, pose); ctx.drawImage(s.c, Math.round(cx - 9), Math.round(by - 28)); }
 
 // poses: "stand", "breath" (respirando), "blink", "blinkbreath", "arms", "lie"
 // trajes: 0 camiseta, 1 vestido, 2 saia e blusa, 3 macacão, 4 moletom com capuz, 5 regata com short
 function drawAvatarLocal(v, cx, by, dir, frame, pose){
   const skin = PELES[v.pele], hair = CABELOS[v.cabelo], cor = ROUPAS[v.roupa], st = v.estilo, tj = v.traje;
   const ela = v.corpo === "ela", o = v.corpo === "ele" ? 1 : 0; // ele: ombros 1px mais largos de cada lado
+  const g = corpoGeo(v), dh = g.dh; // leva 12b
   pose = String(pose || "stand");
   // leva 7: "blush" (corado), "happy" (olhinhos de satisfeito), "messy" (cabelo bagunçado), "open" (deitado de olho aberto)
   const fx7 = { blush: pose.indexOf("blush") >= 0, happy: pose.indexOf("happy") >= 0 };
@@ -35,68 +64,68 @@ function drawAvatarLocal(v, cx, by, dir, frame, pose){
   const quadril = tj === 1 || tj === 2 || tj === 3 || tj === 6 || tj === 7 ? cor : terno || JEANS;
   const perna = tj === 3 || tj === 6 ? cor : terno || (tj === 0 || tj === 4 ? JEANS : skin), pernaD = perna === skin ? skD : sh(perna, -.2);
   const manga = tj === 5 || tj === 7 ? skin : top, mangaD = tj === 5 || tj === 7 ? skD : shD, mangaN = tj === 4 || tj === 6 || tj === 8 ? 3 : 2;
-  if (pose.indexOf("sit") === 0){ drawSentado(v, cx, by, dir, frame, pose, { skin, hair, cor, top, shL, shD, skD, corD, corL, quadril, perna, pernaD, manga, mangaD, mangaN, shoe, ela, o, tj, st, fx7 }); return; }
-  // pernas
-  R(cx - 3, by - 5, 6, 2, quadril);
+  if (pose.indexOf("sit") === 0){ drawSentado(v, cx, by, dir, frame, pose, { skin, hair, cor, top, shL, shD, skD, corD, corL, quadril, perna, pernaD, manga, mangaD, mangaN, shoe, ela, o, tj, st, fx7, g }); return; }
+  // pernas (leva 12b: a altura muda o comprimento da perna; quadril mais largo na pera, ampulheta e cheinho)
+  const ly = by - 3 - dh, lh = 2 + dh, hq = g.hq;
+  R(cx - 3 - hq, ly - 2, 6 + 2 * hq, 2, quadril);
   if (side){
-    if (!walk){ R(X(-2, 4), by - 3, 4, 2, perna); R(X(1, 1), by - 3, 1, 2, pernaD); R(X(-3, 5), by - 1, 5, 1, shoe); }
+    if (!walk){ R(X(-2, 4), ly, 4, lh, perna); R(X(1, 1), ly, 1, lh, pernaD); R(X(-3, 5), by - 1, 5, 1, shoe); }
     else {
       const a = frame === 1 ? perna : pernaD, b = frame === 1 ? pernaD : perna;
-      R(X(1, 2), by - 3, 2, 1, b); R(X(2, 2), by - 2, 2, 1, shoe);
-      R(X(-4, 3), by - 3, 3, 2, a); R(X(-5, 3), by - 1, 3, 1, shoe);
+      if (lh > 1) R(X(1, 2), ly, 2, lh - 1, b); R(X(2, 2), by - 2, 2, 1, shoe);
+      R(X(-4, 3), ly, 3, lh, a); R(X(-5, 3), by - 1, 3, 1, shoe);
     }
   } else {
     const lL = frame === 1 ? 1 : 0, rL = frame === 3 ? 1 : 0;
-    R(cx - 3, by - 3, 2, 2 - lL, perna); R(cx - 3, by - 1 - lL, 2, 1, shoe);
-    R(cx + 1, by - 3, 2, 2 - rL, perna); R(cx + 1, by - 1 - rL, 2, 1, shoe);
-    P(cx - 1, by - 4, sh(quadril, -.2)); P(cx, by - 4, sh(quadril, -.2));
+    if (lh - lL > 0) R(cx - 3, ly, 2, lh - lL, perna); R(cx - 3, by - 1 - lL, 2, 1, shoe);
+    if (lh - rL > 0) R(cx + 1, ly, 2, lh - rL, perna); R(cx + 1, by - 1 - rL, 2, 1, shoe);
+    P(cx - 1, ly - 1, sh(quadril, -.2)); P(cx, ly - 1, sh(quadril, -.2));
   }
   // corpo
-  const ty = by - 9 + bob;
-  if (ela){ R(cx - 2, ty, 4, 1, top); R(cx - 3, ty + 1, 6, 4, top); }
-  else { R(cx - 3 - o, ty, 6 + 2 * o, 2, top); R(cx - 3, ty + 2, 6, 3, top); if (o) R(cx + 3, ty, 1, 2, shD); }
-  R(cx + 2, ty + 1, 1, 4, shD); R(cx - 3, ty + 4, 6, 1, shD);
-  if (ela && tj !== 1 && tj !== 2) R(cx - 4, ty + 4, 8, 1, shD); // barra rodadinha
+  const ty = by - 9 + bob - dh, W = g.w;
+  troncoLinhas(cx, ty, g, top, shD, 5);
+  R(cx - W[4], ty + 4, 2 * W[4], 1, shD);
+  if (ela && tj !== 1 && tj !== 2) R(cx - W[4] - 1, ty + 4, 2 * W[4] + 2, 1, shD); // barra rodadinha
   if (dir === "down"){ R(cx - 1, ty, 2, 1, skD); P(cx - 2, ty, shL); P(cx + 1, ty, shL); P(cx - 2, ty + 2, shL); }
   else if (dir === "up"){ R(cx - 2, ty, 4, 1, shL); }
   else { P(X(-3, 1), ty, shL); }
   if (tj === 1 || tj === 2){ // saia (vestido: mais comprida)
-    const h = tj === 1 ? 4 : 3;
-    R(cx - 4, ty + 4, 8, h, cor); R(cx - 4, ty + 3 + h, 8, 1, corD); R(cx + 2, ty + 5, 2, h - 2, corD); P(cx - 3, ty + 5, corL);
-    if (tj === 2){ R(cx - 3, ty + 4, 6, 1, sh(cor, -.12)); if (dir === "down") P(cx - 1, ty + 1, "#E9D8BE"); }
-    else if (dir !== "up") R(cx - 3, ty + 3, 6, 1, corD); // cinto do vestido
+    const h = (tj === 1 ? 4 : 3) + dh, s = g.sw;
+    R(cx - s, ty + 4, 2 * s, h, cor); R(cx - s, ty + 3 + h, 2 * s, 1, corD); if (h > 2) R(cx + s - 2, ty + 5, 2, h - 2, corD); P(cx - s + 1, ty + 5, corL);
+    if (tj === 2){ R(cx - W[4], ty + 4, 2 * W[4], 1, sh(cor, -.12)); if (dir === "down") P(cx - 1, ty + 1, "#E9D8BE"); }
+    else if (dir !== "up") R(cx - W[3], ty + 3, 2 * W[3], 1, corD); // cinto do vestido
   } else if (tj === 3){ // macacão: peitilho e alças
-    R(cx - 3, ty + 3, 6, 2, cor); R(cx - 3, ty + 4, 6, 1, corD);
+    R(cx - W[3], ty + 3, 2 * W[3], 1, cor); R(cx - W[4], ty + 4, 2 * W[4], 1, corD);
     if (dir === "down"){ R(cx - 2, ty + 2, 4, 1, cor); R(cx - 2, ty, 1, 2, cor); R(cx + 1, ty, 1, 2, cor); P(cx - 2, ty + 2, C.gold); P(cx + 1, ty + 2, C.gold); }
     else if (dir === "up"){ R(cx - 2, ty, 1, 3, cor); R(cx + 1, ty, 1, 3, cor); P(cx - 1, ty + 2, cor); P(cx, ty + 2, cor); }
     else R(X(0, 1), ty, 1, 3, cor);
   } else if (tj === 4){ // moletom com capuz
-    R(cx - 3, ty + 5, 6, 1, shD);
+    R(cx - W[4], ty + 5, 2 * W[4], 1, shD);
     if (dir === "down"){ P(cx - 2, ty, shD); P(cx + 1, ty, shD); P(cx - 1, ty + 1, shoe); P(cx, ty + 2, shoe); R(cx - 2, ty + 3, 4, 1, shD); }
     else if (dir === "up"){ R(cx - 3, ty, 6, 2, shD); R(cx - 2, ty + 2, 4, 1, shD); R(cx - 2, ty, 4, 1, top); }
     else R(X(1, 3), ty, 3, 2, shD);
   } else if (tj === 5){ // regata
-    if (!ela){ P(cx - 3 - o, ty, skin); P(cx + 2 + o, ty, skin); }
+    if (!ela){ P(cx - W[0], ty, skin); P(cx + W[0] - 1, ty, skin); }
     if (dir === "down") R(cx - 1, ty, 2, 1, skin);
-  } else if (tj >= 6) trajeLeva6(tj, cx, ty, by, dir, { cor, corD, corL, skin, top, shD, ela, o, X, side });
-  if (v.barriga) barrigaEmPe(v.barriga, cx, ty, dir, X, tj === 3 ? cor : top); // leva 7: gravidez
+  } else if (tj >= 6) trajeLeva6(tj, cx, ty, by, dir, { cor, corD, corL, skin, top, shD, ela, o, X, side, g });
+  if (v.barriga) barrigaEmPe(v.barriga, cx, ty, dir, X, tj === 3 ? cor : top, g); // leva 7: gravidez
   // braços
   if (!armsUp){
     if (side){ const sw = frame === 1 ? 1 : frame === 3 ? -1 : 0; R(X(-1 - sw, 2), ty + 1, 2, mangaN, mangaD); R(X(-1 - sw, 2), ty + 1 + mangaN, 2, 4 - mangaN, skin); }
     else {
-      const aL = frame === 1 ? -1 : frame === 3 ? 1 : 0, ax = 4 + o;
+      const aL = frame === 1 ? -1 : frame === 3 ? 1 : 0, ax = g.ax;
       R(cx - ax, ty + 1 + aL, 1, mangaN, manga); R(cx - ax, ty + 1 + mangaN + aL, 1, 4 - mangaN, skin);
       R(cx + ax - 1, ty + 1 - aL, 1, mangaN, mangaD); R(cx + ax - 1, ty + 1 + mangaN - aL, 1, 4 - mangaN, skin);
     }
   }
   // cabeça, cabelo e acessório
-  const hy = by - 18 + bob;
+  const hy = by - 18 + bob - dh;
   headDraw(cx, hy, dir, skin, blink, v, hair, fx7);
   hairDraw(cx, hy, dir, st, hair);
   if (pose.indexOf("messy") >= 0) cabeloBaguncado(cx, hy, st, hair);
   acessDraw(cx, hy, dir, v);
   if (armsUp){
-    const a = 5 + o;
+    const a = g.ax + 1;
     R(cx - a, ty, 2, 1, manga); R(cx - a - 1, ty - 2, 1, 3, manga); R(cx - a - 1, ty - 5, 1, 3, skin);
     R(cx + a - 2, ty, 2, 1, mangaD); R(cx + a, ty - 2, 1, 3, mangaD); R(cx + a, ty - 5, 1, 3, skin);
     if (tj === 4){ R(cx - a - 1, ty - 4, 1, 2, manga); R(cx + a, ty - 4, 1, 2, mangaD); }
@@ -107,38 +136,37 @@ function drawAvatarLocal(v, cx, by, dir, frame, pose){
 // frame: quadro da atividade (0 = mão embaixo; 1 = mão na boca, ou a outra mão no teclado).
 // De frente/de lado, by = chão onde ficam os pés (coxa pra frente, canela, pé). De costas, by = assento (pernas somem na frente).
 function drawSentado(v, cx, by, dir, frame, pose, k){
-  const { skin, hair, cor, top, shL, shD, skD, corD, quadril, perna, manga, mangaD, mangaN, shoe, ela, o, tj, st, fx7 } = k;
+  const { skin, hair, cor, top, shL, shD, skD, corD, quadril, perna, manga, mangaD, mangaN, shoe, ela, o, tj, st, fx7, g } = k;
+  const W = g.w, dS = g.dh > 0 ? 1 : 0, hq = g.hq; // leva 12b: alto fica 1px mais alto sentado (baixinho só encolhe a perna, que não aparece)
   const blink = pose.indexOf("blink") >= 0, breath = pose.indexOf("breath") >= 0;
   // atividade logo depois de "sit" ("sitbreath" não pode virar "eat")
   const resto = pose.slice(3), act = /^eat/.test(resto) ? "eat" : /^drink/.test(resto) ? "drink" : /^pc/.test(resto) ? "pc" : /^arms/.test(resto) ? "arms" : "";
   const barr = v.barriga, bcol = tj === 3 ? cor : top; // leva 7: gravidez
-  const b = breath ? 1 : 0, f = frame ? 1 : 0, ax = 4 + o;
+  const b = breath ? 1 : 0, f = frame ? 1 : 0, ax = g.ax;
   const lap = quadril, lapL = sh(lap, .2), lapD = sh(lap, -.26);
   const m = dir === "right" ? -1 : 1, X = (a, w) => m > 0 ? cx + a : cx - a - w;
   const cMao = (lado, c) => lado < 0 ? c : (c === manga ? mangaD : c); // braço do lado direito da tela fica na sombra
   const metal = "#C6D0DA", xic = "#7FB8E8";
   // tronco de frente ou de costas (5 linhas; o colo cobre o fim)
   const torso = (ty, d) => {
-    if (ela){ R(cx - 2, ty, 4, 1, top); R(cx - 3, ty + 1, 6, 4, top); }
-    else { R(cx - 3 - o, ty, 6 + 2 * o, 2, top); R(cx - 3, ty + 2, 6, 3, top); if (o) R(cx + 3, ty, 1, 2, shD); }
-    R(cx + 2, ty + 1, 1, 4, shD);
+    troncoLinhas(cx, ty, g, top, shD, 5);
     if (d === "down"){ R(cx - 1, ty, 2, 1, skD); P(cx - 2, ty, shL); P(cx + 1, ty, shL); P(cx - 2, ty + 2, shL); }
     else R(cx - 2, ty, 4, 1, shL);
-    if (tj === 1 && d === "down") R(cx - 3, ty + 3, 6, 1, corD); // cinto do vestido
+    if (tj === 1 && d === "down") R(cx - W[3], ty + 3, 2 * W[3], 1, corD); // cinto do vestido
     else if (tj === 2 && d === "down") P(cx - 1, ty + 1, "#E9D8BE");
     else if (tj === 3){ // macacão: peitilho e alças
-      R(cx - 3, ty + 3, 6, 2, cor);
+      R(cx - W[3], ty + 3, 2 * W[3], 1, cor); R(cx - W[4], ty + 4, 2 * W[4], 1, cor);
       if (d === "down"){ R(cx - 2, ty + 2, 4, 1, cor); R(cx - 2, ty, 1, 2, cor); R(cx + 1, ty, 1, 2, cor); P(cx - 2, ty + 2, C.gold); P(cx + 1, ty + 2, C.gold); }
       else { R(cx - 2, ty, 1, 3, cor); R(cx + 1, ty, 1, 3, cor); P(cx - 1, ty + 2, cor); P(cx, ty + 2, cor); }
     } else if (tj === 4){ // moletom: cordão e bolso / capuz nas costas
       if (d === "down"){ P(cx - 2, ty, shD); P(cx + 1, ty, shD); P(cx - 1, ty + 1, shoe); P(cx, ty + 2, shoe); R(cx - 2, ty + 3, 4, 1, shD); }
       else { R(cx - 3, ty, 6, 2, shD); R(cx - 2, ty + 2, 4, 1, shD); R(cx - 2, ty, 4, 1, top); }
-    } else if (tj === 5){ if (!ela){ P(cx - 3 - o, ty, skin); P(cx + 2 + o, ty, skin); } if (d === "down") R(cx - 1, ty, 2, 1, skin); }
-    else if (tj >= 6) trajeLeva6(tj, cx, ty, null, d, { cor, corD: sh(cor, -.24), corL: sh(cor, .28), skin, top, shD, ela, o, X: (a, w) => cx + a, side: false });
+    } else if (tj === 5){ if (!ela){ P(cx - W[0], ty, skin); P(cx + W[0] - 1, ty, skin); } if (d === "down") R(cx - 1, ty, 2, 1, skin); }
+    else if (tj >= 6) trajeLeva6(tj, cx, ty, null, d, { cor, corD: sh(cor, -.24), corL: sh(cor, .28), skin, top, shD, ela, o, X: (a, w) => cx + a, side: false, g });
   };
   // braços pra cima (comemorando), desenhados depois da cabeça como em pé
   const bracosAlto = ty => {
-    const a = 5 + o;
+    const a = ax + 1;
     R(cx - a, ty, 2, 1, manga); R(cx - a - 1, ty - 2, 1, 3, manga); R(cx - a - 1, ty - 5, 1, 3, skin);
     R(cx + a - 2, ty, 2, 1, mangaD); R(cx + a, ty - 2, 1, 3, mangaD); R(cx + a, ty - 5, 1, 3, skin);
     if (tj === 4){ R(cx - a - 1, ty - 4, 1, 2, manga); R(cx + a, ty - 4, 1, 2, mangaD); }
@@ -146,10 +174,10 @@ function drawSentado(v, cx, by, dir, frame, pose, k){
   const cabeca = (hy, d) => { headDraw(cx, hy, d, skin, blink, v, hair, fx7); hairDraw(cx, hy, d, st, hair); if (pose.indexOf("messy") >= 0) cabeloBaguncado(cx, hy, st, hair); acessDraw(cx, hy, d, v); };
 
   if (dir === "up"){ // de costas (olhando a TV, no computador, na cadeira da frente da mesa)
-    const ty = by - 7 + b, hy = by - 16 + b;
+    const ty = by - 7 + b - dS, hy = by - 16 + b - dS;
     torso(ty, "up");
-    if (barr >= 2){ R(cx - 4, ty + 2, 1, 2, bcol); R(cx + 3, ty + 2, 1, 2, sh(bcol, -.22)); } // leva 7: a barriga aparece dos lados
-    R(cx - 4, by - 2, 8, 2, lap); R(cx - 4, by - 2, 8, 1, lapD); P(cx - 4, by - 1, lapD); P(cx + 3, by - 1, lapD); P(cx - 1, by - 1, lapL);
+    if (barr >= 2){ R(cx - 4 - g.e, ty + 2, 1, 2, bcol); R(cx + 3 + g.e, ty + 2, 1, 2, sh(bcol, -.22)); } // leva 7: a barriga aparece dos lados
+    R(cx - 4 - hq, by - 2, 8 + 2 * hq, 2, lap); R(cx - 4, by - 2, 8, 1, lapD); P(cx - 4, by - 1, lapD); P(cx + 3, by - 1, lapD); P(cx - 1, by - 1, lapL);
     for (const lado of [-1, 1]){
       const x0 = lado < 0 ? cx - ax : cx + ax - 1, mc = cMao(lado, manga), pele = lado < 0 ? skin : skD;
       if (act === "arms") continue;
@@ -165,10 +193,11 @@ function drawSentado(v, cx, by, dir, frame, pose, k){
     return;
   }
   // sentado fica 2px mais baixo que em pé: tronco de 4 linhas, colo de 2, canela de 1 e o pé
-  const ty = by - 7 + b, hy = by - 16 + b, ly = by - 4;
+  const ty = by - 7 + b - dS, hy = by - 16 + b - dS, ly = by - 4;
   if (dir === "left" || dir === "right"){ // de lado: coxa pra frente, canela descendo, pé apontando
     R(X(-5, 2), by - 2, 2, 1, perna); R(X(-6, 3), by - 1, 3, 1, shoe); P(X(-6, 1), by - 1, sh(shoe, -.15));
-    R(cx - 3, ty, 6, 4, top); P(X(-3, 1), ty, shL);
+    for (let r = 0; r < 4 + dS; r++) R(cx - 3, ty + r, 6, 1, top); P(X(-3, 1), ty, shL); // de lado: a largura é a mesma
+    if (g.w[2] > 3 || g.w[3] > 3) R(X(-4, 1), ty + 2, 1, 2, top); // maçã/cheinho: barriguinha pra frente
     if (tj === 3) R(X(0, 1), ty, 1, 3, cor); else if (tj === 4) R(X(1, 3), ty, 3, 2, shD); else if (tj === 1) R(cx - 3, ty + 3, 6, 1, corD);
     R(X(-5, 8), ly, 8, 2, lap); R(X(-5, 8), ly, 8, 1, lapL); P(X(-5, 1), ly + 1, lapD); R(X(2, 1), ly, 1, 2, lapD);
     if (tj === 1) R(X(-5, 1), ly + 2, 1, 1, cor); // vestido cai do joelho
@@ -186,15 +215,16 @@ function drawSentado(v, cx, by, dir, frame, pose, k){
   R(cx - 3, by - 2, 2, 1, perna); R(cx + 1, by - 2, 2, 1, perna);
   R(cx - 4, by - 1, 3, 1, shoe); R(cx + 1, by - 1, 3, 1, shoe); P(cx - 4, by - 1, sh(shoe, -.15)); P(cx + 3, by - 1, sh(shoe, -.15));
   torso(ty, "down");
-  R(cx - 4, ly, 8, 2, lap); R(cx - 4, ly, 8, 1, lapL); P(cx - 1, ly + 1, lapD); P(cx, ly + 1, lapD); P(cx - 4, ly + 1, lapD); P(cx + 3, ly + 1, lapD);
-  if (tj === 1 || tj === 7){ R(cx - 4, ly + 2, 8, 1, cor); R(cx - 3, ly + 2, 6, 1, corD); } // vestido cobre os joelhos
-  else if (tj === 2){ R(cx - 4, ly + 1, 8, 1, cor); R(cx - 4, ly + 2, 8, 1, corD); } // saia rodada por cima dos joelhos
+  const lw = 4 + hq;
+  R(cx - lw, ly, 2 * lw, 2, lap); R(cx - lw, ly, 2 * lw, 1, lapL); P(cx - 1, ly + 1, lapD); P(cx, ly + 1, lapD); P(cx - lw, ly + 1, lapD); P(cx + lw - 1, ly + 1, lapD);
+  if (tj === 1 || tj === 7){ R(cx - lw, ly + 2, 2 * lw, 1, cor); R(cx - lw + 1, ly + 2, 2 * lw - 2, 1, corD); } // vestido cobre os joelhos
+  else if (tj === 2){ R(cx - lw, ly + 1, 2 * lw, 1, cor); R(cx - lw, ly + 2, 2 * lw, 1, corD); } // saia rodada por cima dos joelhos
   if (barr){ // leva 7: barriga redondinha caindo por cima do colo
     const w = barr === 1 ? 4 : barr === 2 ? 6 : 8;
     R(cx - w / 2, ly, w, 1, bcol); if (barr >= 2) R(cx - w / 2 + 1, ly + 1, w - 2, 1, bcol);
     if (barr >= 3) R(cx - 3, ly + 2, 6, 1, sh(bcol, -.22)); else R(cx - w / 2 + 1, ly + (barr >= 2 ? 2 : 1), w - 2, 1, sh(bcol, -.22));
     R(cx - 2, ty + 2, 2, 1, sh(bcol, .3)); if (barr >= 2) P(cx - 2, ly, sh(bcol, .3));
-    if (barr >= 2){ R(cx - 5 - (barr > 2 ? 1 : 0), ty + 2, 1 + (barr > 2 ? 1 : 0), 2, bcol); R(cx + 4, ty + 2, 1 + (barr > 2 ? 1 : 0), 2, sh(bcol, -.22)); }
+    if (barr >= 2){ R(cx - 5 - g.e - (barr > 2 ? 1 : 0), ty + 2, 1 + (barr > 2 ? 1 : 0), 2, bcol); R(cx + 4 + g.e, ty + 2, 1 + (barr > 2 ? 1 : 0), 2, sh(bcol, -.22)); }
   }
   for (const lado of [-1, 1]){
     if (act === "arms") continue;

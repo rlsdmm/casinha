@@ -299,19 +299,19 @@ function avDe(id, j){
   const v = Object.assign({}, j, { barriga: b }); avCache[id] = { j, b, v }; return v;
 }
 // barriga em pé: de frente cai um pouquinho por cima da cintura; de lado aparece pra frente; de costas, só nos lados
-function barrigaEmPe(b, cx, ty, dir, X, col){
-  const cL = sh(col, .3), cD = sh(col, -.22);
+function barrigaEmPe(b, cx, ty, dir, X, col, g){
+  const cL = sh(col, .3), cD = sh(col, -.22), e = g ? g.e : 0; // leva 12b: corpo mais largo empurra a barriga pros lados
   if (dir === "left" || dir === "right"){
     R(X(-4, 1), ty + 2, 1, 3, col); if (b >= 2){ R(X(-5, 1), ty + 2, 1, 3, col); P(X(-4, 1), ty + 5, col); }
     if (b >= 3){ R(X(-6, 1), ty + 3, 1, 2, col); P(X(-5, 1), ty + 5, col); }
     P(X(-4, 1), ty + 2, cL); P(X(-3 - b, 1), ty + 4, cD);
   } else if (dir === "up"){
-    if (b >= 2){ P(cx - 4, ty + 5, col); P(cx + 3, ty + 5, cD); }
+    if (b >= 2){ P(cx - 4 - e, ty + 5, col); P(cx + 3 + e, ty + 5, cD); }
   } else {
     const w = b === 1 ? 4 : b === 2 ? 6 : 8;
     R(cx - w / 2, ty + 5, w, 1, col); R(cx - w / 2 + 1, ty + 6, w - 2, 1, cD);
     R(cx - 2, ty + 2, 2, 1, cL); if (b >= 2) P(cx - 2, ty + 3, cL);
-    if (b >= 2){ R(cx - 5 - (b > 2 ? 1 : 0), ty + 3, 1 + (b > 2 ? 1 : 0), 3, col); R(cx + 4, ty + 3, 1 + (b > 2 ? 1 : 0), 3, cD); } // aparece dos lados, por fora dos braços
+    if (b >= 2){ R(cx - 5 - e - (b > 2 ? 1 : 0), ty + 3, 1 + (b > 2 ? 1 : 0), 3, col); R(cx + 4 + e, ty + 3, 1 + (b > 2 ? 1 : 0), 3, cD); } // aparece dos lados, por fora dos braços
   }
 }
 function desejoAtual(){

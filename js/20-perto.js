@@ -982,7 +982,7 @@ function irVisitar(cod){
   if (visitando){ toast("Volte pra sua casa antes de visitar outra 😉"); return; }
   if (emViagem()){ toast("Vocês estão passeando de carro 🚗"); return; }
   const d = me.dados || {}, v = visual(d);
-  store.set("casinha-visita-eu", JSON.stringify({ de: sala, nome: d.nome, corpo: v.corpo, roupa: v.roupa, traje: v.traje, cabelo: v.cabelo, estilo: v.estilo, pele: v.pele, barba: v.barba, acess: v.acess, needs: me.needs, dinheiro: Math.floor(me.dinheiro) }));
+  store.set("casinha-visita-eu", JSON.stringify({ de: sala, nome: d.nome, corpo: v.corpo, roupa: v.roupa, traje: v.traje, cabelo: v.cabelo, estilo: v.estilo, pele: v.pele, barba: v.barba, acess: v.acess, forma: v.forma, altura: v.altura, fisico: v.fisico, needs: me.needs, dinheiro: Math.floor(me.dinheiro) }));
   closePanel();
   location.hash = cod + "?visita=" + sala;
 }
@@ -1011,7 +1011,7 @@ function entrarVisita(){
   const v = lerVisitante(); if (!v){ voltarPraCasa(); return; }
   visitaEntrando = true;
   const [x, y] = freeSpot();
-  const d = { nome: String(v.nome).slice(0, 16), corpo: v.corpo, roupa: v.roupa, traje: v.traje, cabelo: v.cabelo, estilo: v.estilo, pele: v.pele, barba: v.barba || 0, acess: v.acess,
+  const d = { nome: String(v.nome).slice(0, 16), corpo: v.corpo, roupa: v.roupa, traje: v.traje, cabelo: v.cabelo, estilo: v.estilo, pele: v.pele, barba: v.barba || 0, acess: v.acess, forma: v.forma || null, altura: v.altura || null, fisico: v.fisico || null,
     x, y, dir: "down", needs: v.needs || null, dinheiro: v.dinheiro || 0, visita: visitaDe, romance: false, online: true };
   ref("jogadores/" + pid).set(d).then(() => { historia("visita10_" + pid + "_" + hoje(), "🏡", d.nome + " veio visitar"); }, () => { visitaEntrando = false; toast("Não deu pra entrar agora."); });
 }

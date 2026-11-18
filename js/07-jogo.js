@@ -43,6 +43,7 @@ canvas.addEventListener("click", e => {
   const toque = toque0(e);
   const other = playerAt(p.x, p.y, toque ? 4 : 0);
   if (other) return socialMenu(other, p);
+  if (euAt12b(p, toque)) return; // leva 12b: tocar no próprio boneco abre "Me ver no espelho"
   if (petAt(p.x, p.y, toque ? 5 : 0)) return petMenu(p);
   if (leva9Click(p, tx, ty, toque)) return; // leva 9: presente embrulhado no chão
   if (leva5Click(p, tx, ty, toque)) return; // leva 5: visitas e sujeira
@@ -308,7 +309,7 @@ function renderHud(){
   $("meMood").textContent = mood();
   $("money").textContent = "$ " + Math.floor(me.dinheiro);
   const av = $("meAv"), x = av.getContext("2d"); x.imageSmoothingEnabled = false; x.clearRect(0, 0, 24, 24);
-  x.drawImage(avatarSprite(d, "down", 0, "stand").c, 0, 0, 18, 22, 3, 2, 18, 22);
+  x.drawImage(avatarSprite(d, "down", 0, "stand").c, 0, AV_Y0, 18, 22, 3, 2, 18, 22);
   const nb = $("needs");
   if (!nb.children.length) for (const n of NEEDS){
     const w = el("div", "need"); const r = el("div", "row"); r.append(el("span", null, n.nome), el("span", "v"));

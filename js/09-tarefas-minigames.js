@@ -468,7 +468,7 @@ function abrirJogo(id){
       for (const [p, lado] of [[pid, eu], [outro, eu === "a" ? "b" : "a"]]){
         const c = el("div", "pl" + (g.estado === "jogando" && g.vez === p ? " vez" : "")), av = el("canvas"), tx = el("div", "tx");
         av.width = 18; av.height = 22; const x = av.getContext("2d"); x.imageSmoothingEnabled = false;
-        x.drawImage(avatarSprite(jogadores[p] || {}, "down", 0, "stand").c, 0, 0, 18, 22, 0, 0, 18, 22);
+        x.drawImage(avatarSprite(jogadores[p] || {}, "down", 0, "stand").c, 0, AV_Y0, 18, 22, 0, 0, 18, 22);
         const pts = g["p" + lado] || 0;
         tx.append(el("strong", null, p === pid ? "Você" : nomeDe(p)), el("small", null, velha ? (lado === "a" ? "X" : "O") : pts + (pts === 1 ? " par" : " pares")));
         c.append(av, tx); placar.append(c);

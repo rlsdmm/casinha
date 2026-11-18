@@ -175,8 +175,8 @@ textarea{font:inherit;color:inherit;border:1.5px solid var(--line);background:va
 .trof.off strong{color:var(--muted)}
 /* Leva 3: criador com corpo, roupas e acessórios; clima; celular */
 .creator .cprev{display:flex;flex-direction:column;align-items:center;gap:6px;position:sticky;top:8px;z-index:2;background:var(--panel)}
-.creator canvas{width:240px;height:128px}
-@media (max-width:560px){.creator .cprev{top:0;width:100%;padding:6px 0;border-bottom:1px solid var(--line)}.creator canvas{width:180px;height:96px}}
+.creator #cPreview{width:240px;height:128px}
+@media (max-width:560px){.creator .cprev{top:0;width:100%;padding:6px 0;border-bottom:1px solid var(--line)}.creator #cPreview{width:180px;height:96px}}
 .cprev p{font-size:.8rem;min-height:1.2em}
 .opts .swatches .btn{min-height:44px}
 .opts .swatches .btn[aria-pressed=true]{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
@@ -385,3 +385,24 @@ body.visitando .modes,body.visitando #invite,body.visitando #invitePanel,body.vi
 .tracos12 .traco12[aria-pressed=true]{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
 .tracos12 .traco12.fosco{opacity:.5}
 @media (max-width:420px){.bts12{flex-direction:column}.bts12 .btn{width:100%}}
+
+/* leva 12b: espelho grande, prévia do criador, botões de corpo */
+.espBtn12b{padding:0;border:0;background:none;border-radius:12px;line-height:0}
+.creator #cEspelho,.espCanvas12b{width:288px;height:408px;image-rendering:pixelated;border-radius:12px;border:0;background:#221B33}
+.creator .cprev{flex-direction:column}
+.cprevLado{display:flex;flex-direction:column;align-items:center;gap:6px}
+.espGira12b{display:flex;align-items:center;justify-content:center;gap:10px}
+.espGira12b .btn{min-width:48px;min-height:44px;font-size:1.1rem}
+.espVista12b{min-width:9em;text-align:center;font-weight:800}
+.esp12b{align-items:center}
+.esp12b .hbtns{justify-content:center}
+.espLeg12b{font-weight:800;text-align:center;min-height:1.3em}
+.espPoses12b .btn[aria-pressed=true]{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.formas12b .btn{display:inline-flex;align-items:center;gap:6px}
+.ic12b,.creator .ic12b{width:21px;height:30px;image-rendering:pixelated;flex:none;border:0;border-radius:0;background:none}
+@media (max-width:560px){
+  .creator .cprev{flex-direction:row;justify-content:center;gap:12px}
+  .creator #cEspelho{width:192px;height:272px}
+  .creator .cprevLado #cPreview{width:120px;height:64px}
+}
+@media (max-width:360px){.espCanvas12b{width:192px;height:272px}}
