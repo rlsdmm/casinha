@@ -1,7 +1,7 @@
 "use strict";
 // Casinha · estado, caminhos (bfs), Firebase: boot, ouvintes e presença
 // ===================== estado =====================
-function salaFromHash(){ const h = decodeURIComponent(location.hash.replace(/^#/, "")).trim().toLowerCase(); return /^[a-z0-9-]{10,40}$/.test(h) ? h : null; }
+function salaFromHash(){ const h = decodeURIComponent(location.hash.replace(/^#/, "")).split("?")[0].trim().toLowerCase(); return /^[a-z0-9-]{10,40}$/.test(h) ? h : null; } // leva 10: "#casa?visita=minhacasa"
 let sala = null, fdb = null, salaRef = null, listeners = [];
 let pid = null;
 let moveis = {}, pisos = {}, jogadores = {};
@@ -57,10 +57,16 @@ function ref(p){ return salaRef.child(p); }
 function on(r, ev, fn){ r.on(ev, fn); listeners.push(() => r.off(ev, fn)); }
 function stop(){
   // leva 8: trocou de casa (hash) com o jogo aberto: sai da casa antiga em vez de ficar "online" lá até fechar a aba
-  if (me && salaRef && pid){ const r = ref("jogadores/" + pid + "/online"); r.onDisconnect().cancel().catch(() => {}); r.set(false).catch(() => {}); }
-  listeners.forEach(f => f()); listeners = []; moveis = {}; pisos = {}; jogadores = {}; me = null; disp = {};
+  // leva 10: desliga os ouvintes ANTES de marcar "fora" (senão o reparo de presença da leva 8 via o próprio online=false e voltava pra true)
+  const saindo = !!(me && salaRef && pid);
+  listeners.forEach(f => f()); listeners = [];
+  if (saindo){
+    if (visitando){ const r = ref("jogadores/" + pid); r.onDisconnect().cancel().catch(() => {}); r.remove().catch(() => {}); } // leva 10: visita não deixa rastro
+    else { const r = ref("jogadores/" + pid + "/online"); r.onDisconnect().cancel().catch(() => {}); r.set(false).catch(() => {}); }
+  }
+  moveis = {}; pisos = {}; jogadores = {}; me = null; disp = {};
   pet = null; jardim = {}; mural = {}; despensa = {}; pratos = {}; casaPronta = false; petCarregado = false; muralCarregado = false; muralAvisado = false; petView = null;
-  leva5Reset(); leva6Reset(); leva7Reset(); leva9Reset();
+  leva5Reset(); leva6Reset(); leva7Reset(); leva9Reset(); leva10Reset();
   if (typeof closePanel === "function") closePanel();
   // leva 2
   jogos = {}; stats = {}; conquistas = {}; cofre = {}; diario = {};
@@ -82,8 +88,11 @@ function boot(){
   if (!window.firebase){ showScreen("screenRoom"); toast("Não deu pra carregar o jogo. Confira a internet."); return; }
   if (!fdb){ firebase.initializeApp({ databaseURL: DB_URL }); fdb = firebase.database(); }
   salaRef = fdb.ref("salas/" + sala);
-  pid = store.get("casinha-pid-" + sala);
-  if (!pid){ pid = "p" + Math.random().toString(36).slice(2, 10); store.set("casinha-pid-" + sala, pid); }
+  if (leva10Boot()) return; // leva 10: visita (confere se a casa existe antes de entrar; a visita tem pid próprio)
+  if (!visitando){
+    pid = store.get("casinha-pid-" + sala);
+    if (!pid){ pid = "p" + Math.random().toString(36).slice(2, 10); store.set("casinha-pid-" + sala, pid); }
+  }
 
   salaSeed = [...sala].reduce((h, ch) => (Math.imul(h, 31) + ch.charCodeAt(0)) | 0, 7);
   // Cria a casa uma vez só. A transação fica numa folha (casa/criada), nunca no nó "casa" inteiro:
@@ -91,7 +100,7 @@ function boot(){
   // leva 9: decide por casa/criada (não por casa/moveis: uma casa com todos os móveis vendidos era recriada e o bichinho
   // voltava a ser o Pipoca). Casa antiga sem o marcador, mas com qualquer dado, ganha o marcador e não é recriada.
   const MARCAS_CASA = ["moveis", "pisos", "pet", "leva1", "stats", "nivel", "mural", "despensa", "cofre"];
-  Promise.all([ref("casa/criada").once("value")].concat(MARCAS_CASA.map(k => ref("casa/" + k).once("value")), [ref("jogadores").once("value")])).then(([cr, ...resto]) => {
+  if (!visitando) Promise.all([ref("casa/criada").once("value")].concat(MARCAS_CASA.map(k => ref("casa/" + k).once("value")), [ref("jogadores").once("value")])).then(([cr, ...resto]) => {
     if (cr.exists()) return;
     if (resto.some(s => s.exists())) return ref("casa/criada").transaction(cur => cur ? undefined : Date.now());
     return ref("casa/criada").transaction(cur => cur ? undefined : Date.now()).then(r => {
@@ -134,7 +143,7 @@ function boot(){
   on(ref("casa/pratos"), "value", s => { pratos = s.val() || {}; });
   on(ref("casa/mural"), "value", s => {
     const ant = mural; mural = s.val() || {};
-    if (muralCarregado && me) for (const [k, b] of Object.entries(mural)) if (!ant[k] && b && b.autor !== pid) toast((b.nome || "Alguém") + " deixou um bilhete no mural.");
+    if (muralCarregado && me) for (const [k, b] of Object.entries(mural)) if (!ant[k] && b && b.autor !== pid) { toast((b.nome || "Alguém") + " deixou um bilhete no mural."); avisar("mural", (b.nome || "Alguém") + " deixou um bilhete no mural 📌"); }
     muralCarregado = true; avisoMural(); refreshPanel("mural");
   });
   on(ref("casa/pisos"), "value", s => { pisos = s.val() || {}; });
@@ -162,7 +171,7 @@ function boot(){
     }
     const mine = jogadores[pid];
     // leva 8: nó sem nome (sobra de um onDisconnect depois de apagarem o jogador) = jogador novo, vai pro criador
-    if (!mine || !mine.nome){ if (!me && $("screenCreator").hidden) openCreator(); }
+    if (!mine || !mine.nome){ if (visitando) entrarVisita(); else if (!me && $("screenCreator").hidden) openCreator(); } // leva 10: visita entra com o visual que trouxe
     else if (!me) startMe(mine);
     else {
       me.dados = mine;
@@ -171,6 +180,7 @@ function boot(){
       if (mine.online === false && conectado && Date.now() - onlineReparo > 3000){ onlineReparo = Date.now(); setOnline(); }
     }
     // leva 8: cada passo de qualquer jogador chega aqui; junta os redesenhos do HUD num só
+    leva10Jogadores(ant); // leva 10: avisos de quem chegou
     agendarUI(renderPeople); agendarUI(renderHud); agendarUI(uiJogadores);
   });
   on(fdb.ref(".info/connected"), "value", s => { conectado = !!s.val(); if (conectado && me) setOnline(); });
@@ -178,6 +188,7 @@ function boot(){
   leva6Ouvir(); // paredes, decoração, nível do casal, loja da semana
   leva7Ouvir(); // namoro, gravidez e bebê
   leva9Ouvir(); // presentes, jantar, cinema, álbum, datas e história
+  leva10Ouvir(); // saudade, recados de voz, passeio, bairro
 }
 
 let conectado = false, onlineReparo = 0;

@@ -21,7 +21,7 @@ function tick(now){
   ultDraw = now;
   const dt = Math.min(.1, (now - last) / 1000); last = now;
   update(dt);
-  const a = performance.now(); draw(now); PERF.drawMs += performance.now() - a; PERF.draws++;
+  const a = performance.now(); if (!drawViagem(now)) draw(now); PERF.drawMs += performance.now() - a; PERF.draws++;
   hudT += dt; if (hudT > .25){ hudT = 0; renderHudLight(); }
 }
 // leva 8: só mexe no DOM quando o valor muda (evita recalcular estilo/layout 4x por segundo à toa)
@@ -96,6 +96,7 @@ function update(dt){
   leva5Update(dt); // passos, sons das ações, casa bagunçada
   leva7Update(dt); // namoro (corações, toc toc), gravidez (cansaço), choro do bebê
   leva9Update(dt); // jantar (corações), cinema (sons das reações)
+  leva10Update(dt); // leva 10: card da viagem, barra da visita
   if (performance.now() - lastSave > 4000){ lastSave = performance.now(); saveNeeds(false); }
 }
 
@@ -167,6 +168,7 @@ function draw(now){
   addLeva5Objs(objs, tm); // leva 5: visitas e louça na pia
   addLeva7Objs(objs, tm); // leva 7: coberta/espuma/manta do namoro, roupas, berço com o bebê, teste de farmácia
   addLeva9Objs(objs, tm); // leva 9: presentes embrulhados, toalha e velas, tela do cinema, festa do dia especial
+  addLeva10Objs(objs, tm); // leva 10: pelúcias de quem saiu, carrinho, luzinha do telefone
   if (escadaOn || andarAtual === 1) objs.push({ z: ESC_Z, f: blitEscada }); // leva 4: escada / guarda-corpo do vão
   const labels = [], lights = [];
   if (andarAtual === 1){ for (const [k, d] of Object.entries(DECOR2)) if (d === "arandela"){ const [x, y] = k.split(",").map(Number); lights.push([x * T + 8, y * T + 9, 30, "255,214,150", .95]); } }
@@ -182,9 +184,11 @@ function draw(now){
   leva6Luzes(lights, ativo, tm); // leva 6: luzinhas, neon, lareira, luminárias novas
   leva7Luzes(lights, tm); // leva 7: abajur baixinho no namoro
   leva9Luzes(lights, tm); // leva 9: velas do jantar, sala escura no cinema
+  leva10Luzes(lights, tm); // leva 10: luzinha do telefone com recado novo
   for (const [id, j] of Object.entries(jogadores)){
     if (!j.nome) continue;
     if (id !== pid && (j.andar || 0) !== andarAtual) continue; // leva 4: cada um vê só o próprio andar
+    if (leva10Esconde(id, j)) continue; // leva 10: quem saiu vira pelúcia (addLeva10Objs); quem foi passear não está em casa
     let x, y, dir = j.dir || "down", moving = false, acao = j.acao;
     if (id === pid){ if (!me) continue; x = me.px; y = me.py; dir = me.dir; moving = me.path.length > 0; acao = me.acao; }
     else { const d = disp[id]; if (!d) continue; x = d.x; y = d.y; moving = d.moving; if (acao && tm - acao.ini > acao.dur + 3000) acao = null; }
@@ -358,7 +362,7 @@ function draw(now){
   for (const L of labels.slice().sort((a, b) => b.by - a.by || a.cx - b.cx)){
     L.sx = L.cx * K; L.top = (L.by - (L.deitado ? 12 : 27)) * K;
     if (L.some || mode !== "live") continue;
-    L.nm = L.j.nome + (L.off ? " · fora" : "");
+    L.nm = L.j.nome + (L.j.visita ? " · visita" : "") + (L.off ? " · fora" : ""); // leva 10: crachá de visita
     const w = mctx.measureText(L.nm).width + 6 * dpr, x0 = L.sx - w / 2, x1 = L.sx + w / 2;
     for (let i = 0; i < 4; i++){
       const bate = postos.find(r => x0 < r[1] && x1 > r[0] && L.top > r[2] - fs * .95 && L.top - fs * .95 < r[2]);
@@ -397,6 +401,7 @@ function draw(now){
   drawVisitaLabels(mctx, K, fs, tm); // leva 5
   drawLabels7(mctx, K, fs, tm); // leva 7: "buá!" do bebê
   drawLabels9(mctx, K, fs, tm); // leva 9: balões do jantar, reações do cinema, "!" no presente
+  drawLabels10(mctx, K, fs, tm); // leva 10: nome da pelúcia, "foram à praia", telefone com recado
   for (const L of labels){ if (L.acao && /^s-(beijo|abracar)/.test(L.acao.id || "") && Math.random() < .04) burst(L.cx / T - .5, L.by / T - 1, "heart"); }
 }
 

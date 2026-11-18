@@ -517,6 +517,7 @@ function avisoVisita(v){
   const txt = v.tipo === "vizinho" ? (v.pedido === "bolo" ? "Dona Cida, a vizinha, bateu na porta com um bolo!" : "Dona Cida, a vizinha, bateu na porta pra pedir " + PEDIDOS[v.pedido] + ".")
     : v.tipo === "carteiro" ? "O carteiro chegou com um pacote!" : gatoAmigo() ? "O Mingau veio visitar " + lugar + "!" : "Apareceu um gatinho de rua " + lugar + ".";
   toast(txt + (andarAtual ? " (lá embaixo)" : ""));
+  avisar("visita", txt); // leva 10
   sfx(v.tipo === "gato" ? "miau" : "toc"); setTimeout(() => sfx("notif", .7), 500);
 }
 function vigiarVisita(){

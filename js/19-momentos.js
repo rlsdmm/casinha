@@ -32,7 +32,7 @@ const L9 = { get presentes(){ return presentes; }, get encontros(){ return encon
 Object.assign(SFX_MIN, { foto: 600, papel: 500, pipoca: 250, susto: 900, fosforo: 900 });
 
 const nomeEu9 = () => (me && me.dados && me.dados.nome) || "Alguém";
-const outrosJog = () => Object.entries(jogadores).filter(([id, j]) => id !== pid && j && j.nome);
+const outrosJog = () => Object.entries(jogadores).filter(([id, j]) => id !== pid && j && j.nome && !j.visita); // leva 10: visita não é moradora
 const pad2 = n => String(n).padStart(2, "0");
 function historia(chave, emoji, texto, extra){
   if (!salaRef) return Promise.resolve(false);
@@ -271,7 +271,7 @@ function aoMudarPresentes(novo){
   const ant = presentes; presentes = novo;
   if (prCarregado && me) for (const [id, g] of Object.entries(novo)){
     if (!g) continue; const a = ant[id];
-    if (!a && g.para === pid && !g.aberto){ toast("Tem um presente pra você 🎁 (de " + nomeDe(g.de) + ")"); sfx("notif"); }
+    if (!a && g.para === pid && !g.aberto){ toast("Tem um presente pra você 🎁 (de " + nomeDe(g.de) + ")"); sfx("notif"); avisar("presente", nomeDe(g.de) + " te deu um presente 🎁"); }
     if (a && !a.aberto && g.aberto){
       if (g.para !== pid && (g.andar || 0) === andarAtual) efeitoAbrir(g, false);
       if (g.de === pid && g.para !== pid) toast(nomeDe(g.para) + " abriu seu presente " + presenteDef(g).ic + " 💞");

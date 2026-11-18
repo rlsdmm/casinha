@@ -430,9 +430,11 @@ function renderBannerJogo(){
   }
   if (!partes){ const b7 = bannerLeva7(); if (b7){ key = b7.key; partes = b7.partes; } } // leva 7: convite pra namorar, bebê
   if (!partes){ const b9 = bannerLeva9(); if (b9){ key = b9.key; partes = b9.partes; } } // leva 9: convite pro jantar, filme passando
+  if (!partes){ const b10 = bannerLeva10(); if (b10){ key = b10.key; partes = b10.partes; } } // leva 10: convite pro passeio de carro
   if (key === bannerKey) return; bannerKey = key;
   b.className = "banner jogo"; b.textContent = ""; b.hidden = !partes;
   if (partes) b.append(...partes());
+  if (partes && /^[cnjp]/.test(key)){ const sp = b.querySelector("span"); avisar("convite", (sp || b).textContent); } // leva 10: convite (jogo, namoro, jantar, cinema, passeio)
 }
 function abrirJogo(id){
   const g0 = jogos[id];

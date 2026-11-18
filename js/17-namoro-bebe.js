@@ -28,7 +28,7 @@ let nmTx = {}, nmFeito = {}, nmSpots = {}, nmBeijou = {}, nmFalou = {}, nmSom = 
 let gvTentou = 0, nasceuTentou = 0, quemAberto = false, bbChoroSom = 0, bbChorava = false, bbVoltou = 0, bbColoLimpo = false, bebeView = null;
 Object.assign(SFX_MIN, { cabeceira: 600, choro: 4000, chute: 400, risada: 1200 });
 
-const romanceOk = id => !!jogadores[id] && jogadores[id].romance !== false;
+const romanceOk = id => !!jogadores[id] && jogadores[id].romance !== false && !jogadores[id].visita; // leva 10: visita não namora
 function namoroDe(p){ return Object.entries(namoros).find(([, g]) => g && (g.estado === "convite" || g.estado === "aceito") && (g.a === p || g.b === p)) || null; }
 // fase do namoro a partir de ini (relógio do servidor): paquera → clima → abraçadinhos → fim
 function nmFase(g, t){
@@ -556,7 +556,7 @@ function vigiarBebe(){
   if (!me || !bbCarregado || !bebe) return;
   if (!bbColoLimpo){ bbColoLimpo = true; if (bebe.colo === pid && !(me.acao && /^bebe-/.test(me.acao.id))) ref("casa/bebe/colo").set(null).catch(() => {}); } // recarregou a página: o bebê volta pro berço
   const est = bebeEstado(srvNow()), chora = !!est && est.k === "chora";
-  if (chora && !bbChorava && (bebe.pais || {})[pid]){ const falta = Object.entries(est.n).sort((a, b) => a[1] - b[1])[0][0]; toast((bebe.nome || "O bebê") + " está chorando 😢 " + { fome: "Acho que é fome.", fralda: "Hora de trocar a fralda.", carinho: "Quer um colinho." }[falta]); }
+  if (chora && !bbChorava && (bebe.pais || {})[pid]){ const falta = Object.entries(est.n).sort((a, b) => a[1] - b[1])[0][0]; toast((bebe.nome || "O bebê") + " está chorando 😢 " + { fome: "Acho que é fome.", fralda: "Hora de trocar a fralda.", carinho: "Quer um colinho." }[falta]); avisar("bebe", (bebe.nome || "O bebê") + " está chorando 😢"); }
   bbChorava = chora;
 }
 function leva7Update(dt){

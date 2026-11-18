@@ -37,9 +37,10 @@ canvas.addEventListener("click", e => {
   if (!me) return;
   const p = worldFromEvent(e), tx = Math.floor(p.x / T), ty = Math.floor(p.y / T);
   closeMenu();
+  if (leva10Click(p, tx, ty, toque0(e))) return; // leva 10: viagem de carro, pelúcia de quem saiu, carrinho
   if (mode === "build"){ hover = { x: tx, y: ty }; buildClick(tx, ty, p); return; }
   // no toque (dedo), alvos pequenos (pessoa, bichinho, mural, troféus, placa) aceitam um raio maior
-  const toque = e.pointerType === "touch" || e.pointerType === "pen" || (!e.pointerType && window.matchMedia && matchMedia("(pointer: coarse)").matches);
+  const toque = toque0(e);
   const other = playerAt(p.x, p.y, toque ? 4 : 0);
   if (other) return socialMenu(other, p);
   if (petAt(p.x, p.y, toque ? 5 : 0)) return petMenu(p);
@@ -59,6 +60,7 @@ canvas.addEventListener("click", e => {
   if (walkable(tx, ty)) goTo(() => tx === me.tx && ty === me.ty ? true : null, (x, y) => x === tx && y === ty, null);
 });
 
+function toque0(e){ return e.pointerType === "touch" || e.pointerType === "pen" || (!e.pointerType && !!window.matchMedia && matchMedia("(pointer: coarse)").matches); }
 function openMenu(p, titulo, items){
   closeMenu();
   const m = el("div", "menu"); m.setAttribute("role", "menu");
@@ -329,13 +331,13 @@ function renderHud(){
 }
 function renderPeople(){
   const box = $("people");
-  const sig = JSON.stringify(Object.entries(jogadores).map(([id, j]) => [id, j.nome, j.online, j.roupa, j.andar || 0])) + pid + andarAtual + !!me;
+  const sig = JSON.stringify(Object.entries(jogadores).map(([id, j]) => [id, j.nome, j.online, j.roupa, j.andar || 0, j.visita || 0])) + pid + andarAtual + !!me;
   if (box.dataset.sig === sig) return; // leva 8: não refaz os chips a cada passo
   box.dataset.sig = sig; box.innerHTML = "";
   for (const [id, j] of Object.entries(jogadores)){
     const c = el("span", "chip" + (j.online ? "" : " off")); const sw = el("span", "sw"); sw.style.background = ROUPAS[j.roupa] || ROUPAS[0];
     const outroAndar = id !== pid && j.online && me && (j.andar || 0) !== andarAtual; // leva 4
-    c.append(sw, (j.nome || "Alguém") + (id === pid ? " (você)" : "") + (j.online ? (outroAndar ? " · " + ondeTxt(j.andar || 0) : "") : " · fora"));
+    c.append(sw, (j.nome || "Alguém") + (id === pid ? " (você)" : "") + (j.visita ? " · visita" : "") + (j.online ? (outroAndar ? " · " + ondeTxt(j.andar || 0) : "") : " · fora")); // leva 10: crachá de visita
     box.append(c);
   }
 }
