@@ -5,8 +5,8 @@
   VERSÃO (quebra o cache do GitHub Pages): a cada publicação, troque o número em TODOS os "?v=N" desta página,
   no <meta name="casinha-versao"> e no arquivo version.txt (o mesmo número nos três). Quem estiver com a página
   aberta numa versão velha vê o aviso "Tem versão nova" (o jogo confere version.txt de tempos em tempos).
-  Ex.: busca e troca de "?v=11" por "?v=12", content="11" por content="12", e version.txt = 12.
-  ORDEM: 19-momentos.js, 20-perto.js e 21-construir.js vêm antes do 18-laco.js (o laço chama os ganchos da leva 9 e o boot() roda no fim do 18).
+  Ex.: busca e troca de "?v=12" por "?v=13", content="12" por content="13", e version.txt = 13.
+  ORDEM: 19-momentos.js, 20-perto.js, 21-construir.js e 22-vida.js vêm antes do 18-laco.js (o laço chama os ganchos da leva 9 e o boot() roda no fim do 18).
 -->
 <html lang="pt-BR">
 <head>
@@ -18,8 +18,8 @@
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' shape-rendering='crispEdges'%3E%3Crect x='2' y='7' width='12' height='8' fill='%23E7A3B8'/%3E%3Crect x='1' y='6' width='14' height='2' fill='%235246B0'/%3E%3Crect x='3' y='4' width='10' height='2' fill='%235246B0'/%3E%3Crect x='5' y='2' width='6' height='2' fill='%235246B0'/%3E%3Crect x='7' y='10' width='3' height='5' fill='%237A5A3E'/%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Pixelify+Sans:wght@500;700&family=Nunito:wght@500;700;800&display=swap">
-<meta name="casinha-versao" content="11">
-<link rel="stylesheet" href="css/estilo.css?v=11">
+<meta name="casinha-versao" content="12">
+<link rel="stylesheet" href="css/estilo.css?v=12">
 </head>
 <body>
 <div class="wrap">
@@ -59,6 +59,8 @@
         <span class="lbl" id="lCabelo">Cor do cabelo</span><div class="swatches" id="swCabelo" role="group" aria-labelledby="lCabelo"></div>
         <span class="lbl" id="lAcess">Acessório</span><div class="swatches" id="swAcess" role="group" aria-labelledby="lAcess"></div>
         <span class="lbl" id="lPele">Pele</span><div class="swatches" id="swPele" role="group" aria-labelledby="lPele"></div>
+        <span class="lbl" id="lTracos">Jeito de ser · 0/3</span><div class="tracos12" id="swTracos" role="group" aria-labelledby="lTracos"></div>
+        <p class="muted" id="cTracoTx" aria-live="polite">Escolha 3 traços. Toque num pra ver o que ele muda.</p>
         <p class="muted" id="cDica"></p>
         <div class="cbtns"><button class="btn" type="button" id="cGo">Entrar na casa</button><button class="btn ghost" type="button" id="cBack" hidden>Voltar</button></div>
       </div>
@@ -97,8 +99,10 @@
         <div class="card">
           <div class="me"><canvas id="meAv" width="24" height="24"></canvas>
             <div><p class="nm" id="meName"></p><p class="muted" id="meMood"></p><p class="money" id="money"></p></div>
+            <button class="btn ghost small vidabtn" type="button" id="bVida" aria-label="Meu jeito: humor, traços, desejos e habilidades">✨ Eu</button>
           </div>
           <div class="status" id="status"></div>
+          <div class="fila12" id="fila12" hidden role="group" aria-label="Fila de ações"></div>
           <form class="talk" id="talk"><input type="text" id="say" maxlength="60" placeholder="Falar algo..." aria-label="Mensagem"><button class="btn small" type="submit">Falar</button></form>
         </div>
         <div class="card">
@@ -136,26 +140,27 @@
 
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
-<script src="js/01-base.js?v=11"></script>
-<script src="js/02-arte-moveis.js?v=11"></script>
-<script src="js/03-arte-boneco.js?v=11"></script>
-<script src="js/04-cenario.js?v=11"></script>
-<script src="js/05-firebase.js?v=11"></script>
-<script src="js/06-criador.js?v=11"></script>
-<script src="js/07-jogo.js?v=11"></script>
-<script src="js/08-casa.js?v=11"></script>
-<script src="js/09-tarefas-minigames.js?v=11"></script>
-<script src="js/10-clima.js?v=11"></script>
-<script src="js/11-andar2.js?v=11"></script>
-<script src="js/12-sons.js?v=11"></script>
-<script src="js/13-truques-sujeira-visitas.js?v=11"></script>
-<script src="js/14-paredes-nivel-loja.js?v=11"></script>
-<script src="js/15-moveis-novos.js?v=11"></script>
-<script src="js/16-minigames-novos.js?v=11"></script>
-<script src="js/17-namoro-bebe.js?v=11"></script>
-<script src="js/19-momentos.js?v=11"></script>
-<script src="js/20-perto.js?v=11"></script>
-<script src="js/21-construir.js?v=11"></script>
-<script src="js/18-laco.js?v=11"></script>
+<script src="js/01-base.js?v=12"></script>
+<script src="js/02-arte-moveis.js?v=12"></script>
+<script src="js/03-arte-boneco.js?v=12"></script>
+<script src="js/04-cenario.js?v=12"></script>
+<script src="js/05-firebase.js?v=12"></script>
+<script src="js/06-criador.js?v=12"></script>
+<script src="js/07-jogo.js?v=12"></script>
+<script src="js/08-casa.js?v=12"></script>
+<script src="js/09-tarefas-minigames.js?v=12"></script>
+<script src="js/10-clima.js?v=12"></script>
+<script src="js/11-andar2.js?v=12"></script>
+<script src="js/12-sons.js?v=12"></script>
+<script src="js/13-truques-sujeira-visitas.js?v=12"></script>
+<script src="js/14-paredes-nivel-loja.js?v=12"></script>
+<script src="js/15-moveis-novos.js?v=12"></script>
+<script src="js/16-minigames-novos.js?v=12"></script>
+<script src="js/17-namoro-bebe.js?v=12"></script>
+<script src="js/19-momentos.js?v=12"></script>
+<script src="js/20-perto.js?v=12"></script>
+<script src="js/21-construir.js?v=12"></script>
+<script src="js/22-vida.js?v=12"></script>
+<script src="js/18-laco.js?v=12"></script>
 </body>
 </html>

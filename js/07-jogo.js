@@ -27,7 +27,7 @@ function furnAt(tx, ty){
   let found = occ[ty] && occ[ty][tx];
   if (found) return found;
   // móveis altos: toque um tile acima também conta
-  if (occ[ty + 1] && occ[ty + 1][tx] && ["geladeira", "estante", "armario", "tv", "pc", "som", "canteiro"].includes((moveis[occ[ty + 1][tx]] || {}).t)) return occ[ty + 1][tx];
+  if (occ[ty + 1] && occ[ty + 1][tx] && ["geladeira", "geladeiraG", "estante", "armario", "tv", "tvG", "pc", "som", "canteiro", "violao", "cavalete"].includes(baseT((moveis[occ[ty + 1][tx]] || {}).t || "")) /* leva 12: girados também */) return occ[ty + 1][tx];
   return null;
 }
 

@@ -693,13 +693,10 @@ function menuMovelBuild(f, p){
   openMenu(p, c.nome, items);
 }; }
 // TV grande (e TV comum com sofá grande na frente): assiste sentado no sofá
-function sofaDaTela(m){
-  const c = CAT[m.t];
-  return Object.keys(moveis).filter(k => { const s = moveis[k]; return (s.t === "sofa" || s.t === "sofaG") && s.y > m.y && s.y - m.y <= 7 && s.x < m.x + c.w && s.x + CAT[s.t].w > m.x; }).sort()[0] || null;
-}
+function sofaDaTela(m){ return sofaDaTv(m); } // leva 12: sofaDaTv já vê TV grande/girada e sofá grande/girado
 { const f0 = useFurn; useFurn = function(id, a){
   const m = moveis[id];
-  if (m && a && a.id === "tv" && !a.tela && (m.t === "tvG" || m.t === "tv")){ const s = sofaDaTela(m); if (s) return f0(s, Object.assign({}, a, { tela: id, cima: 1, sobre: 1 })); }
+  if (m && a && a.id === "tv" && !a.tela && ["tv", "tvG"].includes(baseT(m.t))){ const s = sofaDaTela(m); if (s) return f0(s, Object.assign({}, a, { tela: id, cima: 1, sobre: 1 })); }
   return f0(id, a);
 }; }
 // fogão: o ritmo da receita depende da versão

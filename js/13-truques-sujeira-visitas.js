@@ -200,7 +200,7 @@ function sujar(n){
 // depois de cozinhar: louça na pia mais perto do fogão
 function sujarLouca(fogaoId){
   const f = moveis[fogaoId]; if (!f) return;
-  const pias = Object.entries(moveis).filter(([, m]) => m.t === "pia").sort((a, b) => Math.hypot(a[1].x - f.x, a[1].y - f.y) - Math.hypot(b[1].x - f.x, b[1].y - f.y));
+  const pias = Object.entries(moveis).filter(([, m]) => baseT(m.t) === "pia").sort((a, b) => Math.hypot(a[1].x - f.x, a[1].y - f.y) - Math.hypot(b[1].x - f.x, b[1].y - f.y));
   if (!pias.length) return;
   const [pk, pm] = pias[0];
   txn("casa/sujeira/l" + pk, cur => cur ? undefined : { tipo: "louca", x: pm.x, y: pm.y, andar: pm.andar || 0, mov: pk, criada: srvNow(), v: 0 });

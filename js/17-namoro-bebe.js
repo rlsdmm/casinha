@@ -207,6 +207,7 @@ function vigiarNamoro(){
 // posição e carinha de quem está namorando (no laço de desenho)
 function namoroPose(id, acao, m, tm, pisca){
   const ng = namoroDe(id), grp = NM_GRUPO[m.t]; if (!ng || ng[1].mov !== acao.mov || !grp) return null;
+  if (CAT[m.t] && CAT[m.t].virt) return null; // leva 12: girado: deita/senta nas vagas do móvel girado (laço)
   const g = ng[1], lado = id === g.a ? -1 : 1, F = nmFase(g, srvNow()), f = F ? (F.f === "fim" ? "dep" : F.f) : "esp";
   const x0 = m.x * T, y0 = m.y * T, meio = x0 + CAT[m.t].w * T / 2;
   const beijo = f === "paq" && F.d > 2300 && F.d < 3700;
@@ -224,6 +225,7 @@ function namoroPose(id, acao, m, tm, pisca){
 }
 // o que cobre os dois: coberta ondulando (cama), manta (sofá e rede), espuma subindo (banheira). Só as cabeças aparecem.
 function drawCoberta7(m, f, F, tm){
+  if (CAT[m.t] && CAT[m.t].virt) return; // leva 12: girado não tem coberta desenhada
   const x = m.x * T, y = m.y * T, grp = NM_GRUPO[m.t], OL = "#2D1C30";
   if (grp === "cama"){
     if (f !== "dur") return;
@@ -326,7 +328,7 @@ function drawDesejo(cx, y, rk, tm){
 const testeSpr = () => sprite("testeFarmacia", 9, 3, (ox, oy) => { R(ox, oy, 9, 3, "#FFFFFF"); R(ox, oy, 3, 3, C.sky); R(ox + 4, oy + 1, 4, 1, "#F4F1FA"); P(ox + 5, oy + 1, "#E8607A"); P(ox + 7, oy + 1, "#E8607A"); R(ox + 3, oy + 2, 6, 1, "#E6E2F0"); });
 function testeVisivel(){ const g = gravidez; if (!g || !g.ini) return false; const t = srvNow(); return t >= g.ini + GV_POS && t < g.ini + GV_POS + 24 * HORA; }
 function piaDoTeste(){
-  const pias = Object.keys(moveis).filter(k => moveis[k].t === "pia").sort();
+  const pias = Object.keys(moveis).filter(k => baseT(moveis[k].t) === "pia").sort();
   return pias.find(k => /banheiro|lavabo|lavanderia/.test(tipoC(comodo(moveis[k].x, moveis[k].y)))) || pias[0] || null;
 }
 { const base = MENU_EXTRA.pia; MENU_EXTRA.pia = (id, m) => { const l = base(id, m); if (testeVisivel() && piaDoTeste() === id) l.unshift({ nome: "Olhar o teste de farmácia", info: "🍼", fn: () => toast("Dois risquinhos cor-de-rosa: positivo! 🍼") }); return l; }; }
@@ -369,7 +371,7 @@ function bercoId(){ return Object.keys(todosMoveis).filter(k => todosMoveis[k] &
 function garantirBerco(){
   if (bercoId()) return;
   // leva 8: prefere a cama de casal do andar onde está quem teve o bebê (antes pegava a primeira da lista, às vezes a do outro andar)
-  const camas = Object.values(todosMoveis).filter(m => m && (m.t === "casal" || m.t === "dossel"));
+  const camas = Object.values(todosMoveis).filter(m => m && ["casal", "dossel"].includes(baseT(m.t)));
   const cama = camas.find(m => (m.andar || 0) === andarAtual) || camas[0];
   const andar = cama && cama.andar === 1 && temAndar2() ? 1 : 0;
   const pos = noAndar(andar, () => cama && (cama.andar || 0) === andar ? lugarPerto("berco", cama.x + 3, cama.y + 1) : lugarPerto("berco", 3, 3));

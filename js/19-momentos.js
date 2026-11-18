@@ -127,7 +127,7 @@ function spotPresente(){
     const usados = {};
     for (const g of Object.values(presentes)) if (g && !g.aberto && (g.andar || 0) === n){ const k = g.x + "," + g.y; usados[k] = (usados[k] || 0) + 1; }
     const ok = (x, y) => walkable(x, y) && MAP[y][x] === 0 && !naEscada(x, y) && !(n === 0 && escadaOn && naLista(PE_ESCADA, x, y)) && (usados[x + "," + y] || 0) < 3;
-    const camas = Object.values(moveis).filter(m => m.t === "casal" || m.t === "dossel" || m.t === "solteiro").sort((a, b) => (a.t === "solteiro") - (b.t === "solteiro"));
+    const camas = Object.values(moveis).filter(m => ["casal", "dossel", "solteiro"].includes(baseT(m.t))).sort((a, b) => (baseT(a.t) === "solteiro") - (baseT(b.t) === "solteiro")); // leva 12: girada também
     let cands = [];
     for (const c of camas){ const perto = adjTo(c), cc = CAT[c.t]; for (let y = c.y - 1; y <= c.y + cc.h; y++) for (let x = c.x - 1; x <= c.x + cc.w; x++) if (perto(x, y) && ok(x, y)) cands.push([x, y]); }
     if (!cands.length) for (let y = 1; y < H - 1; y++) for (let x = 1; x < W - 1; x++) if (ok(x, y) && comodo(x, y) !== "quintal") cands.push([x, y]);

@@ -13,7 +13,7 @@ function itensPagos(c){
 }
 function openCreator(edit){
   const d = edit && me ? me.dados : null;
-  if (d) creator = Object.assign({ nome: d.nome || "", sorteado: true }, visual(d));
+  if (d) creator = Object.assign({ nome: d.nome || "", sorteado: true, tracos: tracosDe(d) }, visual(d)); // leva 12: traços
   else if (!creator.sorteado){
     const rnd = n => Math.floor(Math.random() * n), gratis = TRAJES.map((t, i) => t.preco || t.nivel ? -1 : i).filter(i => i >= 0);
     Object.assign(creator, { sorteado: true, corpo: "neutro", barba: 0, acess: 0, roupa: rnd(ROUPAS.length), cabelo: rnd(6), estilo: rnd(ESTILOS.length), pele: rnd(PELES.length), traje: gratis[rnd(gratis.length)] });
@@ -58,6 +58,7 @@ function montarCriador(){
   const novos = itensPagos(creator).filter(([k]) => !guardaDe()[k]), custo = novos.reduce((s, x) => s + x[1], 0);
   $("cDica").textContent = ed ? (custo ? "Peça nova: " + novos.map(x => x[2]).join(" e ") + " por $" + custo + ". Você tem $" + Math.floor(me ? me.dinheiro : 0) + ". Paga uma vez só." : "Quase tudo é de graça. Peças com preço você paga uma vez só.")
     : "Dá pra trocar tudo depois no guarda-roupa. Peças com 🔒 se compram lá.";
+  montarTracos(); // leva 12: 3 traços de personalidade
   drawCreator();
 }
 // prévia de frente, de lado e de costas, alternando parado, andando e dançando
@@ -87,7 +88,9 @@ $("cGo").onclick = () => {
   const travado = [[TRAJES[v.traje], "roupa"], [ACESS[v.acess], "acessório"]].find(([it]) => it && it.nivel && nivelCasal() < it.nivel); // leva 6
   if (travado){ toast("Esse " + travado[1] + " libera no nível " + travado[0].nivel + " do casal."); return; }
   if (ACESS[v.acess] && ACESS[v.acess].presente && !guardaDe()["acess-" + v.acess]){ toast("Esse acessório só ganhando de presente 🎁"); return; } // leva 9
-  const base = { nome, roupa: v.roupa, cabelo: v.cabelo, estilo: v.estilo, pele: v.pele, corpo: v.corpo, traje: v.traje, barba: v.barba, acess: v.acess };
+  const tr = (creator.tracos || []).filter(k => TRACOS[k]); // leva 12: 3 traços de personalidade
+  if (tr.length !== 3){ toast("Escolha 3 traços do jeito de ser (faltam " + (3 - tr.length) + ")."); const b = $("swTracos"); if (b) b.scrollIntoView({ block: "center", behavior: "smooth" }); return; }
+  const base = { nome, roupa: v.roupa, cabelo: v.cabelo, estilo: v.estilo, pele: v.pele, corpo: v.corpo, traje: v.traje, barba: v.barba, acess: v.acess, tracos: tr.slice(0, 3) };
   if (creatorEdit && me){
     const novos = itensPagos(v).filter(([k]) => !guardaDe()[k]), custo = novos.reduce((s, x) => s + x[1], 0);
     if (custo && !gastar(custo, "o visual novo")) return;

@@ -352,4 +352,36 @@ body.visitando .modes,body.visitando #invite,body.visitando #invitePanel,body.vi
 .obraBox .rowi select{min-height:44px;border-radius:10px;border:1.5px solid var(--line);background:var(--panel-2);color:var(--fg);font:inherit;font-weight:700;padding:0 8px;max-width:52%}
 .obraBox .escolha{width:100%}
 .ajuda11{font-size:.85rem;font-weight:700;color:var(--money)}
-.vh{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.vh{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}/* leva 12: vida própria (fila, humor, traços, desejos, habilidades, quadros) */
+.me>div{min-width:0}
+.vidabtn{margin-left:auto;min-height:44px;flex-shrink:0;align-self:flex-start}
+#meMood{font-weight:700}
+#meAv{cursor:pointer}
+.fila12{display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-top:8px}
+.fila12b{position:relative;width:44px;height:44px;border-radius:12px;border:1.5px solid var(--line);background:var(--bg);font-size:1.25rem;display:grid;place-items:center;padding:0;color:var(--fg);line-height:1}
+.fila12b.atual{border-color:var(--accent);background:var(--panel-2);box-shadow:0 0 0 2px rgba(142,124,240,.35)}
+.fila12b .x{position:absolute;top:-6px;right:-6px;width:20px;height:20px;border-radius:10px;background:var(--bad);color:#fff;font-size:.8rem;font-weight:800;display:grid;place-items:center;line-height:1}
+.fila12 .seta12{color:var(--muted);font-weight:800}
+.tabs12{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px;position:sticky;top:40px;z-index:1;background:var(--panel);padding-bottom:4px}
+.tab12{min-height:44px;border:1.5px solid var(--line);background:transparent;border-radius:12px;font-weight:800;color:var(--muted);padding:4px 2px;font-size:.84rem;min-width:0;overflow:hidden;text-overflow:ellipsis}
+.tab12[aria-selected=true]{border-color:var(--accent);color:var(--fg);background:var(--panel-2)}
+.vida12{display:flex;flex-direction:column;gap:10px}
+.vida12 h3{margin:4px 0 0}
+.humor12{display:flex;align-items:center;gap:12px;padding:10px 12px;border-radius:14px;background:var(--bg);border:2px solid var(--line)}
+.humor12 .em{font-size:2.2rem;line-height:1}
+.humor12 strong{font-size:1.15rem}
+.humor12 p{margin:4px 0 0;font-size:.82rem}
+.esq12{display:flex;align-items:center;gap:10px;min-width:0;flex:1}
+.ic12{font-size:1.4rem;width:32px;text-align:center;flex-shrink:0}
+.val12{font-weight:800;min-width:2.4em;text-align:right;flex-shrink:0;font-size:1.05rem}
+.val12.pos{color:var(--good)}.val12.neg{color:var(--bad)}
+.rowi .btn.small{min-height:44px;flex-shrink:0}
+.hab12 .bar{margin-top:5px}
+.pts12{font-family:var(--pixel);color:var(--money);font-size:1.25rem}
+.bts12{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end;flex-shrink:0}
+.rowi canvas.qd12{width:48px;height:36px}
+.tracos12{display:flex;gap:6px;flex-wrap:wrap}
+.opts .tracos12 .btn{min-height:44px}
+.tracos12 .traco12[aria-pressed=true]{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.tracos12 .traco12.fosco{opacity:.5}
+@media (max-width:420px){.bts12{flex-direction:column}.bts12 .btn{width:100%}}

@@ -190,7 +190,7 @@ function acaoTerminada(a){
 }
 // noites juntinhos: dois dormindo na mesma cama de casal; no máximo uma por noite (data de 12h atrás)
 function checarNoite(a){
-  const m = a.mov && moveis[a.mov]; if (!m || (m.t !== "casal" && m.t !== "dossel")) { a.noiteOk = true; return; }
+  const m = a.mov && moveis[a.mov]; if (!m || !["casal", "dossel"].includes(baseT(m.t))) { a.noiteOk = true; return; }
   const par = Object.entries(jogadores).find(([id, j]) => id !== pid && j.online && j.acao && j.acao.id === "dormir" && j.acao.mov === a.mov && Date.now() - (j.acao.ini || 0) < (j.acao.dur || 0) + 3000);
   if (!par) return;
   a.noiteOk = true;
@@ -294,8 +294,19 @@ function convidarJogo(mov, outro, tipo){
   ref("casa/jogos/" + id).set(g).then(() => { abrirJogo(id); irJogar(id); }, () => toast("Não deu pra chamar agora."));
 }
 // sofá de frente para a TV (se tiver): os dois jogam sentados, olhando pra tela
+// leva 12: vale pra TV grande e girada e pra sofá grande/girado: o sofá fica na frente da tela (pra onde ela está virada)
+const SOFAS_TV = ["sofa", "sofaG", "namoradeira"];
 function sofaDaTv(m){
-  const ids = Object.keys(moveis).filter(k => { const s = moveis[k]; return s.t === "sofa" && s.y > m.y && s.y - m.y <= 7 && s.x < m.x + CAT.tv.w && s.x + CAT.sofa.w > m.x; });
+  const c = CAT[m.t]; if (!c) return null;
+  const r = c.rot || 0;
+  const ids = Object.keys(moveis).filter(k => {
+    const s = moveis[k], cs = CAT[s.t]; if (!cs || !SOFAS_TV.includes(baseT(s.t))) return false;
+    const sx = s.x < m.x + c.w && s.x + cs.w > m.x, sy = s.y < m.y + c.h && s.y + cs.h > m.y;
+    if (r === 1) return sy && s.x + cs.w <= m.x && m.x - (s.x + cs.w) <= 6;
+    if (r === 2) return sx && s.y + cs.h <= m.y && m.y - (s.y + cs.h) <= 6;
+    if (r === 3) return sy && s.x >= m.x + c.w && s.x - (m.x + c.w) <= 6;
+    return sx && s.y > m.y && s.y - m.y <= 7;
+  });
   return ids.sort()[0] || null;
 }
 function irJogar(id){
@@ -305,7 +316,7 @@ function irJogar(id){
     if (mm) toast("A " + (mm.t === "pc" ? "tela do computador" : "TV") + " desse jogo fica " + ondeTxt(mm.andar || 0) + ". Dá pra jogar daqui, ou " + ((mm.andar || 0) > andarAtual ? "suba" : "desça") + " pra jogar juntinho.");
     return;
   }
-  const m = moveis[g.mov], sofa = m.t === "tv" ? sofaDaTv(m) : null;
+  const m = moveis[g.mov], sofa = ["tv", "tvG"].includes(baseT(m.t)) ? sofaDaTv(m) : null; // leva 12: TV grande/girada
   useFurn(sofa || g.mov, {
     id: "minigame", nome: JOGO_TIPOS[g.tipo] + " com " + nomeDe(outroDe(g)), dur: 3600, ganho: {}, tela: g.mov, cima: sofa ? 1 : 0, sobre: sofa ? 1 : 0, jogo: id,
     antes: () => ATIVO(jogos[id]),
@@ -509,8 +520,10 @@ function abrirJogo(id){
 function addJogoObjs(objs, tm){
   for (const g of Object.values(jogos)){
     if (!g || !(g.estado === "jogando" || (g.estado === "fim" && srvNow() - (g.fimAt || 0) < 20000))) continue;
-    const m = moveis[g.mov]; if (!m || (m.t !== "tv" && m.t !== "pc")) continue;
-    objs.push({ z: (m.y + 1) * T + 1, f: () => drawTelaJogo(g, m.t, m.x * T, m.y * T, tm) });
+    // leva 12: TV grande também (tabuleiro no meio da tela); girada não mostra a tela de frente
+    const m = moveis[g.mov], b = m && baseT(m.t); if (!m || !CAT[m.t] || CAT[m.t].virt || (b !== "tv" && b !== "pc" && b !== "tvG")) continue;
+    const gx = m.x * T + (b === "tvG" ? 8 : 0), gy = m.y * T - (b === "tvG" ? 1 : 0);
+    objs.push({ z: (m.y + 1) * T + 1, f: () => drawTelaJogo(g, b === "pc" ? "pc" : "tv", gx, gy, tm) });
   }
 }
 function drawTelaJogo(g, t, x, y, tm){

@@ -215,7 +215,7 @@ function draw(now){
         cx = Math.round((m0.x + c.w / 2) * T) + (usa ? vg.dx : 0);
         by = vg ? m0.y * T + (acao.cima && se0.cima ? se0.cima : vg.by) : (m0.y + c.h) * T - 3;
         if (vg && !se0.empe){
-          sentado = true; dir = acao.cima ? "up" : vg.dir || "down";
+          sentado = true; dir = acao.cima ? dirTela(acao, m0) : vg.dir || "down"; // leva 12: olha pra tela (sofá girado: de lado)
           if (m0.t === "balanco"){ const fb = furnFrame("balanco", true, tm, 0), d = fb === 1 ? -1 : fb === 2 ? 1 : 0; cx += slot ? -d : d; } // vai e volta com o assento
         } else vg = null; // em pé em cima (chuveiro, piscina)
       }
@@ -259,7 +259,7 @@ function draw(now){
       if (off) ctx.globalAlpha = .55;
       if (vg && vg.cadeira) cadeiraPc(cx, by, false);
       blitAvatar(jv, cx, by, dir, frame, pose);
-      if (aid === "limpar") drawVassoura(cx, by, dir, tm, !!(m0 && m0.t === "pia")); // leva 5
+      if (aid === "limpar") drawVassoura(cx, by, dir, tm, !!(m0 && baseT(m0.t) === "pia")); // leva 5
       if (vg && vg.cadeira) cadeiraPc(cx, by, true);
       if (vg){
         const mx = mv.x * T, my = mv.y * T;
