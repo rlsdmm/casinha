@@ -994,6 +994,7 @@ function petIrAte13(id, acao){
   if (PET13[p.tipo].item){ const mid = casaDoPet(id); if (!mid || !moveis[mid]){ toast("Falta " + (p.tipo === "peixe" ? "o aquário" : "a gaiola") + ". Coloque no modo Construir."); return; } return useFurn(mid, acao); }
   if (id === petPid) return petIrAte(acao);
   const st = comPet(id, () => petEstado0(srvNow())), tx = Math.round(st.x), ty = Math.round(st.y);
+  if (typeof petEsperar === "function") petEsperar("casa/pets/" + id, tx, ty); // v41: espera parado até a pessoa chegar
   goTo(null, (x, y) => Math.abs(x - tx) + Math.abs(y - ty) <= 1, () => { faceTo(tx, ty); startAcao(acao); });
 }
 function petAcao13(id, qual){

@@ -103,7 +103,7 @@ const petNo = sub => "casa/pets/" + (petPid || "pet0") + (sub ? "/" + sub : "");
 // A posição é calculada do relógio: mesma em todos os aparelhos, sem ninguém sincronizar.
 const PET_TIPOS = {
   gato:     { nome: "Gatinho", c: "#F2A65A", cL: "#FBD39A", cD: "#C9773E", orelha: "#F4A0B4", coleira: C.sky, nariz: "#E87A90" },
-  cachorro: { nome: "Cachorrinho", c: "#E2BC8A", cL: "#F6E3C4", cD: "#B38A5A", orelha: "#8C5E3A", coleira: C.coral, nariz: "#3A2433" }
+  cachorro: { nome: "Cachorrinho", c: "#8E5A3A", cL: "#EDE4D6", cD: "#6A4028", orelha: "#5E3A26", coleira: C.coral, nariz: "#3A2433" } // v41: border collie marronzinho
 };
 const PET_FOME_H = 10, PET_CARINHO_H = 14, PET_TRISTE = 25;
 const PET_SLOT = 20000, PET_COMER_MS = 25000;
@@ -111,7 +111,7 @@ function petNivel(ts, horas, t){ return ts ? clamp(100 - ((t || srvNow()) - ts) 
 function petFome(t){ return pet ? petNivel(pet.comeu, PET_FOME_H, t) : 0; }
 function petCarinho(t){ return pet ? petNivel(pet.carinho, PET_CARINHO_H, t) : 0; }
 function petTriste(t){ return !!pet && (petFome(t) < PET_TRISTE || petCarinho(t) < PET_TRISTE); }
-function petPoteCheio(){ return !!pet && srvNow() - (pet.comeu || 0) < 3 * HORA; }
+function petPoteCheio(){ return !!pet && srvNow() - (pet.comeu || 0) < PET_COMER_MS; } // v41: depois que ele come tudo, o pote fica vazio
 function petNome(){ return (pet && pet.nome) || "Bichinho"; }
 
 let petTiles = [], petCantos = [], occVer = 0;
@@ -141,6 +141,9 @@ function petAncoras(t){
   const k = Math.floor(t / PET_SLOT); let out = [];
   for (let i = k - 4; i <= k; i++) out.push({ t: i * PET_SLOT, k: i });
   const ps = poteSpot();
+  const es = pet && pet.espera; // v41: alguém está vindo cuidar: fica parado onde estava até a pessoa chegar e terminar
+  if (es && es.at <= t && t < es.ate){ out = out.filter(a => a.t < es.at); out.push({ t: es.at, fixo: [es.x, es.y] }); }
+  else if (es && t >= es.ate && t - es.ate < PET_SLOT){ out = out.filter(a => a.t < es.at || a.t >= es.ate); out.push({ t: es.at, fixo: [es.x, es.y] }, { t: es.ate, k: Math.floor(es.ate / PET_SLOT) }); }
   if (pet && pet.comeu && ps && pet.comeu > t - 4 * PET_SLOT && pet.comeu <= t){
     const c0 = pet.comeu, c1 = c0 + PET_COMER_MS;
     out = out.filter(a => !(a.t >= c0 && a.t < c1));
@@ -150,7 +153,7 @@ function petAncoras(t){
   out.sort((a, b) => a.t - b.t);
   return out.slice(-2);
 }
-function petTileDe(a){ return a.comer ? [a.comer[0], a.comer[1]] : petPick(a.k, petTriste(a.t)); }
+function petTileDe(a){ return a.fixo ? a.fixo : a.comer ? [a.comer[0], a.comer[1]] : petPick(a.k, petTriste(a.t)); }
 function petPath(a, b){
   const key = a + "|" + b + "|" + occVer;
   if (!petPaths.has(key)){ if (petPaths.size > 300) petPaths.clear(); petPaths.set(key, a[0] === b[0] && a[1] === b[1] ? [] : bfs(a[0], a[1], (x, y) => x === b[0] && y === b[1])); }
@@ -272,8 +275,13 @@ function avisarComeu(id, nome, msgFim){
   }, 500);
 }
 const ACAO_POTE = { id: "pet-comida", nome: "Enchendo o pote", dur: 3, ganho: {}, fim: () => petCuidar("comeu") };
+function petEsperar(no, tx, ty){ // grava no bichinho: espera parado no quadrado (tx, ty) por até 18 s
+  const t = srvNow(); ref(no).update({ espera: { at: t, ate: t + 18000, x: tx, y: ty } }).catch(() => {});
+}
 function petIrAte(acao){
   const pv = petEstado(srvNow()), tx = Math.round(pv.x), ty = Math.round(pv.y);
+  petEsperar(petNo(), tx, ty);
+  const fim0 = acao.fim; acao = Object.assign({}, acao, { fim: () => { ref(petNo("espera")).update({ ate: srvNow() + 1500 }).catch(() => {}); if (fim0) fim0(); } });
   goTo(null, (x, y) => Math.abs(x - tx) + Math.abs(y - ty) <= 1, () => { faceTo(tx, ty); startAcao(acao); });
 }
 const petLonge = () => { if (andarAtual === 0) return false; toast(petNome() + " está lá embaixo. Desça a escada pra cuidar."); return true; }; // leva 4

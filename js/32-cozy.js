@@ -173,7 +173,7 @@ const PETS_CZ = { img: null, ok: false, q: {"gatoAnda":[[0,0,17,13],[17,0,17,13]
 (() => {
   const im = new Image();
   im.onload = () => { PETS_CZ.ok = true; for (const k of [...sprCache.keys()]) if (/^(pet|f:gaiola)/.test(k)) sprCache.delete(k); };
-  im.src = "img/moveis/pets.png?v=1"; PETS_CZ.img = im;
+  im.src = "img/moveis/pets.png?v=2"; PETS_CZ.img = im;
 })();
 function quadroPet(tipo, pose, f){
   const q = PETS_CZ.q, gato = tipo === "gato", k = f | 0;
