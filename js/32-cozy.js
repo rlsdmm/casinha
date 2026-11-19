@@ -29,12 +29,16 @@ const COZY = {
     sofaG: [{nome:"Lilás",f:[0,300,56,16],sw:"#775D80"},{nome:"Verde",f:[56,300,56,16],sw:"#66884B"},{nome:"Laranja",f:[112,300,56,16],sw:"#BD7945"},{nome:"Cinza",f:[168,300,56,16],sw:"#535C5E"}],
     geladeiraG: [{nome:"Inox",f:[224,300,24,31],sw:"#8F92A1"},{nome:"Laranja",f:[0,331,24,31],sw:"#C08554"}],
     telmesa: [{nome:"Madeira",f:[24,331,16,15],sw:"#9B7849"}],
-    urso: [{nome:"Ursinho",f:[40,331,14,12],sw:"#C68571"}]
+    urso: [{nome:"Ursinho",f:[40,331,14,12],sw:"#C68571"}],
+    camaInfantil: [{nome:"Rosa",f:[54,331,15,25],sw:"#E8858E"},{nome:"Azul",f:[69,331,15,25],sw:"#5FA8B8"},{nome:"Verde",f:[84,331,15,25],sw:"#7AAE6A"}],
+    camaTeen: [{nome:"Coral",f:[99,331,16,32],sw:"#A35B4E"},{nome:"Azul",f:[115,331,16,32],sw:"#506580"},{nome:"Verde",f:[131,331,16,32],sw:"#4B8053"},{nome:"Amarelo",f:[147,331,16,32],sw:"#CC9B45"}],
+    mesaEstudos: [{nome:"Rosa",f:[163,331,32,15],sw:"#E8858E"},{nome:"Azul",f:[195,331,32,15],sw:"#5FA8B8"},{nome:"Verde",f:[0,363,32,15],sw:"#7AAE6A"}],
+    bloquinhos: [{nome:"Bloquinhos",f:[32,363,16,16],sw:"#CE7D4B"}]
   },
-  tv: {"tvOff":[54,331,25,20],"progs":[[[79,331,25,20],[104,331,25,20],[129,331,25,20],[154,331,25,20]],[[179,331,25,20],[204,331,25,20],[229,331,25,20],[0,362,25,20],[25,362,25,20]],[[50,362,25,20],[75,362,25,20],[100,362,25,20],[125,362,25,20],[150,362,25,20],[175,362,25,20],[200,362,25,20],[225,362,25,20]],[[0,382,25,20],[25,382,25,20],[50,382,25,20],[75,382,25,20]]]}
+  tv: {"tvOff":[48,363,25,20],"progs":[[[73,363,25,20],[98,363,25,20],[123,363,25,20],[148,363,25,20]],[[173,363,25,20],[198,363,25,20],[223,363,25,20],[0,383,25,20],[25,383,25,20]],[[50,383,25,20],[75,383,25,20],[100,383,25,20],[125,383,25,20],[150,383,25,20],[175,383,25,20],[200,383,25,20],[225,383,25,20]],[[0,403,25,20],[25,403,25,20],[50,403,25,20],[75,403,25,20]]]}
 };
 // v29: quadros da lareira (fogo) e do aquário (peixinhos em cima de uma mesinha), sem variante de cor
-COZY.anim = {"tvTubo":[[100,382,16,29],[116,382,16,29],[132,382,16,29],[148,382,16,29],[164,382,16,29]],"pote":[[180,382,16,9],[196,382,16,9]],"lareira":[[212,382,27,30],[0,412,27,30],[27,412,27,30],[54,412,27,30],[81,412,27,30]],"aquario":[[108,412,16,30],[124,412,16,30],[140,412,16,30],[156,412,16,30],[172,412,16,30],[188,412,16,30],[204,412,16,30],[220,412,16,30],[236,412,16,30]]};
+COZY.anim = {"tvTubo":[[100,403,16,29],[116,403,16,29],[132,403,16,29],[148,403,16,29],[164,403,16,29]],"pote":[[180,403,16,9],[196,403,16,9]],"lareira":[[212,403,27,30],[0,433,27,30],[27,433,27,30],[54,433,27,30],[81,433,27,30]],"aquario":[[108,433,16,30],[124,433,16,30],[140,433,16,30],[156,433,16,30],[172,433,16,30],[188,433,16,30],[204,433,16,30],[220,433,16,30],[236,433,16,30]]};
 TOP.aquario = Math.max(TOP.aquario || 0, 14);
 for (const [t, h] of [["tvTubo", 13], ["geladeiraG", 15], ["telmesa", 6]]) TOP[t] = Math.max(TOP[t] || 0, h); // v34 // o aquário em cima da mesinha é mais alto que o antigo
 let COZY_OFF = 0; // > 0: desenha o móvel antigo (a cama com dossel usa a cama de casal grande por baixo)
@@ -45,7 +49,7 @@ let COZY_OFF = 0; // > 0: desenha o móvel antigo (a cama com dossel usa a cama 
     for (const k of [...sprCache.keys()]) if (/^f[vz]?:/.test(k)) sprCache.delete(k);
     bgKey = null;
   };
-  im.src = "img/moveis/cozy.png?v=5"; COZY.img = im;
+  im.src = "img/moveis/cozy.png?v=6"; COZY.img = im;
 })();
 const cozyVar = (t, cor) => { const p = COZY.pecas[t]; return p ? p[cor | 0] || p[0] : null; };
 // desenha o recorte encostado no fundo do quadrado do móvel e centralizado; devolve false se não tiver arte
@@ -183,3 +187,49 @@ function passaroCozy(x, y, tm, triste){
   ctx.drawImage(PETS_CZ.img, q[0], q[1], 16, 16, x, y - 16, 16, 16);
   return true;
 }
+
+
+// ---------------- filtro Cozy (v36) ----------------
+// Móveis que o pacote não tem (coleções da loja, presentes, quintal, chuveiro, som...) continuam desenhados no código,
+// mas passam por um filtro de cor: menos saturação, brancos puxando pro creme e um toque quente, como a paleta da Cozy.
+// O contorno do jogo fica igual. Cada sprite é filtrado uma vez (fica guardado no sprCache já filtrado).
+const FILTRO_CZ = { sat: .68, luz: .9, base: .045, quente: [1.0, .975, .93] };
+const filtrados = new WeakSet();
+function filtroCozy(c){
+  if (!c || filtrados.has(c)) return; filtrados.add(c);
+  const x = c.getContext("2d", { willReadFrequently: true }), d = x.getImageData(0, 0, c.width, c.height), a = d.data, F = FILTRO_CZ;
+  for (let i = 0; i < a.length; i += 4){
+    if (a[i + 3] < 20) continue;
+    if (a[i] === OUTLINE[0] && a[i + 1] === OUTLINE[1] && a[i + 2] === OUTLINE[2]) continue;
+    const r = a[i], g = a[i + 1], b = a[i + 2], l = .299 * r + .587 * g + .114 * b;
+    for (let k = 0; k < 3; k++){
+      const v = [r, g, b][k], dess = l + (v - l) * F.sat, comp = 255 * F.base + dess * F.luz;
+      a[i + k] = Math.max(0, Math.min(255, Math.round(comp * F.quente[k])));
+    }
+  }
+  x.putImageData(d, 0, 0);
+}
+const naoFiltra = t => !!(COZY.pecas[t] || COZY.anim[t]);
+{ const f1 = furnSprite; furnSprite = function(t, f, cor){
+  const s = f1(t, f, cor), c = CAT[t];
+  if (c && !c.virt && !naoFiltra(t)) filtroCozy(s.c);
+  return s;
+}; }
+{ const v1 = spriteVirt; spriteVirt = function(t, f, cor){
+  const s = v1(t, f, cor), c = CAT[t];
+  if (c && !naoFiltra(c.base)) filtroCozy(s.c);
+  return s;
+}; }
+
+// ---------------- grama e papéis de parede mais suaves (v36) ----------------
+// mesma ideia do filtro dos móveis, só que mais leve: a grama e as cores de papel de parede chegam mais perto da paleta da Cozy
+function suaveCor(hex, sat, luz){
+  const [r, g, b] = hexRGB(hex), l = .299 * r + .587 * g + .114 * b, q = FILTRO_CZ.quente;
+  const v = [r, g, b].map((c, k) => Math.max(0, Math.min(255, Math.round((255 * .03 + (l + (c - l) * sat) * luz) * q[k]))));
+  return "#" + v.map(c => c.toString(16).padStart(2, "0")).join("").toUpperCase();
+}
+for (const gp of Object.values(GRAMAS)){
+  for (const k of ["g", "gD", "gL"]) gp[k] = suaveCor(gp[k], .74, .93);
+  if (gp.arb) gp.arb = gp.arb.map(c => suaveCor(c, .74, .93));
+}
+PAPEL_CORES.forEach(p => { p[1] = suaveCor(p[1], .78, .95); });

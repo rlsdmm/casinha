@@ -1127,7 +1127,7 @@ function addFamObjs(objs, tm){
     const L = lookFilho(f), teen = st.fase === "adolescente";
     if (st.onde === "cama"){
       const cid = st.cama, m = cid && todosMoveis[cid];
-      if (m && (m.andar || 0) === andarAtual){ const spr = fiDormeSpr(L, teen, m.t === "camaTeen" ? "#5246B0" : "#7FD1B2"); objs.push({ z: (m.y + 2) * T - 1, f: () => ctx.drawImage(spr.c, m.x * T - 1, m.y * T + 1) }); famViews.push({ fid, cx: m.x * T + 8, by: m.y * T + 10, dorme: 1 }); }
+      if (m && (m.andar || 0) === andarAtual){ const spr = fiDormeSpr(L, teen, m.t === "camaTeen" ? "#5246B0" : "#7FD1B2"); const dy36 = typeof COZY !== "undefined" && COZY.ok ? 6 : 0; objs.push({ z: (m.y + 2) * T - 1, f: () => ctx.drawImage(spr.c, m.x * T - 1, m.y * T + 1 + dy36) }); /* v36: camas da Cozy têm a cabeceira mais baixa */ famViews.push({ fid, cx: m.x * T + 8, by: m.y * T + 10, dorme: 1 }); }
       else if (!m && andarAtual === 0){ const [fx, fy] = npcTile(hashStr(fid) | 0, 3), spr = fiDormeSpr(L, teen, "#F2A65A"); objs.push({ z: (fy + 1) * T - 4, f: () => { R(fx * T, fy * T + 2, 16, 26, "#E9D8BE"); ctx.drawImage(spr.c, fx * T - 1, fy * T - 1); } }); famViews.push({ fid, cx: fx * T + 8, by: fy * T + 8, dorme: 1 }); }
       continue;
     }
