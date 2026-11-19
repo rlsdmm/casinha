@@ -27,6 +27,9 @@ const COZY = {
   },
   tv: {"tvOff":[168,268,25,20],"progs":[[[193,268,25,20],[218,268,25,20],[0,300,25,20],[25,300,25,20]],[[50,300,25,20],[75,300,25,20],[100,300,25,20],[125,300,25,20],[150,300,25,20]],[[175,300,25,20],[200,300,25,20],[225,300,25,20],[0,320,25,20],[25,320,25,20],[50,320,25,20],[75,320,25,20],[100,320,25,20]],[[125,320,25,20],[150,320,25,20],[175,320,25,20],[200,320,25,20]]]}
 };
+// v29: quadros da lareira (fogo) e do aquário (peixinhos em cima de uma mesinha), sem variante de cor
+COZY.anim = {"lareira":[[225,320,27,30],[0,350,27,30],[27,350,27,30],[54,350,27,30],[81,350,27,30]],"aquario":[[108,350,16,30],[124,350,16,30],[140,350,16,30],[156,350,16,30],[172,350,16,30],[188,350,16,30],[204,350,16,30],[220,350,16,30],[236,350,16,30]]};
+TOP.aquario = Math.max(TOP.aquario || 0, 14); // o aquário em cima da mesinha é mais alto que o antigo
 let COZY_OFF = 0; // > 0: desenha o móvel antigo (a cama com dossel usa a cama de casal grande por baixo)
 (() => {
   const im = new Image();
@@ -35,12 +38,17 @@ let COZY_OFF = 0; // > 0: desenha o móvel antigo (a cama com dossel usa a cama 
     for (const k of [...sprCache.keys()]) if (/^f[vz]?:/.test(k)) sprCache.delete(k);
     bgKey = null;
   };
-  im.src = "img/moveis/cozy.png?v=2"; COZY.img = im;
+  im.src = "img/moveis/cozy.png?v=3"; COZY.img = im;
 })();
 const cozyVar = (t, cor) => { const p = COZY.pecas[t]; return p ? p[cor | 0] || p[0] : null; };
 // desenha o recorte encostado no fundo do quadrado do móvel e centralizado; devolve false se não tiver arte
 function arteCozy(t, x, y, f, cor, vista, w, h){
   if (!COZY.ok || COZY_OFF) return false;
+  if (COZY.anim[t] && !vista){ // lareira e aquário: um quadro por vez, encostado no fundo do quadrado
+    const q = COZY.anim[t][(f | 0) % COZY.anim[t].length], c = CAT[t], ww = c.w * T, hh = c.h * T;
+    ctx.drawImage(COZY.img, q[0], q[1], q[2], q[3], x + Math.floor((ww - q[2]) / 2), y + hh - q[3], q[2], q[3]);
+    return true;
+  }
   const v = cozyVar(t, cor); if (t === "pc" && f && !vista) vista = "o"; // computador ligado: monitor aceso
   const r = v && v[vista || "f"]; if (!r) return false;
   const c = CAT[t]; w = w || c.w * T; h = h || c.h * T;
@@ -67,6 +75,8 @@ function arteCozy(t, x, y, f, cor, vista, w, h){
 // TV ligada: um programa por vez (troca a cada 45 s), cada um no ritmo do GIF original
 const TV_RITMO = [900, 300, 450, 450];
 { const f0 = furnFrame; furnFrame = function(t, on, tm, ph){
+  if (COZY.ok && t === "lareira") return Math.floor(tm / 110) % 5;
+  if (COZY.ok && t === "aquario") return Math.floor((tm + (ph || 0) * 131) / 400) % 9;
   if (t !== "tv" || !on || !COZY.ok) return f0(t, on, tm, ph);
   const p = Math.floor(tm / 45000) % COZY.tv.progs.length, n = COZY.tv.progs[p].length;
   return 1 + p * 8 + Math.floor(tm / TV_RITMO[p]) % n;
@@ -79,7 +89,7 @@ function telaCozy(b){ if (!COZY.ok) return null; return b === "tv" ? [5, -13, 21
 // sprite com a variante de cor certa (sem repintar)
 { const f0 = furnSprite; furnSprite = function(t, f, cor){
   const c = CAT[t];
-  if (!COZY.ok || !c || c.virt || !COZY.pecas[t]) return f0(t, f, cor);
+  if (!COZY.ok || !c || c.virt || !(COZY.pecas[t] || COZY.anim[t])) return f0(t, f, cor);
   const top = TOP[t] || 0;
   return sprite("fz:" + t + ":" + f + ":" + (cor | 0), c.w * T, c.h * T + top, (ox, oy) => arteCozy(t, ox, oy + top, f, cor), !c.chao);
 }; }
