@@ -524,11 +524,12 @@ function addJogoObjs(objs, tm){
     // leva 12: TV grande também (tabuleiro no meio da tela); girada não mostra a tela de frente
     const m = moveis[g.mov], b = m && baseT(m.t); if (!m || !CAT[m.t] || CAT[m.t].virt || (b !== "tv" && b !== "pc" && b !== "tvG")) continue;
     const gx = m.x * T + (b === "tvG" ? 8 : 0), gy = m.y * T - (b === "tvG" ? 1 : 0);
-    objs.push({ z: (m.y + 1) * T + 1, f: () => drawTelaJogo(g, b === "pc" ? "pc" : "tv", gx, gy, tm) });
+    objs.push({ z: (m.y + 1) * T + 1, f: () => drawTelaJogo(g, b === "pc" ? "pc" : "tv", gx, gy, tm, b) });
   }
 }
-function drawTelaJogo(g, t, x, y, tm){
-  const tv = t === "tv", sx = tv ? x + 5 : x + 10, sy = y - 7, sw = tv ? 22 : 12, shh = tv ? 10 : 8;
+function drawTelaJogo(g, t, x, y, tm, b){
+  const tv = t === "tv", z = typeof telaCozy === "function" ? telaCozy(b) : null; // v27: TV e monitor da Cozy
+  const sx = z ? x + z[0] : tv ? x + 5 : x + 10, sy = z ? y + z[1] : y - 7, sw = z ? z[2] : tv ? 22 : 12, shh = z ? z[3] : tv ? 10 : 8;
   R(sx, sy, sw, shh, "#1E2440"); R(sx, sy, sw, 1, "#2E3866");
   const velha = g.tipo === "velha", bw = velha ? 8 : 11, bx = sx + Math.floor((sw - bw) / 2), by = sy + Math.floor((shh - 8) / 2);
   if (JOGO6[g.tipo]) JOGO6[g.tipo].tela(g, sx, sy, sw, shh, tm); // leva 6

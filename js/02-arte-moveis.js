@@ -50,7 +50,7 @@ function sprite(key, w, h, fn, outline){
 }
 
 // quanto cada móvel sobe acima do próprio quadrado (parte alta, ex.: geladeira)
-const TOP = { geladeira: 16, tv: 9, pc: 9, estante: 14, armario: 14, som: 8, planta: 15, abajur: 30, sofa: 6, chuveiro: 10, mesa: 4, casal: 4, solteiro: 4, game: 2, fogao: 5, pia: 8, vaso: 5, tapete: 0, canteiro: 1, pote: 0, churrasqueira: 10, rede: 6, piscina: 2, balanco: 16, piquenique: 3, poltrona: 8, banheira: 7 };
+const TOP = { geladeira: 16, tv: 17, pc: 13, estante: 14, armario: 14, som: 8, planta: 16, abajur: 30, sofa: 6, chuveiro: 10, mesa: 6, casal: 4, solteiro: 4, game: 2, fogao: 5, pia: 8, vaso: 5, tapete: 0, canteiro: 1, pote: 0, churrasqueira: 10, rede: 6, piscina: 2, balanco: 16, piquenique: 3, poltrona: 8, banheira: 7 };
 function furnFrame(t, on, tm, ph){
   if (FRAME6[t]) return FRAME6[t](on, tm, ph || 0); // leva 6: móveis novos animados
   if (t === "pote") return petPoteCheio() ? 1 : 0;

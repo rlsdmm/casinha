@@ -127,7 +127,7 @@ const SENTAR = {
   poltrona:   { vagas: [{ dx: 0, by: 15, frente: [[-1, 3, 5, 14], [12, 3, 5, 14]] }] },
   vaso:       { vagas: [{ dx: 0, by: 16 }] },
   banheira:   { vagas: [{ dx: 3, by: 13, frente: [[-1, 6, 34, 11]], banho: 1 }] },
-  mesa:       { sempre: 1, fixas: 1, vagas: [{ dx: 0, by: 6, frente: [[-1, 2, 34, 31]], mesa: 3, z: -.7 }, { dx: 0, by: 32, dir: "up" }] },
+  mesa:       { sempre: 1, fixas: 1, vagas: [{ dx: 0, by: 8, frente: [[-1, 7, 34, 22]], mesa: 8, z: -.7 }, { dx: 0, by: 32, dir: "up" }] }, // v27: mesa da Cozy
   pc:         { sempre: 1, fixas: 1, vagas: [{ dx: 0, by: 21, dir: "up", cadeira: 1 }] },
   piquenique: { fixas: 1, vagas: [{ dx: -8, by: 7, frente: [[-1, 3, 50, 21]], mesa: 4, z: -.7 }, { dx: 8, by: 30, dir: "up" }] },
   balanco:    { fixas: 1, vagas: [{ dx: -6, by: 7, cordas: [7, 12] }, { dx: 7, by: 7, cordas: [20, 25] }] },
