@@ -6,7 +6,7 @@ const idxDe = (v, arr) => Number.isInteger(v) && v >= 0 && v < arr.length ? v : 
 function visual(p){
   p = p || {};
   const corpo = p.corpo === "ele" || p.corpo === "ela" ? p.corpo : "neutro";
-  return { corpo, roupa: idxDe(p.roupa, ROUPAS), traje: idxDe(p.traje, TRAJES), cabelo: idxDe(p.cabelo, CABELOS), estilo: idxDe(p.estilo, ESTILOS), pele: idxDe(p.pele, PELES), barba: corpo === "ele" && p.barba ? 1 : 0, acess: idxDe(p.acess, ACESS), barriga: p.barriga >= 1 && p.barriga <= 3 ? p.barriga | 0 : 0,
+  return { corpo, roupa: idxDe(p.roupa, ROUPAS), traje: idxDe(p.traje, TRAJES), cabelo: idxDe(p.cabelo, CABELOS), estilo: idxDe(p.estilo, ESTILOS), pele: idxDe(p.pele, PELES), barba: corpo === "ele" && p.barba ? 1 : 0, banho: p.banho ? 1 : 0, acess: idxDe(p.acess, ACESS), barriga: p.barriga >= 1 && p.barriga <= 3 ? p.barriga | 0 : 0,
     forma: FORMA_DW[p.forma] ? p.forma : "retangulo", altura: p.altura === "baixinho" || p.altura === "alto" ? p.altura : "medio", fisico: p.fisico === "magro" || p.fisico === "cheinho" ? p.fisico : "medio" }; // leva 12b
 }
 // ---- leva 12b: formato do corpo, altura e físico (valem pra ele, ela e neutro) ----
@@ -36,7 +36,7 @@ function troncoLinhas(cx, ty, g, top, shD, n){
 }
 function avatarSprite(p, dir, frame, pose){
   const v = visual(p);
-  const key = ["av", v.corpo, v.roupa, v.traje, v.cabelo, v.estilo, v.pele, v.barba, v.acess, v.barriga, v.forma, v.altura, v.fisico, dir, frame, pose].join(":");
+  const key = ["av", v.corpo, v.roupa, v.traje, v.cabelo, v.estilo, v.pele, v.barba, v.acess, v.barriga, v.forma, v.altura, v.fisico, v.banho, dir, frame, pose].join(":");
   return sprite(key, 16, 29, (ox, oy) => drawAvatarLocal(v, ox + 8, oy + 27, dir, frame, pose)); // leva 12b: 2px a mais em cima (alto + chapéu)
 }
 // leva 12b: o sprite tem 2 linhas vazias a mais em cima; quem recorta um pedaço do sprite soma AV_Y0 no y
@@ -46,7 +46,9 @@ function blitAvatar(p, cx, by, dir, frame, pose){ const s = avatarSprite(p, dir,
 // poses: "stand", "breath" (respirando), "blink", "blinkbreath", "arms", "lie"
 // trajes: 0 camiseta, 1 vestido, 2 saia e blusa, 3 macacão, 4 moletom com capuz, 5 regata com short
 function drawAvatarLocal(v, cx, by, dir, frame, pose){
-  const skin = PELES[v.pele], hair = CABELOS[v.cabelo], cor = ROUPAS[v.roupa], st = v.estilo, tj = v.traje;
+  const skin = PELES[v.pele], hair = CABELOS[v.cabelo], st = v.estilo;
+  let cor = ROUPAS[v.roupa], tj = v.traje;
+  if (v.banho){ cor = skin; tj = 5; } // v35: no banho e no namoro, sem roupa (vapor, espuma, banheira e coberta escondem o corpo)
   const ela = v.corpo === "ela", o = v.corpo === "ele" ? 1 : 0; // ele: ombros 1px mais largos de cada lado
   const g = corpoGeo(v), dh = g.dh; // leva 12b
   pose = String(pose || "stand");
@@ -56,12 +58,12 @@ function drawAvatarLocal(v, cx, by, dir, frame, pose){
   const blink = pose.indexOf("blink") >= 0, breath = pose.indexOf("breath") >= 0, armsUp = pose === "arms";
   const side = dir === "left" || dir === "right", m = dir === "right" ? -1 : 1, X = (a, w) => m > 0 ? cx + a : cx - a - w;
   const walk = frame === 1 || frame === 3, bob = breath ? 1 : walk ? -1 : 0;
-  const JEANS = "#56609E", CREME = "#FFF4E0", shoe = "#F1EDF7";
+  const JEANS = "#56609E", CREME = "#FFF4E0", shoe = v.banho ? sh(skin, .06) : "#F1EDF7";
   // leva 6: 6 pijama de bichinho, 7 vestido de festa, 8 terno (terno = cor escurecida)
   const terno = tj === 8 ? mix(cor, "#1E1A2A", .55) : null;
   const top = tj === 2 || tj === 3 ? CREME : terno || cor;
   const shL = sh(top, .3), shD = sh(top, -.22), skD = sh(skin, -.16), corD = sh(cor, -.24), corL = sh(cor, .28);
-  const quadril = tj === 1 || tj === 2 || tj === 3 || tj === 6 || tj === 7 ? cor : terno || JEANS;
+  const quadril = v.banho ? sh(skin, -.06) : tj === 1 || tj === 2 || tj === 3 || tj === 6 || tj === 7 ? cor : terno || JEANS;
   const perna = tj === 3 || tj === 6 ? cor : terno || (tj === 0 || tj === 4 ? JEANS : skin), pernaD = perna === skin ? skD : sh(perna, -.2);
   const manga = tj === 5 || tj === 7 ? skin : top, mangaD = tj === 5 || tj === 7 ? skD : shD, mangaN = tj === 4 || tj === 6 || tj === 8 ? 3 : 2;
   if (pose.indexOf("sit") === 0){ drawSentado(v, cx, by, dir, frame, pose, { skin, hair, cor, top, shL, shD, skD, corD, corL, quadril, perna, pernaD, manga, mangaD, mangaN, shoe, ela, o, tj, st, fx7, g }); return; }

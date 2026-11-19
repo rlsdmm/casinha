@@ -264,7 +264,9 @@ function draw(now){
       if (!deitado && !sobre && !esc){ R(cx - 3, by - 1, 6, 1, "rgba(35,18,40,.22)"); R(cx - 5, by, 10, 1, "rgba(35,18,40,.3)"); R(cx - 4, by + 1, 8, 1, "rgba(35,18,40,.2)"); }
       if (off) ctx.globalAlpha = .55;
       if (vg && vg.cadeira) cadeiraPc(cx, by, false);
-      blitAvatar(jv, cx, by, dir, frame, pose);
+      const nu35 = typeof banhoAgora7 === "function" && banhoAgora7(id, aid, movT); // v35: banho e namoro sem roupa
+      blitAvatar(nu35 ? Object.assign({}, jv, { banho: 1 }) : jv, cx, by, dir, frame, pose);
+      if (aid === "banho" && !deitado && !sentado && (movT === "chuveiro" || movT === "ducha")) vaporBanho(cx, by, tm);
       if (aid === "limpar") drawVassoura(cx, by, dir, tm, !!(m0 && baseT(m0.t) === "pia")); // leva 5
       if (vg && vg.cadeira) cadeiraPc(cx, by, true);
       if (vg){

@@ -208,6 +208,24 @@ function vigiarNamoro(){
   }
   ajustarAcaoNamoro();
 }
+// v35: sem roupa no banho (chuveiro e banheira) e no "clima" do namoro; o corpo fica escondido no vapor, na espuma ou na coberta
+const NM_RITMO = 170; // ms: o embalo dos dois no clima
+function banhoAgora7(id, aid, movT){
+  if (aid === "banho" || aid === "banheira") return true;
+  if (aid !== "namoro") return false;
+  const ng = namoroDe(id); if (!ng) return false;
+  const F = nmFase(ng[1], srvNow());
+  return !!F && (F.f === "dur" || F.f === "dep") && ["chuveiro", "banheira", "cama", "sofa", "rede"].includes(ng[1].lugar);
+}
+// vapor do banho de chuveiro: tapa do peito pra baixo (quem toma banho sozinho)
+function vaporBanho(cx, by, tm){
+  for (let i = -8; i <= 8; i++){
+    const borda = 1 - Math.abs(i) / 9, onda = Math.sin(tm / 260 + i * .7) * 1.2 + Math.sin(tm / 410 - i * .4) * .8;
+    const topo = Math.round(by - 4 - 10 * borda + onda), alt = by + 2 - topo; if (alt <= 0) continue;
+    ctx.globalAlpha = .86; R(cx + i, topo, 1, alt, (i + Math.floor(tm / 300)) % 4 === 0 ? "#FFFFFF" : "#E9F3F8"); P(cx + i, topo, "#FFFFFF");
+  }
+  ctx.globalAlpha = 1;
+}
 // posição e carinha de quem está namorando (no laço de desenho)
 function namoroPose(id, acao, m, tm, pisca){
   const ng = namoroDe(id), grp = NM_GRUPO[m.t]; if (!ng || ng[1].mov !== acao.mov || !grp) return null;
@@ -215,20 +233,21 @@ function namoroPose(id, acao, m, tm, pisca){
   const g = ng[1], lado = id === g.a ? -1 : 1, F = nmFase(g, srvNow()), f = F ? (F.f === "fim" ? "dep" : F.f) : "esp";
   const x0 = m.x * T, y0 = m.y * T, meio = x0 + CAT[m.t].w * T / 2;
   const beijo = f === "paq" && F.d > 2300 && F.d < 3700;
-  const seps = { cama: [11, 8, 6, 5], rede: [8, 7, 5, 5], sofa: m.t === "sofa" ? [9, 7, 6, 5] : [7, 6, 6, 5], banheira: [6, 6, 5, 5], chuveiro: [6, 4, 3, 4] }[grp];
+  const seps = { cama: [11, 8, 4, 5], rede: [8, 7, 5, 5], sofa: m.t === "sofa" ? [9, 7, 6, 5] : [7, 6, 6, 5], banheira: [6, 6, 5, 5], chuveiro: [6, 4, 3, 4] }[grp];
   const sep = beijo ? 4 : seps[{ esp: 0, paq: 1, dur: 2, dep: 3 }[f]];
   if (grp === "cama" || grp === "rede"){
-    const by = y0 + (grp === "cama" ? 21 : 8) + (f === "dur" ? Math.round(Math.sin(tm / 260 + lado) * .7) : 0);
+    const by = y0 + (grp === "cama" ? 21 : 8) + (f === "dur" ? Math.round(Math.sin(tm / NM_RITMO + (lado > 0 ? Math.PI : 0)) * 1.3) : 0);
     const pose = f === "dep" ? "liehappymessy" : f === "dur" ? "lieblush" : "lieopenblush" + (pisca ? "blink" : "");
     return { cx: Math.round(meio + lado * sep), by, pose, dir: "down", lie: 1 };
   }
   if (grp === "chuveiro"){ // v32: em pé, de frente um pro outro; no "clima", abraçados debaixo d'água
-    const by = y0 + 14 + (f === "dur" ? Math.round(Math.sin(tm / 240 + lado) * .6) : 0);
+    const emb = f === "dur" ? Math.sin(tm / NM_RITMO) : 0;
+    const by = y0 + 14 + (f === "dur" ? Math.round(Math.sin(tm / NM_RITMO + (lado > 0 ? Math.PI : 0)) * .9) : 0);
     const pose = f === "dur" ? "arms" : f === "dep" ? "standhappymessy" : "standblush" + (pisca ? "blink" : "");
-    return { cx: Math.round(meio + lado * sep), by, pose, dir: f === "dep" ? "down" : lado < 0 ? "right" : "left", lie: 0, empe: 1, semVaga: true };
+    return { cx: Math.round(meio + lado * sep + emb), by, pose, dir: f === "dep" ? "down" : lado < 0 ? "right" : "left", lie: 0, empe: 1, semVaga: true };
   }
   const virados = f === "esp" || f === "paq";
-  const by = y0 + (grp === "banheira" ? 13 : m.t === "sofa" ? 15 : 14);
+  const by = y0 + (grp === "banheira" ? 13 : m.t === "sofa" ? 15 : 14) + (f === "dur" ? Math.round(Math.sin(tm / NM_RITMO + (lado > 0 ? Math.PI : 0)) * .9) : 0);
   const pose = "sit" + (f === "dep" ? "happymessy" : "blush") + (virados && pisca ? "blink" : "");
   return { cx: Math.round(meio + lado * sep), by, pose, dir: virados ? (lado < 0 ? "right" : "left") : "down", lie: 0, semVaga: grp === "banheira" };
 }
@@ -243,13 +262,13 @@ function drawCoberta7(m, f, F, tm){
     const cz = typeof COZY !== "undefined" && COZY.ok && m.t === "casal" && cozyVar("casal", m.cor);
     const bl = cz ? cz.sw : BED_BL.casal, blL = sh(bl, .22), blD = sh(bl, -.22), meio = x + w / 2;
     for (let i = 0; i < w - 4; i++){
-      const xx = x + 2 + i, onda = Math.sin(tm / 190 + i * .32) * 1.6 + Math.sin(tm / 310 - i * .21) * 1.1;
+      const xx = x + 2 + i, onda = Math.sin(tm / 190 + i * .32) * 1.2 + Math.sin(tm / 310 - i * .21) * .8 + Math.sin(tm / NM_RITMO) * 1.1;
       const topo = Math.round(y + y0c + onda);
       P(xx, topo - 1, OL); R(xx, topo, 1, y + yF - topo, bl);
       R(xx, topo, 1, 2, C.cream); P(xx, topo + 2, C.creamD); P(xx, topo + 3, blD);
       // os dois montinhos embaixo da coberta, subindo e descendo
       const b = Math.max(0, 1 - Math.abs(xx - (meio - 6)) / 8) + Math.max(0, 1 - Math.abs(xx - (meio + 6)) / 8);
-      if (b > .25){ const yy = y + yM + Math.round(Math.sin(tm / 170 + (xx < meio ? 0 : 1.6)) * 1.8); P(xx, yy, blL); if (b > .6) P(xx, yy + 1, blL); P(xx, yy + 4, blD); }
+      if (b > .25){ const yy = y + yM + Math.round(Math.sin(tm / NM_RITMO + (xx < meio ? 0 : Math.PI)) * 2); P(xx, yy, blL); if (b > .6) P(xx, yy + 1, blL); P(xx, yy + 4, blD); }
       if ((i + Math.floor(tm / 400)) % 9 === 0) P(xx, Math.min(y + yF - 2, topo + 6 + (i % 3) * 3), "#F4E9B8"); // estrelinhas da estampa
     }
     R(x + 2, y + yF - 1, w - 4, 1, blD);
@@ -288,7 +307,7 @@ function drawCoberta7(m, f, F, tm){
   } else if (grp === "banheira"){
     const nivel = f === "esp" ? 7 : f === "paq" ? 7 - 3 * F.p : f === "dur" ? 4 : f === "dep" ? 4 + 3 * F.p : 7;
     for (let i = 0; i < 26; i++){
-      const xx = x + 3 + i, topo = Math.round(y + nivel + Math.sin(tm / 330 + i * .8) * .8 - (f === "dur" && i % 7 === 3 ? 1 : 0));
+      const xx = x + 3 + i, topo = Math.round(y + nivel + Math.sin(tm / 330 + i * .8) * .8 - (f === "dur" ? Math.max(0, Math.sin(tm / NM_RITMO + i * .25)) * 1.5 : 0));
       R(xx, topo, 1, y + 9 - topo, "#FFFFFF"); P(xx, topo, i % 3 ? "#FFFFFF" : "#E6F4FB"); if (i % 4 === 1) P(xx, topo + 2, "#D6ECF7");
     }
     if (f === "dur" || f === "paq") for (let k = 0; k < 6; k++){ // bolhas subindo
@@ -648,7 +667,7 @@ function leva7Update(dt){
     while (nmPart > 1){ nmPart--; particles.push({ x: wx + Math.random() * 22 - 11, y: wy + Math.random() * 6, vx: Math.random() * 6 - 3, vy: -9 - Math.random() * 7, life: 1.8, kind: Math.random() < .65 ? "heart" : "brilho" }); }
     if (F.f === "paq" && F.d > 2300 && !nmBeijou[id]){ nmBeijou[id] = 1; sfx("beijo"); }
     if (F.f !== "dep" && NM_GRUPO[m.t] === "chuveiro" && Date.now() - nmSom > 2600){ nmSom = Date.now(); sfx("agua", clamp(1 - Math.hypot(me.px - m.x, me.py - m.y) / 16, .2, 1) * .7); }
-    if (F.f === "dur" && NM_GRUPO[m.t] === "cama" && Date.now() - nmSom > 1700){ nmSom = Date.now(); sfx("cabeceira", clamp(1 - Math.hypot(me.px - m.x - 1.5, me.py - m.y - 1.5) / 16, .25, 1) * .8); }
+    if (F.f === "dur" && NM_GRUPO[m.t] === "cama" && Date.now() - nmSom > NM_RITMO * Math.PI * 2){ nmSom = Date.now(); sfx("cabeceira", clamp(1 - Math.hypot(me.px - m.x - 1.5, me.py - m.y - 1.5) / 16, .25, 1) * .8); }
     if (F.f === "dep" && (g.a === pid || g.b === pid) && !nmFalou[id]){ nmFalou[id] = 1; ref("jogadores/" + pid).update({ fala: g.a === pid ? "😏" : "💕", falaAt: TS() }).catch(() => {}); }
   }
   for (const fid of infantes()) comBebe(fid, () => {
