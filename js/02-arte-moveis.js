@@ -50,7 +50,7 @@ function sprite(key, w, h, fn, outline){
 }
 
 // quanto cada móvel sobe acima do próprio quadrado (parte alta, ex.: geladeira)
-const TOP = { geladeira: 12, tv: 9, pc: 9, estante: 14, armario: 14, som: 8, planta: 8, abajur: 8, sofa: 6, chuveiro: 10, mesa: 4, casal: 4, solteiro: 4, game: 2, fogao: 5, pia: 4, vaso: 5, tapete: 0, canteiro: 1, pote: 0, churrasqueira: 10, rede: 6, piscina: 2, balanco: 16, piquenique: 3, poltrona: 8, banheira: 7 };
+const TOP = { geladeira: 12, tv: 9, pc: 9, estante: 14, armario: 14, som: 8, planta: 15, abajur: 30, sofa: 6, chuveiro: 10, mesa: 4, casal: 4, solteiro: 4, game: 2, fogao: 5, pia: 4, vaso: 5, tapete: 0, canteiro: 1, pote: 0, churrasqueira: 10, rede: 6, piscina: 2, balanco: 16, piquenique: 3, poltrona: 8, banheira: 7 };
 function furnFrame(t, on, tm, ph){
   if (FRAME6[t]) return FRAME6[t](on, tm, ph || 0); // leva 6: móveis novos animados
   if (t === "pote") return petPoteCheio() ? 1 : 0;
@@ -125,6 +125,24 @@ function drawFloorTile(x, y, p){
   }
 }
 
+// arte do pacote Bitglow (https://bitglow.itch.io, recortes em img/moveis/bitglow.png): planta e abajur de pé.
+// Enquanto a imagem não carrega, fica o desenho do código; quando chega, os sprites guardados são refeitos.
+const BITGLOW = { img: null, ok: false, pecas: { planta: [0, 16, 15, 30], abajur: [16, 0, 16, 46] } };
+(() => {
+  const im = new Image();
+  im.onload = () => { BITGLOW.ok = true; for (const k of [...sprCache.keys()]) if (/^f:(planta|abajur):/.test(k)) sprCache.delete(k); };
+  im.src = "img/moveis/bitglow.png?v=1"; BITGLOW.img = im;
+})();
+function arteBitglow(t, x, y, f){
+  const r = BITGLOW.ok && BITGLOW.pecas[t]; if (!r) return false;
+  const [sx, sy, w, h] = r, dx = x + Math.floor((16 - w) / 2), dy = y + 16 - h;
+  if (t === "planta" && f){ // balanço leve: só as folhas mexem 1px, o vaso fica parado
+    const vaso = 11, s = f === 1 ? -1 : 1;
+    ctx.drawImage(BITGLOW.img, sx, sy, w, h - vaso, dx + s, dy, w, h - vaso);
+    ctx.drawImage(BITGLOW.img, sx, sy + h - vaso, w, vaso, dx, dy + h - vaso, w, vaso);
+  } else ctx.drawImage(BITGLOW.img, sx, sy, w, h, dx, dy, w, h);
+  return true;
+}
 function drawFurn(t, x, y, f){
   switch (t){
     case "casal": case "solteiro": {
@@ -327,6 +345,7 @@ function drawFurn(t, x, y, f){
       R(x + 2, y + 15, 2, 1, C.woodDD); R(x + 12, y + 15, 2, 1, C.woodDD);
       break; }
     case "planta": {
+      if (arteBitglow(t, x, y, f)) break;
       const s = f === 1 ? -1 : f === 2 ? 1 : 0;
       // folhas
       R(x + 7, y + 1, 2, 7, C.leafD);
@@ -351,6 +370,7 @@ function drawFurn(t, x, y, f){
       R(x + 1, y + 14, 30, 1, C.woodDD); R(x + 2, y + 15, 3, 1, C.woodDD); R(x + 27, y + 15, 3, 1, C.woodDD);
       break;
     case "abajur":
+      if (arteBitglow(t, x, y, f)) break;
       // mesinha
       box(x + 2, y + 8, 12, 7, C.wood); R(x + 2, y + 8, 12, 2, C.woodL); R(x + 4, y + 11, 8, 3, C.woodD); R(x + 7, y + 12, 2, 1, C.gold);
       R(x + 3, y + 15, 2, 1, C.woodDD); R(x + 11, y + 15, 2, 1, C.woodDD);

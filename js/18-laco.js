@@ -177,7 +177,7 @@ function draw(now){
   if (andarAtual === 1){ for (const [k, d] of Object.entries(DECOR2)) if (d === "arandela"){ const [x, y] = k.split(",").map(Number); lights.push([x * T + 8, y * T + 9, 30, "255,214,150", .95]); } }
   else if (escadaOn) lights.push([(ESCADA.x + 1) * T, ESCADA.y * T + 2, 22, "255,214,160", .45]); // luz que desce lá de cima
   for (const [id, m] of Object.entries(moveis)){
-    if (m.t === "abajur") lights.push([m.x * T + 8, m.y * T - 2, 58, "255,206,130", 1]);
+    if (m.t === "abajur") lights.push([m.x * T + 8, m.y * T - 22, 58, "255,206,130", 1]);
     if (ativo[id] && m.t === "tv") lights.push([m.x * T + 16, m.y * T + 2, 38, "140,190,255", .8 + .2 * Math.sin(tm / 110) * Math.sin(tm / 370)]);
     if (ativo[id] && m.t === "pc") lights.push([m.x * T + 16, m.y * T, 24, "140,190,255", .85]);
     if (ativo[id] && m.t === "churrasqueira") lights.push([m.x * T + 12, m.y * T, 26, "255,150,80", .85 + .15 * Math.sin(tm / 80)]);
