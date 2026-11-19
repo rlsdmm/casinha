@@ -89,7 +89,7 @@ function ruido(dest, t, o){
   s.start(t, Math.random() * .5); s.stop(t + o.dur + .05);
   AUD.tocadas++;
 }
-const SFX_MIN = { passo: 210, porta: 1200, toc: 900, moeda: 90, agua: 1200, regar: 900, panela: 1500, fritura: 900, ronronar: 1500, latido: 900, miau: 1200, pop: 150, beijo: 200, notif: 600, fanfarra: 1500, limpar: 450, truque: 800, comida: 800, disco: 800 };
+const SFX_MIN = { fogo: 900, passo: 210, porta: 1200, toc: 900, moeda: 90, agua: 1200, regar: 900, panela: 1500, fritura: 900, ronronar: 1500, latido: 900, miau: 1200, pop: 150, beijo: 200, notif: 600, fanfarra: 1500, limpar: 450, truque: 800, comida: 800, disco: 800 };
 function sfx(tipo, vol){
   if (!audioPronto() || !prefOn("casinha-som") || !AUD.sfx) return false;
   const agora = performance.now();
@@ -139,6 +139,7 @@ function sfx(tipo, vol){
       case "papel": for (let i = 0; i < 5; i++) ruido(d, t + i * .05, { filtro: "bandpass", f: 2400 + i * 450, q: .8, dur: .07, g: .06 * v }); break;
       case "pipoca": for (let i = 0; i < 4; i++) tom(d, t + Math.random() * .5, { f: 600 + Math.random() * 500, f2: 220, dur: .04, g: .07 * v, tipo: "triangle" }); break;
       case "susto": tom(d, t, { f: 180, f2: 90, dur: .3, g: .12 * v, tipo: "sawtooth", lp: 800 }); tom(d, t + .02, { f: 1400, f2: 2200, dur: .25, g: .03 * v, tipo: "square", lp: 3000 }); break;
+      case "fogo": for (let i = 0; i < 6; i++) ruido(d, t + Math.random() * .9, { filtro: "highpass", f: 1800 + Math.random() * 2500, dur: .02 + Math.random() * .03, g: (.012 + Math.random() * .025) * v }); ruido(d, t, { filtro: "lowpass", f: 320, dur: .9, at: .2, g: .018 * v }); break; // v39: lareira estalando
       case "fosforo": ruido(d, t, { filtro: "bandpass", f: 2000, f2: 5000, q: .9, dur: .28, at: .02, g: .05 * v }); break;
       default: return false;
     }

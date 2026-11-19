@@ -42,10 +42,10 @@ const COZY = {
     pelCacto: [{nome:"Cacto",f:[115,457,11,14],sw:"#748C50"}],
     pelGirafa: [{nome:"Girafa",f:[126,457,14,16],sw:"#BE9766"}]
   },
-  tv: {"tvOff":[140,457,25,20],"progs":[[[165,457,25,20],[190,457,25,20],[215,457,25,20],[0,509,25,20]],[[25,509,25,20],[50,509,25,20],[75,509,25,20],[100,509,25,20],[125,509,25,20]],[[150,509,25,20],[175,509,25,20],[200,509,25,20],[225,509,25,20],[0,529,25,20],[25,529,25,20],[50,529,25,20],[75,529,25,20]],[[100,529,25,20],[125,529,25,20],[150,529,25,20],[175,529,25,20]]]}
+  tv: {"tvOff":[140,457,25,20],"progs":[[[165,457,25,20],[190,457,25,20],[215,457,25,20],[0,509,25,20]],[[25,509,25,20],[50,509,25,20],[75,509,25,20],[100,509,25,20],[125,509,25,20]],[[150,509,25,20],[175,509,25,20],[200,509,25,20],[225,509,25,20],[0,529,25,20],[25,529,25,20],[50,529,25,20],[75,529,25,20]],[[100,529,25,20],[125,529,25,20],[150,529,25,20],[175,529,25,20]],[[200,529,25,20],[225,529,25,20],[0,549,25,20],[25,549,25,20]],[[50,549,25,20],[75,549,25,20],[100,549,25,20],[125,549,25,20]],[[150,549,25,20],[175,549,25,20],[200,549,25,20],[225,549,25,20],[0,569,25,20],[25,569,25,20],[50,569,25,20],[75,569,25,20]],[[100,569,25,20],[125,569,25,20],[150,569,25,20],[175,569,25,20]],[[200,569,25,20],[225,569,25,20],[0,589,25,20],[25,589,25,20],[50,589,25,20],[75,589,25,20],[100,589,25,20],[125,589,25,20]]]}
 };
 // v29: quadros da lareira (fogo) e do aquário (peixinhos em cima de uma mesinha), sem variante de cor
-COZY.anim = {"tvTubo":[[200,529,16,29],[216,529,16,29],[232,529,16,29],[0,558,16,29],[16,558,16,29]],"pote":[[32,558,16,9],[48,558,16,9]],"lareira":[[64,558,27,30],[91,558,27,30],[118,558,27,30],[145,558,27,30],[172,558,27,30]],"aquario":[[199,558,16,30],[215,558,16,30],[231,558,16,30],[0,588,16,30],[16,588,16,30],[32,588,16,30],[48,588,16,30],[64,588,16,30],[80,588,16,30]],"arvoreNatal":[[96,588,32,32],[128,588,32,32],[160,588,32,32]],"castical":[[192,588,7,12],[199,588,7,12],[206,588,7,12],[213,588,7,12],[220,588,7,12],[227,588,7,12],[234,588,7,12]],"hamsterGaiola":[[0,620,16,14],[16,620,16,14],[32,620,16,14]],"aquarioBetta":[[48,620,16,30],[64,620,16,30],[80,620,16,30],[96,620,16,30],[112,620,16,30],[128,620,16,30],[144,620,16,30],[160,620,16,30]]};
+COZY.anim = {"tvTubo":[[150,589,16,29],[166,589,16,29],[182,589,16,29],[198,589,16,29],[214,589,16,29]],"pote":[[230,589,16,9],[0,618,16,9]],"lareira":[[16,618,27,30],[43,618,27,30],[70,618,27,30],[97,618,27,30],[124,618,27,30]],"aquario":[[151,618,16,30],[167,618,16,30],[183,618,16,30],[199,618,16,30],[215,618,16,30],[231,618,16,30],[0,648,16,30],[16,648,16,30],[32,648,16,30]],"arvoreNatal":[[48,648,32,32],[80,648,32,32],[112,648,32,32]],"castical":[[144,648,7,12],[151,648,7,12],[158,648,7,12],[165,648,7,12],[172,648,7,12],[179,648,7,12],[186,648,7,12]],"hamsterGaiola":[[193,648,16,14],[209,648,16,14],[225,648,16,14]],"aquarioBetta":[[0,680,16,30],[16,680,16,30],[32,680,16,30],[48,680,16,30],[64,680,16,30],[80,680,16,30],[96,680,16,30],[112,680,16,30]]};
 TOP.aquario = Math.max(TOP.aquario || 0, 14);
 for (const [t, h] of [["tvTubo", 13], ["geladeiraG", 15], ["telmesa", 6]]) TOP[t] = Math.max(TOP[t] || 0, h); // v34 // o aquário em cima da mesinha é mais alto que o antigo
 let COZY_OFF = 0; // > 0: desenha o móvel antigo (a cama com dossel usa a cama de casal grande por baixo)
@@ -56,7 +56,7 @@ let COZY_OFF = 0; // > 0: desenha o móvel antigo (a cama com dossel usa a cama 
     for (const k of [...sprCache.keys()]) if (/^f[vz]?:/.test(k)) sprCache.delete(k);
     bgKey = null;
   };
-  im.src = "img/moveis/cozy.png?v=8"; COZY.img = im;
+  im.src = "img/moveis/cozy.png?v=9"; COZY.img = im;
 })();
 const cozyVar = (t, cor) => { const p = COZY.pecas[t]; return p ? p[cor | 0] || p[0] : null; };
 // desenha o recorte encostado no fundo do quadrado do móvel e centralizado; devolve false se não tiver arte
@@ -99,7 +99,19 @@ function arteCozy(t, x, y, f, cor, vista, w, h){
   return true;
 }
 // TV ligada: um programa por vez (troca a cada 45 s), cada um no ritmo do GIF original
-const TV_RITMO = [900, 300, 450, 450];
+const TV_RITMO = [900, 300, 450, 450, 450, 450, 450, 450, 450];
+// v39: programação pelo relógio do jogo. 0 novela, 1 futebol, 2 almoço, 3 tempo (sol), 4 tempo (chuva), 5 tempo (nublado),
+// 6 café da manhã, 7 terror, 8 sobremesa
+function progTV(tm){
+  const h = hourNow(), chuva = !!climaAgora(), tempo = chuva ? 4 : h < 15 ? 3 : 5, alterna = Math.floor(tm / 30000) % 2;
+  if (h >= 6 && h < 9) return alterna ? tempo : 6;   // manhã: previsão do tempo e café da manhã
+  if (h >= 9 && h < 12) return 8;                    // receita de sobremesa
+  if (h >= 12 && h < 14) return 2;                   // almoço
+  if (h >= 14 && h < 18) return 1;                   // futebol à tarde
+  if (h >= 18 && h < 19) return tempo;               // jornal do tempo
+  if (h >= 19 && h < 23) return 0;                   // novela
+  return 7;                                          // de madrugada, filme de terror
+}
 { const f0 = furnFrame; furnFrame = function(t, on, tm, ph){
   if (COZY.ok && t === "lareira") return Math.floor(tm / 110) % 5;
   if (COZY.ok && t === "tvTubo") return on ? 1 + Math.floor(tm / 400) % 4 : 0; // v34: desenho antigo passando na TV de tubo da Cozy
@@ -107,7 +119,7 @@ const TV_RITMO = [900, 300, 450, 450];
   if (COZY.ok && t === "arvoreNatal") return Math.floor(tm / 220) % 3;
   if (COZY.ok && t === "hamsterGaiola") return Math.floor((tm + (ph || 0) * 97) / 160) % 3;
   if (t !== "tv" || !on || !COZY.ok) return f0(t, on, tm, ph);
-  const p = Math.floor(tm / 45000) % COZY.tv.progs.length, n = COZY.tv.progs[p].length;
+  const p = Math.min(progTV(tm), COZY.tv.progs.length - 1), n = COZY.tv.progs[p].length;
   return 1 + p * 8 + Math.floor(tm / TV_RITMO[p]) % n;
 }; }
 // tela dos minijogos: onde fica a tela da TV e do monitor novos (x, y a partir do canto do móvel, largura, altura)
@@ -296,4 +308,70 @@ function velaCozy(X, Y, tm, i){
 function iconeHamster(x){
   const fs = COZY.ok && COZY.anim.hamsterGaiola; if (!fs) return false;
   const q = fs[0]; x.drawImage(COZY.img, q[0], q[1], q[2], q[3], 0, 15 - q[3], q[2], q[3]); return true;
+}
+
+
+// ---------------- v39: lareira estalando e esquentando; crianças de pertinho ----------------
+let lareiraQuente = 0, lareiraAviso = 0;
+setInterval(() => {
+  if (!me || typeof moveis === "undefined" || $("screenGame").hidden) return;
+  let perto = 99;
+  for (const m of Object.values(moveis)){
+    if (!m || m.t !== "lareira") continue;
+    const d = Math.hypot(me.px - (m.x + 1), me.py - (m.y + 1)); perto = Math.min(perto, d);
+    if (d < 7) sfx("fogo", clamp(1 - d / 7, .15, 1) * .9);
+    if (typeof particles !== "undefined" && Math.random() < .6) particles.push({ x: (m.x + 1) * T + Math.random() * 8 - 4, y: m.y * T + 2, vx: Math.random() * 4 - 2, vy: -6 - Math.random() * 6, life: 1.1, kind: "brilho" });
+  }
+  // quentinho: parado perto da lareira, de noite ou no inverno
+  const parado = !(me.path && me.path.length), frio = estacao() === "inverno" || hourNow() >= 19 || hourNow() < 6;
+  if (perto <= 2.2 && parado && frio){
+    if (++lareiraQuente % 15 === 0) ganharNeeds({ energia: 2, diversao: 2 });
+    if (Date.now() - lareiraAviso > 10 * 60000){ lareiraAviso = Date.now(); toast("Quentinho perto da lareira 🔥"); }
+  } else lareiraQuente = 0;
+}, 1000);
+
+// a criança (ou o bebê) no "espelho": retrato grande, girando, com uma fichinha
+function openFilhoPertinho(fid){
+  const VIS = [["down", "De frente"], ["right", "De lado"], ["up", "De costas"], ["left", "Do outro lado"]];
+  let vista = 0;
+  openPanel("espelho", "Ver " + nomeFilho(fid) + " 🪞", corpo => {
+    corpo.classList.add("esp12b");
+    const cv = el("canvas", "espCanvas12b"); cv.width = ESP_W; cv.height = ESP_H; cv.setAttribute("role", "img");
+    const leg = el("p", "espLeg12b"); leg.setAttribute("aria-live", "polite");
+    const gira = el("div", "espGira12b"), lbl = el("span", "espVista12b");
+    const bE = btn("◀", "btn ghost", () => { vista = (vista + 3) % 4; desenha(); }), bD = btn("▶", "btn ghost", () => { vista = (vista + 1) % 4; desenha(); });
+    bE.setAttribute("aria-label", "Girar para a esquerda"); bD.setAttribute("aria-label", "Girar para a direita");
+    gira.append(bE, lbl, bD);
+    const ficha = el("ul", "ficha31");
+    corpo.append(cv, leg, gira, ficha);
+    const desenha = () => {
+      const f = filhos[fid]; if (!f){ closePanel(); return; }
+      const t = srvNow(), fase = filhoFase(f, t), L = lookFilho(f), x = cv.getContext("2d"), bebe = fase === "bebe" || fase === "engatinhando";
+      x.imageSmoothingEnabled = false; x.drawImage(cenaEspelho(), 0, 0);
+      x.globalAlpha = .22; x.fillStyle = "#3A2433"; x.beginPath(); x.ellipse(48, 128, 16, 3, 0, 0, 6.29); x.fill(); x.globalAlpha = 1;
+      if (bebe){
+        const s = sprite("bbface:" + L.pele + ":" + L.cabelo, 8, 7, (ox, oy) => drawBebe("berco", "acordado", ox, oy, PELES[L.pele], CABELOS[L.cabelo]));
+        x.drawImage(s.c, 0, 0, s.c.width, s.c.height, 48 - s.c.width * 4, 96 - s.c.height * 8, s.c.width * 8, s.c.height * 8);
+      } else {
+        const pisca = Date.now() % 3400 < 150, s = kidSprite(fase === "adolescente", L, VIS[vista][0], 0, pisca ? "blink" : "stand", false), k = 4;
+        x.drawImage(s.c, 0, 0, s.c.width, s.c.height, Math.round(48 - s.c.width * k / 2), 130 - s.c.height * k, s.c.width * k, s.c.height * k);
+      }
+      molduraEsp(x);
+      gira.hidden = bebe; lbl.textContent = VIS[vista][1];
+      const h = filhoHumor(f, t), txt = nomeFilho(fid) + " · " + h.em + " " + h.nome;
+      if (leg.textContent !== txt) leg.textContent = txt;
+      const n = filhoNeeds(f, t), st = famEstado(fid, t), dias = Math.floor((t - f.nasceu) / FAMILIA.dia);
+      const onde = !st ? "" : st.onde === "escola" ? "Na escola 🎒" : st.onde === "cama" ? "Dormindo 😴" : st.brincaPet ? "Brincando com " + petNome() + " 🐾" : "Em casa";
+      const pais = Object.keys(f.pais || {}).map(nomeDe).filter(Boolean).join(" e ");
+      const linhas = [["Fase", FASE_NOME[fase] + " · " + dias + (dias === 1 ? " dia" : " dias")]];
+      if (onde) linhas.push(["Agora", onde]);
+      if (n && !bebe) linhas.push(["Como está", "Fome " + Math.round(n.fome) + " · Diversão " + Math.round(n.diversao) + " · Estudo " + Math.round(n.estudo)]);
+      if (pais) linhas.push(["Pais", pais]);
+      const sig = linhas.map(l => l.join("|")).join("~");
+      if (ficha.dataset.sig !== sig){ ficha.dataset.sig = sig; ficha.textContent = ""; for (const [r, v] of linhas){ const li = el("li"); li.append(el("b", null, r + ": "), document.createTextNode(v)); ficha.append(li); } }
+      cv.setAttribute("aria-label", nomeFilho(fid) + ", " + (bebe ? "bebê" : VIS[vista][1].toLowerCase()));
+    };
+    desenha();
+    clearInterval(espTimer); espTimer = setInterval(() => { if (!painel || painel.id !== "espelho"){ clearInterval(espTimer); return; } desenha(); }, 150);
+  });
 }

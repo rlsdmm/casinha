@@ -805,6 +805,7 @@ function famMenu(fid, p){
   const dz = desejoTeen(fid, f, srvNow()); if (dz && !dz.feito) items.push({ nota: 1, nome: "🌟 " + dz.txt });
   if (!visitando) for (const k of famAcoesDe(fid)) items.push({ nome: FI_ACOES[k].menu, info: FI_ACOES[k].preco ? "$" + FI_ACOES[k].preco : "", fn: () => famAcao(fid, k) });
   items.push({ nome: "Ver no painel", fn: openFamilia });
+  if (typeof openFilhoPertinho === "function") items.splice(1, 0, { nome: "👀 Ver " + nm + " de pertinho", fn: () => openFilhoPertinho(fid) }); // v39
   openMenu(p, nm + " · " + FASE_NOME[fase].toLowerCase(), items);
 }
 // canvas pequeno com o rosto (relações e painel)
