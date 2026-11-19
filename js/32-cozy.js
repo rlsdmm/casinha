@@ -35,12 +35,17 @@ const COZY = {
     mesaEstudos: [{nome:"Rosa",f:[64,405,32,15],sw:"#E8858E"},{nome:"Azul",f:[96,405,32,15],sw:"#5FA8B8"},{nome:"Verde",f:[128,405,32,15],sw:"#7AAE6A"}],
     bloquinhos: [{nome:"Bloquinhos",f:[160,405,16,16],sw:"#CE7D4B"}],
     dossel: [{nome:"Lilás",f:[176,405,32,52],sw:"#AC8364"},{nome:"Azul",f:[208,405,32,52],sw:"#94775A"},{nome:"Verde",f:[0,457,32,52],sw:"#937C50"},{nome:"Rosa",f:[32,457,32,52],sw:"#A97B57"}],
-    chuveiro: [{nome:"Box",f:[64,457,16,26],sw:"#BCD1D5"}]
+    chuveiro: [{nome:"Box",f:[64,457,16,26],sw:"#BCD1D5"}],
+    pelPintinho: [{nome:"Pintinho",f:[80,457,13,11],sw:"#D8CB80"}],
+    pelCoelho: [{nome:"Coelhinho",f:[93,457,11,10],sw:"#CCB97E"}],
+    pelGatinho: [{nome:"Gatinho",f:[104,457,11,11],sw:"#809BA5"}],
+    pelCacto: [{nome:"Cacto",f:[115,457,11,14],sw:"#748C50"}],
+    pelGirafa: [{nome:"Girafa",f:[126,457,14,16],sw:"#BE9766"}]
   },
-  tv: {"tvOff":[80,457,25,20],"progs":[[[105,457,25,20],[130,457,25,20],[155,457,25,20],[180,457,25,20]],[[205,457,25,20],[230,457,25,20],[0,509,25,20],[25,509,25,20],[50,509,25,20]],[[75,509,25,20],[100,509,25,20],[125,509,25,20],[150,509,25,20],[175,509,25,20],[200,509,25,20],[225,509,25,20],[0,529,25,20]],[[25,529,25,20],[50,529,25,20],[75,529,25,20],[100,529,25,20]]]}
+  tv: {"tvOff":[140,457,25,20],"progs":[[[165,457,25,20],[190,457,25,20],[215,457,25,20],[0,509,25,20]],[[25,509,25,20],[50,509,25,20],[75,509,25,20],[100,509,25,20],[125,509,25,20]],[[150,509,25,20],[175,509,25,20],[200,509,25,20],[225,509,25,20],[0,529,25,20],[25,529,25,20],[50,529,25,20],[75,529,25,20]],[[100,529,25,20],[125,529,25,20],[150,529,25,20],[175,529,25,20]]]}
 };
 // v29: quadros da lareira (fogo) e do aquário (peixinhos em cima de uma mesinha), sem variante de cor
-COZY.anim = {"tvTubo":[[125,529,16,29],[141,529,16,29],[157,529,16,29],[173,529,16,29],[189,529,16,29]],"pote":[[205,529,16,9],[221,529,16,9]],"lareira":[[0,558,27,30],[27,558,27,30],[54,558,27,30],[81,558,27,30],[108,558,27,30]],"aquario":[[135,558,16,30],[151,558,16,30],[167,558,16,30],[183,558,16,30],[199,558,16,30],[215,558,16,30],[231,558,16,30],[0,588,16,30],[16,588,16,30]]};
+COZY.anim = {"tvTubo":[[200,529,16,29],[216,529,16,29],[232,529,16,29],[0,558,16,29],[16,558,16,29]],"pote":[[32,558,16,9],[48,558,16,9]],"lareira":[[64,558,27,30],[91,558,27,30],[118,558,27,30],[145,558,27,30],[172,558,27,30]],"aquario":[[199,558,16,30],[215,558,16,30],[231,558,16,30],[0,588,16,30],[16,588,16,30],[32,588,16,30],[48,588,16,30],[64,588,16,30],[80,588,16,30]],"arvoreNatal":[[96,588,32,32],[128,588,32,32],[160,588,32,32]],"castical":[[192,588,7,12],[199,588,7,12],[206,588,7,12],[213,588,7,12],[220,588,7,12],[227,588,7,12],[234,588,7,12]],"hamsterGaiola":[[0,620,16,14],[16,620,16,14],[32,620,16,14]],"aquarioBetta":[[48,620,16,30],[64,620,16,30],[80,620,16,30],[96,620,16,30],[112,620,16,30],[128,620,16,30],[144,620,16,30],[160,620,16,30]]};
 TOP.aquario = Math.max(TOP.aquario || 0, 14);
 for (const [t, h] of [["tvTubo", 13], ["geladeiraG", 15], ["telmesa", 6]]) TOP[t] = Math.max(TOP[t] || 0, h); // v34 // o aquário em cima da mesinha é mais alto que o antigo
 let COZY_OFF = 0; // > 0: desenha o móvel antigo (a cama com dossel usa a cama de casal grande por baixo)
@@ -51,14 +56,15 @@ let COZY_OFF = 0; // > 0: desenha o móvel antigo (a cama com dossel usa a cama 
     for (const k of [...sprCache.keys()]) if (/^f[vz]?:/.test(k)) sprCache.delete(k);
     bgKey = null;
   };
-  im.src = "img/moveis/cozy.png?v=7"; COZY.img = im;
+  im.src = "img/moveis/cozy.png?v=8"; COZY.img = im;
 })();
 const cozyVar = (t, cor) => { const p = COZY.pecas[t]; return p ? p[cor | 0] || p[0] : null; };
 // desenha o recorte encostado no fundo do quadrado do móvel e centralizado; devolve false se não tiver arte
 function arteCozy(t, x, y, f, cor, vista, w, h){
   if (!COZY.ok || COZY_OFF) return false;
   if (COZY.anim[t] && !vista){ // lareira e aquário: um quadro por vez, encostado no fundo do quadrado
-    const q = COZY.anim[t][(f | 0) % COZY.anim[t].length], c = CAT[t], ww = c.w * T, hh = c.h * T;
+    const fs = t === "aquario" && (cor | 0) === 1 && COZY.anim.aquarioBetta ? COZY.anim.aquarioBetta : COZY.anim[t]; // v38: betta
+    const q = fs[(f | 0) % fs.length], c = CAT[t], ww = c.w * T, hh = c.h * T;
     ctx.drawImage(COZY.img, q[0], q[1], q[2], q[3], x + Math.floor((ww - q[2]) / 2), y + hh - q[3], q[2], q[3]);
     return true;
   }
@@ -97,7 +103,9 @@ const TV_RITMO = [900, 300, 450, 450];
 { const f0 = furnFrame; furnFrame = function(t, on, tm, ph){
   if (COZY.ok && t === "lareira") return Math.floor(tm / 110) % 5;
   if (COZY.ok && t === "tvTubo") return on ? 1 + Math.floor(tm / 400) % 4 : 0; // v34: desenho antigo passando na TV de tubo da Cozy
-  if (COZY.ok && t === "aquario") return Math.floor((tm + (ph || 0) * 131) / 400) % 9;
+  if (COZY.ok && t === "aquario") return Math.floor((tm + (ph || 0) * 131) / 400) % 72; // 9 quadros (peixinhos) e 8 (betta): 72 serve pros dois
+  if (COZY.ok && t === "arvoreNatal") return Math.floor(tm / 220) % 3;
+  if (COZY.ok && t === "hamsterGaiola") return Math.floor((tm + (ph || 0) * 97) / 160) % 3;
   if (t !== "tv" || !on || !COZY.ok) return f0(t, on, tm, ph);
   const p = Math.floor(tm / 45000) % COZY.tv.progs.length, n = COZY.tv.progs[p].length;
   return 1 + p * 8 + Math.floor(tm / TV_RITMO[p]) % n;
@@ -253,3 +261,39 @@ function vidroBox(x, y, tm){
   ctx.globalAlpha = 1; R(x, y - 10, 1, 25, "#9AA3AE"); R(x + 15, y - 10, 1, 25, "#9AA3AE"); R(x, y - 10, 16, 1, "#B9C0CA");
 }
 { const fx0 = drawFx; drawFx = function(t, x, y, tm){ fx0(t, x, y, tm); if (t === "chuveiro" && COZY.ok && COZY.pecas.chuveiro) vidroBox(x, y, tm); }; }
+
+
+// ---------------- v38: Natal, velas, hamster, betta e pelúcias ----------------
+const diaAgora = () => new Date(srvNow()).getDate();
+// árvore de Natal animada (luzinhas piscando): só aparece no catálogo de dezembro até o Dia de Reis
+Object.assign(CAT, {
+  arvoreNatal: { nome: "Árvore de Natal", w: 2, h: 1, preco: 150, epoca: () => mesAgora() === 12 || (mesAgora() === 1 && diaAgora() <= 6),
+    acoes: [{ id: "natal", nome: "Admirar a árvore", dur: 5, ganho: { diversao: 14, social: 4 }, junto: 1, juntoSocial: 2 }] },
+  hamsterGaiola: { nome: "Gaiola do hamster", w: 1, h: 1, preco: 90, acoes: [] },
+  pelPintinho: { nome: "Pintinho de pelúcia", w: 1, h: 1, preco: 70, acoes: [{ id: "urso", nome: "Abraçar o pintinho", dur: 4, ganho: { diversao: 10, social: 6 } }] },
+  pelCoelho:   { nome: "Coelhinho de pelúcia", w: 1, h: 1, preco: 70, acoes: [{ id: "urso", nome: "Abraçar o coelhinho", dur: 4, ganho: { diversao: 10, social: 6 } }] },
+  pelGatinho:  { nome: "Gatinho de pelúcia", w: 1, h: 1, preco: 70, acoes: [{ id: "urso", nome: "Abraçar o gatinho", dur: 4, ganho: { diversao: 10, social: 6 } }] },
+  pelCacto:    { nome: "Cacto de pelúcia", w: 1, h: 1, preco: 60, acoes: [{ id: "urso", nome: "Abraçar o cacto (é fofinho!)", dur: 4, ganho: { diversao: 12, social: 4 } }] },
+  pelGirafa:   { nome: "Girafinha de brinquedo", w: 1, h: 1, preco: 80, acoes: [{ id: "urso", nome: "Brincar com a girafinha", dur: 4, ganho: { diversao: 12 } }] }
+});
+Object.assign(TOP, { arvoreNatal: 16, hamsterGaiola: 1, pelGirafa: 1 });
+if (typeof LUZ6 !== "undefined") LUZ6.arvoreNatal = ["255,214,140", 44, .9, -6];
+// hamster: mais um bichinho pra adotar, que vem com a gaiola animada do pacote
+if (typeof PET13 !== "undefined") PET13.hamster = { nome: "Hamster", ic: "🐹", preco: 25, fome: 10, car: 16, comida: "Dar sementinhas", cuida: "Brincar na rodinha 🎡", ch: "carinho", item: "hamsterGaiola" };
+if (typeof MENU_EXTRA !== "undefined" && MENU_EXTRA.gaiola){ const g0 = MENU_EXTRA.gaiola; MENU_EXTRA.hamsterGaiola = id => {
+  const r = g0(id) || []; return r.map(it => it.nota ? Object.assign({}, it, { nome: "Gaiola vazia. Adote um hamster 🐹" }) : it);
+}; }
+// aquário: dá pra escolher o peixe (a "cor" do aquário)
+CORES.aquario = { m: {}, v: [{ nome: "Peixinhos coloridos", sw: "#7FC8E8" }, { nome: "Peixe betta", sw: "#C9504A" }] };
+// castiçal aceso do pacote (jantar à luz de velas); X, Y = onde ficava a vela antiga
+function velaCozy(X, Y, tm, i){
+  const fs = COZY.ok && COZY.anim.castical; if (!fs) return false;
+  const q = fs[(Math.floor(tm / 150) + i * 3) % fs.length];
+  ctx.drawImage(COZY.img, q[0], q[1], q[2], q[3], X - 3, Y + 7 - q[3], q[2], q[3]);
+  return true;
+}
+// ícone do hamster no painel de bichinhos
+function iconeHamster(x){
+  const fs = COZY.ok && COZY.anim.hamsterGaiola; if (!fs) return false;
+  const q = fs[0]; x.drawImage(COZY.img, q[0], q[1], q[2], q[3], 0, 15 - q[3], q[2], q[3]); return true;
+}

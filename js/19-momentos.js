@@ -478,6 +478,7 @@ function drawJantar(m, geo, g, F, tm){
   const acesa = F && (F.f !== "velas" || F.d > 900);
   geo.velas.forEach(([vx, vy], i) => {
     const X = x + vx, Y = y + vy, ch = 5 - i;
+    if (acesa && typeof velaCozy === "function" && velaCozy(X, Y, tm, i)) return; // v38: castiçal aceso do pacote
     R(X - 2, Y + 5, 5, 1, C.gold); R(X - 1, Y + 6, 3, 1, "#D8963A"); P(X, Y + 4, C.gold);
     R(X, Y + 4 - ch, 2, ch, C.cream); P(X + 1, Y + 5 - ch, C.creamD); P(X, Y + 4 - ch, "#FFFFFF");
     if (acesa){ const fr = (Math.floor(tm / 140) + i) % 3, cy = Y + 3 - ch; P(X, cy, "#FFE08A"); P(X + 1, cy, "#F6A04A"); P(X + (fr === 1 ? 1 : 0), cy - 1, "#FFF4C8"); if (fr !== 2) P(X, cy - 2, "#FFE08A"); }

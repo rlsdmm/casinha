@@ -254,6 +254,7 @@ function renderBuild(){
     for (const [t, c] of Object.entries(CAT)){
       if (c.loja && !lojaDonos[t]) continue; // leva 6: item da loja da semana entra no catálogo depois de comprado
       if (c.virt) continue; // leva 11: móvel girado é só um jeito de mostrar (tipo virtual)
+      if (c.epoca && !c.epoca()) continue; // v38: móvel de época (árvore de Natal)
       const trava = !!c.nivel && nivelCasal() < c.nivel;
       const b = el("button", "item"); b.type = "button";
       const cv = el("canvas"); cv.width = 128; cv.height = 96;

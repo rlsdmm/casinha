@@ -917,7 +917,7 @@ const petTristeId = (id, t) => { const n = petNec(id, t); return !!n && (n.fome 
 const mingauAdotado = () => Object.values(pets).some(p => p && p.raca === "mingau");
 // a casa do peixe e do passarinho: um aquário/gaiola por bichinho, na ordem de chegada
 function casaDoPet(id){ const p = pets[id], d = p && PET13[p.tipo]; if (!d || !d.item) return null; const bs = petsOrdem().filter(k => pets[k].tipo === p.tipo), ms = Object.keys(todosMoveis).filter(k => todosMoveis[k] && todosMoveis[k].t === d.item).sort(); return ms[bs.indexOf(id)] || null; }
-function petDoMovel(mid){ const m = todosMoveis[mid]; if (!m) return null; const tipo = m.t === "aquario" ? "peixe" : m.t === "gaiola" ? "passarinho" : null; if (!tipo) return null; const ms = Object.keys(todosMoveis).filter(k => todosMoveis[k] && todosMoveis[k].t === m.t).sort(); return petsOrdem().filter(k => pets[k].tipo === tipo)[ms.indexOf(mid)] || null; }
+function petDoMovel(mid){ const m = todosMoveis[mid]; if (!m) return null; const tipo = m.t === "aquario" ? "peixe" : m.t === "gaiola" ? "passarinho" : m.t === "hamsterGaiola" ? "hamster" : null; if (!tipo) return null; const ms = Object.keys(todosMoveis).filter(k => todosMoveis[k] && todosMoveis[k].t === m.t).sort(); return petsOrdem().filter(k => pets[k].tipo === tipo)[ms.indexOf(mid)] || null; }
 // ---- arte ----
 function drawCoelho(x, y, pose, f, triste){
   const c = "#F4EEE6", cL = "#FFFFFF", cD = "#D9CFC4", or = "#F7A3B5", ink = "#2E2638";
@@ -1016,6 +1016,7 @@ function iconePet(id){
   if (p.tipo === "coelho") x.drawImage(coelhoSprite("stand", 0, false, false).c, 1, 1);
   else if (p.tipo === "peixe"){ x.fillStyle = "#8FD0EE"; x.fillRect(1, 3, 15, 10); x.drawImage(peixeSpr(0, false, p.cor || "#F2A65A").c, 5, 6); }
   else if (p.tipo === "passarinho") x.drawImage(passSpr(0, false).c, 5, 5);
+  else if (p.tipo === "hamster"){ if (!(typeof iconeHamster === "function" && iconeHamster(x))){ x.fillStyle = "#E8C08A"; x.fillRect(4, 6, 9, 6); } }
   else x.drawImage(petSprite(p.raca === "mingau" ? "mingau" : p.tipo, "sit", 0, false, false).c, 0, 1);
   return cv;
 }
@@ -1055,7 +1056,7 @@ function openAdocao(){
   if (visitando){ toast("Adoção é na sua casa 😉"); return; }
   openPanel("adocao", "Adotar bichinho 🐾", corpo => {
     const n = petsOrdem().length, cheio = n >= FAMILIA.petsMax;
-    corpo.append(el("p", "muted", cheio ? "A casa já tem " + FAMILIA.petsMax + " bichinhos. Cuidem bem deles 💞" : "Preço simbólico pro abrigo. Peixinho vem com aquário e passarinho com gaiola, se a casa ainda não tiver."));
+    corpo.append(el("p", "muted", cheio ? "A casa já tem " + FAMILIA.petsMax + " bichinhos. Cuidem bem deles 💞" : "Preço simbólico pro abrigo. Peixinho vem com aquário, passarinho e hamster com gaiola, se a casa ainda não tiver."));
     if (cheio) return;
     const inp = el("input"), sel = { t: "coelho" }; inp.type = "text"; inp.maxLength = 16; inp.placeholder = "Nome (opcional)"; inp.setAttribute("aria-label", "Nome do bichinho novo");
     const g = el("div", "grid2"), pinta = () => { for (const b of g.children) b.setAttribute("aria-pressed", String(b.dataset.t === sel.t)); };
@@ -1168,6 +1169,8 @@ function addFamObjs(objs, tm){
           const b = (tm / 900 + hashStr(id) % 7) % 1; ctx.globalAlpha = 1 - b; P(px + (esq ? 0 : 5), py - 1 - Math.round(b * 5), "#FFFFFF"); ctx.globalAlpha = 1;
         } });
         petViews13.push({ id, cx: x + 8, by: y + 2, triste });
+      } else if (p.tipo === "hamster"){ // v38: o hamster já corre na rodinha dentro da gaiola animada
+        petViews13.push({ id, cx: x + 8, by: y + 4, triste });
       } else {
         const k = Math.floor(tm / 1400 + hashStr(id) % 5), pos = [[4, -14], [9, -14], [6, -9]][k % 3], hop = (tm % 1400) < 200 ? -1 : 0, esq = k % 2 === 1;
         objs.push({ z: (m.y + 1) * T - .3, f: () => { if (typeof passaroCozy === "function" && passaroCozy(x, y, tm + hashStr(id) % 900, triste)) return; ctx.drawImage(passSpr(Math.floor(tm / 300) % 2, esq).c, x + pos[0] - 1, y + pos[1] - 1 - (triste ? 0 : hop) + (triste ? 5 : 0)); } }); // v33: passarinho da Cozy em cima da gaiola
