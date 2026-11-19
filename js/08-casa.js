@@ -256,7 +256,20 @@ function petCuidar(campo){
   if (!pet) return;
   ref(petNo()).update({ [campo]: TS(), [campo + "Por"]: pid }).catch(() => {});
   if (campo === "carinho"){ ganharNeeds({ social: 10, diversao: 8 }); toast(petNome() + (pet.tipo === "cachorro" ? " abanou o rabinho de felicidade." : " ronronou de felicidade.")); statMais("carinhos"); sfx(pet.tipo === "cachorro" ? "latido" : "ronronar"); }
-  else { toast(petNome() + " comeu tudinho."); sfx("comida"); }
+  else avisarComeu(null, petNome(), petNome() + " comeu tudinho 😋");
+}
+// v40: encher o pote não é o bichinho comer: ele ainda vai andando até lá. Avisa que está vindo, toca o som quando ele
+// chega no pote e só diz "comeu tudinho" quando termina de comer (PET_COMER_MS depois). Sem pote, come na hora.
+function avisarComeu(id, nome, msgFim){
+  if (!poteSpot()){ toast(msgFim); sfx("comida"); return; }
+  toast(nome + " ouviu a ração e está vindo comer 🐾");
+  const fim = srvNow() + PET_COMER_MS; let chegou = false;
+  const tick = setInterval(() => {
+    const p = id ? pets[id] : pet; if (!p){ clearInterval(tick); return; }
+    const st = id && typeof comPet === "function" ? comPet(id, () => (typeof petEstado0 === "function" ? petEstado0 : petEstado)(srvNow())) : petEstado(srvNow());
+    if (!chegou && st.pose === "eat"){ chegou = true; sfx("comida"); }
+    if (srvNow() >= fim){ clearInterval(tick); toast(msgFim); }
+  }, 500);
 }
 const ACAO_POTE = { id: "pet-comida", nome: "Enchendo o pote", dur: 3, ganho: {}, fim: () => petCuidar("comeu") };
 function petIrAte(acao){

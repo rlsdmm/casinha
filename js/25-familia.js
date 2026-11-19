@@ -979,7 +979,10 @@ function petCuidar13(id, campo){
   if (id === petPid && (campo === "comeu" || campo === "carinho")) return petCuidar(campo);
   ref("casa/pets/" + id).update({ [campo]: TS(), [campo + "Por"]: pid }).catch(() => {});
   const nm = p.nome || d.nome;
-  if (campo === "comeu"){ toast(nm + (p.tipo === "coelho" ? " roeu a cenoura todinha 🥕" : p.tipo === "peixe" ? " pegou a ração na superfície 🫧" : p.tipo === "passarinho" ? " beliscou o alpiste 🐦" : " comeu tudinho.")); sfx("comida"); }
+  if (campo === "comeu"){
+    const msg = nm + (p.tipo === "coelho" ? " roeu a cenoura todinha 🥕" : p.tipo === "peixe" ? " pegou a ração na superfície 🫧" : p.tipo === "passarinho" ? " beliscou o alpiste 🐦" : p.tipo === "hamster" ? " encheu as bochechas de sementinhas 🐹" : " comeu tudinho 😋");
+    if (!d.item) avisarComeu(id, nm, msg); else { toast(msg); sfx("comida"); } // v40: quem anda até o pote só "comeu" quando termina
+  }
   else if (campo === "limpo"){ toast("Aquário limpinho! " + nm + " agradece 🫧"); ganharNeeds({ diversao: 4 }); }
   else { ganharNeeds({ social: 8, diversao: 8 }); statMais("carinhos"); if (p.tipo === "passarinho"){ piar(1); toast(nm + " cantou junto 🎶"); } else if (p.tipo === "gato") { sfx("ronronar"); toast(nm + " ronronou de felicidade."); } else if (p.tipo === "cachorro"){ sfx("latido"); toast(nm + " abanou o rabinho."); } else toast(nm + " fez um pulinho de felicidade 🐰"); }
   if (temTraco("bichos")) addEfeito("bichinho");
