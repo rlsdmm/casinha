@@ -24,7 +24,7 @@
 // =====================================================================
 const B15 = { desloc: 0, vEu: 62, vNpc: 24, festaDur: 15 * MIN, festaMax: 8, feriasConvite: 10 * MIN, dia: 24 * HORA, ms: 0, quadros: 0,
   get festa(){ return festa15; }, get ferias(){ return ferias15; }, get eu(){ return EU15; } };
-const RUA_W = 1120, CH15 = 208, CAL_Y0 = 128, CAL_Y1 = 150, PORTA_Y = 129;
+const RUA_W = 1200, CH15 = 208, CAL_Y0 = 128, CAL_Y1 = 150, PORTA_Y = 129;
 const tB = t => (t || srvNow()) + B15.desloc;
 const brAgora = t => agoraBR(tB(t));
 const DIAS_NOME = ["domingo", "segunda", "terça", "quarta", "quinta", "sexta", "sábado"];
@@ -54,7 +54,8 @@ const LOTES = [
   { id: "laranja", x0: 834, w: 70, porta: 869, casa: { parede: "#FAD9B8", teto: "#D9733A", sobrado: 1 } },
   { id: "osvaldo", x0: 908, w: 62, porta: 939, casa: { parede: "#F4F1EA", teto: "#7A8BA0" } },
   { id: "mercado", x0: 974, w: 112, porta: 1030, lugar: "mercado" },
-  { id: "amigos", x0: 1090, w: 26, porta: 1102, placa: 1 }
+  { id: "amigos", x0: 1090, w: 26, porta: 1102, placa: 1 },
+  { id: "salao", x0: 1120, w: 76, porta: 1158, salao: 1 } // js/31-salao-corpo.js
 ];
 const LOTE = Object.fromEntries(LOTES.map(l => [l.id, l]));
 const POSTES = [70, 214, 360, 500, 640, 780, 920, 1060];
@@ -302,6 +303,7 @@ function acaoLote(L){
   if (L.lugar) return entrarLugar(L.lugar);
   if (L.nossa) return entrarEmCasa();
   if (L.placa) return typeof openBairro === "function" && !visitando ? openBairro() : toast("🏘️ As casas dos amigos ficam no Bairro dos moradores.");
+  if (L.salao) return openSalao();
   baterNaPorta(L);
 }
 function baterNaPorta(L){
@@ -431,6 +433,17 @@ function fachadaAcademia(L){
   R(x + 2, base - 3, w - 4, 3, "#3A4766");
   L.jan = [[x + 10, 82, 28, 26], [x + w - 38, 82, 28, 26]];
 }
+function fachadaSalao(L){ // salão de cabeleireiro: rosa, vitrine com cabecinhas e o poste listrado
+  const x = L.x0, w = L.w, base = 124, top = 64;
+  R(x + 2, top, w - 4, base - top, "#F7C6D6"); R(x + w - 5, top, 3, base - top, "#E9A9BF"); R(x + 2, top - 3, w - 4, 4, "#C2507E");
+  placa15(x + 10, top + 4, w - 20); toldo(x + 2, w - 4, 82, "#C2507E", "#FFF4E0");
+  rbox(x + 6, 94, 26, 22, "#8C5E7A"); R(x + 8, 96, 22, 18, "#BFE6F7");
+  for (const [cx, cor] of [[x + 13, "#6B3A2A"], [x + 23, "#E8C27A"]]){ disco(cx, 105, 3, "#F6D2B0"); R(cx - 4, 100, 8, 3, cor); R(cx - 4, 102, 2, 4, cor); R(cx - 2, 109, 4, 5, "#FFF4E0"); }
+  rbox(L.porta - 9, 92, 18, 32, "#8C5E7A"); R(L.porta - 7, 94, 14, 28, "#BFE6F7"); R(L.porta, 94, 1, 28, "#8C5E7A");
+  const px = x + w - 10; R(px, 90, 5, 30, "#FFFFFF"); for (let y = 90; y < 120; y += 6){ R(px, y, 5, 2, "#E8445E"); R(px, y + 3, 5, 1, "#378ADD"); }
+  R(px - 1, 88, 7, 2, "#C8963E"); R(px - 1, 120, 7, 2, "#C8963E");
+  L.jan = [[x + 8, 96, 22, 18]];
+}
 function fachadaMercado(L){
   const x = L.x0, w = L.w, base = 124, top = 60;
   R(x + 2, top, w - 4, base - top, "#EFF7EC"); R(x + w - 5, top, 3, base - top, "#D3E6CC"); R(x + 2, top - 3, w - 4, 4, "#3F8F56");
@@ -460,7 +473,7 @@ function desenharRuaBg(c){
     for (let i = 0; i < 9; i++) nuvem15(40 + i * 130 + hash(i, 1, 5) % 50, 10 + hash(i, 2, 5) % 26, 18 + hash(i, 3, 5) % 16);
     for (let x = 0; x < RUA_W; x += 6){ const hh = 18 + hash(x, 9, 9) % 26; R(x, 70 - hh, 6, hh + 4, x % 12 ? "#B8C7D9" : "#AFC0D4"); if (hash(x, 4, 4) % 3 === 0) R(x + 2, 74 - hh, 2, 2, "#DDE6F0"); } // prédios ao longe
     R(0, 70, RUA_W, 54, "#97CE80"); for (let i = 0; i < 260; i++){ const h = hash(i, 7, 77); P(h % RUA_W, 72 + (h >>> 10) % 50, i % 2 ? "#86C26F" : "#A8D891"); }
-    for (const L of LOTES){ if (L.casa) fachadaCasa(L); else if (L.nossa) fachadaNossa(L); else if (L.lugar === "cafe") fachadaCafe(L); else if (L.lugar === "academia") fachadaAcademia(L); else if (L.lugar === "mercado") fachadaMercado(L); else if (L.lugar === "praca") fachadaPraca(L); else if (L.placa) placaAmigos(L); }
+    for (const L of LOTES){ if (L.casa) fachadaCasa(L); else if (L.nossa) fachadaNossa(L); else if (L.lugar === "cafe") fachadaCafe(L); else if (L.lugar === "academia") fachadaAcademia(L); else if (L.salao) fachadaSalao(L); else if (L.lugar === "mercado") fachadaMercado(L); else if (L.lugar === "praca") fachadaPraca(L); else if (L.placa) placaAmigos(L); }
     for (const x of ARVORES) arvore15(x, 124, .95);
     R(0, 0, 24, 124, "#97CE80"); R(0, 100, 24, 24, "#B9C2CF"); // começo da rua (pro centro)
     // calçada
@@ -765,10 +778,10 @@ function textosCena(mctx, c, cam, oy, tm, t){
   if (c === "rua"){
     const fp = Math.round(fs * .8); mctx.font = "700 " + fp + "px 'Pixelify Sans', monospace";
     for (const L of LOTES){
-      const txt = L.lugar ? LUGARES[L.lugar].nome : L.nossa ? (nomeCasa || nomeCasaPadrao()) : L.placa ? "Amigos" : null; if (!txt) continue;
-      const bx = (L.lugar === "praca" ? L.porta : L.nossa ? L.porta : L.placa ? L.porta : L.x0 + L.w / 2) - cam, by = (L.lugar === "praca" ? 95 : L.nossa ? 75 : L.placa ? 101 : L.lugar === "mercado" ? 74 : L.lugar === "academia" ? 70 : 73) + oy;
+      const txt = L.lugar ? LUGARES[L.lugar].nome : L.nossa ? (nomeCasa || nomeCasaPadrao()) : L.placa ? "Amigos" : L.salao ? "Salão" : null; if (!txt) continue;
+      const bx = (L.lugar === "praca" ? L.porta : L.nossa ? L.porta : L.placa ? L.porta : L.x0 + L.w / 2) - cam, by = (L.lugar === "praca" ? 95 : L.nossa ? 75 : L.placa ? 101 : L.lugar === "mercado" ? 74 : L.lugar === "academia" ? 70 : L.salao ? 75 : 73) + oy;
       if (bx < -60 || bx > W * T + 60) continue;
-      mctx.fillStyle = "#FFF4E0"; mctx.save(); mctx.beginPath(); const lw = (L.nossa ? 50 : L.placa ? 22 : L.lugar === "praca" ? 50 : L.w - 32) * K; mctx.rect((bx * K) - lw / 2, (by - 12) * K, lw, 14 * K); mctx.clip();
+      mctx.fillStyle = "#FFF4E0"; mctx.save(); mctx.beginPath(); const lw = (L.nossa ? 50 : L.placa ? 22 : L.lugar === "praca" ? 50 : L.salao ? 50 : L.w - 32) * K; mctx.rect((bx * K) - lw / 2, (by - 12) * K, lw, 14 * K); mctx.clip();
       mctx.fillText(txt, bx * K, (by - .5) * K, lw - 4); mctx.restore();
     }
     mctx.font = "700 " + fs + "px 'Pixelify Sans', monospace";
@@ -837,6 +850,7 @@ function bairroClick(p, toque){
 function menuLote(L, p){
   if (L.nossa) return openMenu(p, nomeCasa || nomeCasaPadrao(), [{ nome: "Entrar em casa 🏠", fn: () => irAoLote(L.id) }]);
   if (L.placa) return openMenu(p, "🏘️ Casas de amigos", [{ nome: "Ver o bairro", info: Object.keys(vizinhos).length + " casas", fn: () => irAoLote(L.id) }]);
+  if (L.salao) return openMenu(p, "💇 Salão", [{ nota: 1, nome: "Corte, cor e barba" }, { nome: "Entrar", fn: () => irAoLote(L.id) }]);
   if (L.lugar){ const G = LUGARES[L.lugar]; return openMenu(p, G.ic + " " + G.nome, [{ nota: 1, nome: horarioTxt15(L.lugar) }, { nome: "Entrar", fn: () => irAoLote(L.id) }]); }
   const donos = VIZ_IDS.filter(id => VIZ[id].casa === L.id);
   openMenu(p, "Casa de " + nomesLista(donos.map(id => VIZ[id].nome)), [{ nome: "Bater na porta 🚪", fn: () => irAoLote(L.id) }]);

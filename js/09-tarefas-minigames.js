@@ -184,6 +184,7 @@ function limparTarefasVelhas(d){
 }
 function acaoTerminada(a){
   if (a.id !== "minigame") tarefaCheck(a); // partida conta quando termina de verdade (pagarJogo)
+  if (typeof corpoAcao31 === "function") corpoAcao31(a); // físico que muda com o tempo (js/31)
   acaoTerminada7(a); // leva 7: desejo de grávida, cuidados com o bebê
   if (a.id === "dancar" && a.junto && pid < a.junto) statMais("dancas"); // dança no som: conta uma vez por par
   if (a.junto) xpCasal(XP_JUNTO); else if (/^s-/.test(a.id)) xpCasal(XP_SOCIAL); // leva 6: nível do casal

@@ -116,8 +116,8 @@ function unifOverlay(k, v, cx, by, dir, frame, pose){
 // no criador, os uniformes não aparecem (são só do trabalho)
 { const f0 = itemPago; itemPago = function(campo, i, it){ return it && it.trabalho ? null : f0(campo, i, it); }; }
 { const f0 = opcoes; opcoes = function(id, itens){ return f0(id, (itens || []).filter(Boolean)); }; }
-{ const f0 = openCreator; openCreator = function(edit){
-  f0(edit);
+{ const f0 = openCreator; openCreator = function(edit, refazer){
+  f0(edit, refazer);
   if (TRAJES[creator.traje] && TRAJES[creator.traje].trabalho){ const a = dadosEu().antesTrab; creator.traje = a ? a.traje | 0 : 0; if (a){ creator.roupa = a.roupa | 0; creator.acess = a.acess | 0; } montarCriador(); }
 }; }
 

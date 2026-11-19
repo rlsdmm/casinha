@@ -234,6 +234,7 @@ const ITENS16 = {
     if (!visitando){
       const nz = Object.keys(vizinhos).length;
       l.push({ ic: "🔗", t: "Convidar pelo link", sub: "Chamar mais gente pra casa", fn: openConvite },
+        { ic: "🧑‍🎨", t: "Refazer meu bonequinho", sub: "Corpo, rosto e jeito de novo, do zero", fn: () => { if (confirm("Refazer seu bonequinho do zero? Corpo, cabelo e jeito de ser podem mudar. Dinheiro, casa e lembranças continuam.")){ closePanel(); openCreator(true, true); } } },
         { ic: "🔄", t: "Entrar como outro morador", sub: "Abriu em outro celular e virou gente nova?", fn: () => openQuemSou() },
         { ic: "🏘️", t: "Bairro", sub: nz ? nz + (nz === 1 ? " casa de amigo" : " casas de amigos") : "Visitar amigos", fn: () => openBairro() });
     }

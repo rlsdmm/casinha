@@ -615,7 +615,7 @@ function openEspelho(quem){
     const pb = ESP_POSES.map(([, n], i) => { const b = btn(n, "btn ghost", () => { espEstado.pose = i; upd(); }); poses.append(b); return b; });
     const acoes = el("div", "hbtns");
     if (me && !visitando) acoes.append(btn("📸 Salvar no álbum", "btn", () => salvarEspelhoAlbum(quem)));
-    if (d0.eu && quem !== "criador" && me) acoes.append(btn("👗 Trocar o visual", "btn ghost", () => { closePanel(); openCreator(true); }));
+    if (d0.eu && quem !== "criador" && me) acoes.append(btn("👗 Trocar de roupa", "btn ghost", () => { closePanel(); openCreator(true); }));
     corpo.append(cv, leg, gira, poses, acoes);
     if (!d0.eu) corpo.append(el("p", "muted", "Só olhando 👀 Quem escolhe o visual é " + d0.nome + "."));
     const desenha = () => {
