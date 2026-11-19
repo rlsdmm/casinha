@@ -101,7 +101,7 @@ function furnMenu(id, p){
 }
 function socialMenu(id, p){
   const items = SOCIAL.filter(s => !s.mostrar || s.mostrar(id)).map(s => ({ nome: s.nome, fn: () => social(id, s) }));
-  openMenu(p, nomeDe(id), items.concat(menuSocial7(id))); // leva 7: namorar, bebê no colo
+  openMenu(p, nomeDe(id), [itemVerPessoa(id)].concat(items, menuSocial7(id))); // leva 7: namorar, bebê no colo; v31: "ver de pertinho" no topo
 }
 
 function goTo(_unused, isGoal, after){

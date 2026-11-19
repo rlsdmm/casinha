@@ -616,7 +616,10 @@ function openEspelho(quem){
     const acoes = el("div", "hbtns");
     if (me && !visitando) acoes.append(btn("📸 Salvar no álbum", "btn", () => salvarEspelhoAlbum(quem)));
     if (d0.eu && quem !== "criador" && me) acoes.append(btn("👗 Trocar de roupa", "btn ghost", () => { closePanel(); openCreator(true); }));
-    corpo.append(cv, leg, gira, poses, acoes);
+    corpo.append(cv, leg, gira, poses);
+    const ficha = el("ul", "ficha31"); ficha.setAttribute("aria-live", "polite"); // v31: o jeito da pessoa, o que está fazendo e a relação
+    if (!d0.eu && quem !== "criador") corpo.append(ficha);
+    corpo.append(acoes);
     if (!d0.eu) corpo.append(el("p", "muted", "Só olhando 👀 Quem escolhe o visual é " + d0.nome + "."));
     const desenha = () => {
       const d = dadosEspelho(quem); if (!d){ closePanel(); return; }
@@ -626,6 +629,13 @@ function openEspelho(quem){
       if (poses.hidden !== pronto) poses.hidden = pronto;
       const txt = d.nome + " · " + d.hum.em + " " + d.hum.nome;
       if (leg.textContent !== txt) leg.textContent = txt;
+      if (ficha.isConnected){
+        const linhas = fichaPessoa(quem), sig = linhas.map(l => l.join("|")).join("~");
+        if (ficha.dataset.sig !== sig){
+          ficha.dataset.sig = sig; ficha.textContent = "";
+          for (const [rot, val] of linhas){ const li = el("li"); li.append(el("b", null, rot + ": "), document.createTextNode(val)); ficha.append(li); }
+        }
+      }
       cv.setAttribute("aria-label", d.nome + " no espelho, " + ESP_VISTAS[espEstado.vista][1].toLowerCase() + ", " + ESP_POSES[espEstado.pose][1].toLowerCase());
     };
     const upd = () => {
@@ -667,8 +677,24 @@ function euAt12b(p, toque){
   openMenu(p, nomeDe(pid) + " (você)", items);
   return true;
 }
-// "Ver <nome>" no menu de outra pessoa
-{ const f0 = menuSocial7; menuSocial7 = function(id){ const r = f0(id) || []; return r.concat([{ nome: "🪞 Ver " + nomeDe(id), fn: () => openEspelho(id) }]); }; }
+// "Ver <nome> de pertinho": v31 passou pro topo do menu da pessoa (js/07-jogo.js socialMenu e o menu de visita no 20-perto.js)
+const itemVerPessoa = id => ({ nome: "👀 Ver " + nomeDe(id) + " de pertinho", fn: () => openEspelho(id) });
+// ficha da outra pessoa no espelho: [rótulo, texto]
+function fichaPessoa(id){
+  const j = jogadores[id]; if (!j) return [];
+  const l = [];
+  const a = j.acao && j.acao.nome;
+  l.push(["Agora", j.online === false ? "Fora de casa 💤" : a ? a : "De bobeira"]);
+  const tr = typeof tracosDe === "function" ? tracosDe(j) : [];
+  if (tr.length) l.push(["Jeito", tr.map(k => TRACOS[k].ic + " " + TRACOS[k].nome).join(" · ")]);
+  if (typeof relDe === "function" && id !== pid && !visitando){
+    const r = relDe(pid, id), rk = typeof romRank === "function" ? romRank(pid, id) : 0;
+    const st = rk >= 2 && r && ROM_TXT[r.status] ? ROM_TXT[r.status][1] + " " + ROM_TXT[r.status][0] : (() => { const e = estAmizade(r); return e.ic + " " + e.nome; })();
+    l.push(["Com você", st]);
+  }
+  if (j.entrou > 1e12){ const d = new Date(j.entrou); l.push(["Na casa desde", pad2(d.getDate()) + "/" + pad2(d.getMonth() + 1) + "/" + d.getFullYear()]); }
+  return l;
+}
 
 // ---------------------------------------------------------------------
 // 3. CRIADOR: prévia grande ao vivo e desenhinhos nos botões de corpo

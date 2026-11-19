@@ -1097,7 +1097,7 @@ const MENUS_VISITA = new Set(["pc", "tv", "som", "pia"]);
 { const f0 = socialMenu; socialMenu = function(id, p){
   const j = jogadores[id];
   if (!visitando && !(j && j.visita)) return f0(id, p);
-  openMenu(p, nomeDe(id) + (j && j.visita ? " (visita)" : ""), SOCIAL.filter(s => s.id !== "chute" && (!s.mostrar || s.mostrar(id))).map(s => ({ nome: s.nome, fn: () => social(id, s) })));
+  openMenu(p, nomeDe(id) + (j && j.visita ? " (visita)" : ""), [itemVerPessoa(id)].concat(SOCIAL.filter(s => s.id !== "chute" && (!s.mostrar || s.mostrar(id))).map(s => ({ nome: s.nome, fn: () => social(id, s) }))));
 }; }
 { const f0 = tirarFoto; tirarFoto = function(){ if (viagemOn()) return fotoViagem(); return f0(); }; }
 { const f0 = setOnline; setOnline = function(){
