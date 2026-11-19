@@ -67,14 +67,18 @@ function membro(pts, w, c, t0, t1, borda){
 function ptEm(pts, t){ const tr = trilha(pts); let best = tr[0]; for (const p of tr) if (Math.abs(p[2] - t) < Math.abs(best[2] - t)) best = p; return best; }
 
 // paleta e roupas do retrato
+// cor dos olhos combinando com o cabelo (cabelo castanho = olho mel, cabelo colorido = olho da mesma cor)
+const OLHOS_ESP = ["#9A5F2C", "#A8652B", "#C47F2E", "#4F8FC4", "#6F8FA8", "#7A5233", "#C2507E", "#6E5FD0", "#C4652E", "#4F9DC4", "#D46FAA", "#3F8FD0", "#3F9A6E"];
 function palEsp(v){
   const skin = PELES[v.pele], hair = CABELOS[v.cabelo], cor = ROUPAS[v.roupa], tj = v.traje;
   const CREME = "#FFF4E0", JEANS = "#56609E";
   const terno = tj === 8 ? mix(cor, "#1E1A2A", .55) : null;
+  // cor dos olhos: puxa do cabelo (castanho vira castanho-mel, cabelo colorido dá olho da mesma cor)
+  const iris = OLHOS_ESP[v.cabelo] || "#8C5A2B";
   const top = tj === 2 || tj === 3 ? CREME : terno || cor;
   return { skin, skD: sh(skin, -.16), skDD: sh(skin, -.3), skL: sh(skin, .2), hair, hl: sh(hair, .32), dk: sh(hair, -.25), dk2: sh(hair, -.45),
     cor, corD: sh(cor, -.24), corDD: sh(cor, -.42), corL: sh(cor, .28), top, topD: sh(top, -.2), topL: sh(top, .25), CREME, JEANS, jD: sh(JEANS, -.22), jL: sh(JEANS, .2), terno,
-    eye: hexRGB(skin)[0] < 170 ? "#1E1220" : "#3A2433", boca: sh(skin, -.5), blush: "rgba(238,96,110,.45)", tie: "#E8607A" };
+    eye: hexRGB(skin)[0] < 170 ? "#1E1220" : "#3A2433", lash: "#1A1020", iris, irisL: sh(iris, .35), irisD: sh(iris, -.3), boca: sh(skin, -.5), blush: "rgba(238,96,110,.45)", tie: "#E8607A" };
 }
 
 // ---- cabelo: borda de baixo (relativa ao topo da cabeça) por coluna, para frente, lado e costas ----
@@ -115,10 +119,18 @@ function capaCabelo(g, p, st, vista, extraR){
     const top = Math.round(ht + 11 - Math.sqrt(k) * sobe), bot = ht + cabeloBaixo(st, vista, s);
     for (let y = top; y < bot; y++){
       let c = base;
+      const u = (y - top) / Math.max(1, bot - top);
       if (st === 4) c = (x + y) % 2 ? base : sh(base, -.12);
-      else if (st === 3){ if ((x * 7 + y * 3) % 5 === 0) c = p.dk; else if ((x * 3 + y * 7) % 11 === 0) c = p.hl; }
-      else if ((s + 64) % 4 === 1 && y > top + 3 && y < bot - 2) c = p.dk;
-      if (y === bot - 1 && st !== 4) c = p.dk;
+      else if (st === 3){ if ((x * 7 + y * 3) % 5 === 0) c = p.dk; else if ((x * 3 + y * 7) % 11 === 0) c = p.hl; else if (u > .6 && (x + y) % 3 === 0) c = p.dk; }
+      else {
+        // mechas: cada mecha tem miolo claro e beira escura, e elas descem levemente curvas
+        const m = ((s + 64 + Math.round(u * 2.2 * Math.sign(s || 1))) % 5 + 5) % 5;
+        if (m === 0 && y > top + 2 && y < bot - 1) c = p.dk;
+        else if (m === 2 && y > top + 4 && u < .8) c = sh(base, .1);
+        if (u > .72 && m !== 2) c = mix(c, p.dk, .5); // pontas mais escuras embaixo
+        if (y === top || y === top + 1 && Math.abs(s) > Rr - 5) c = sh(c, -.08);
+      }
+      if (y === bot - 1 && st !== 4) c = p.dk2;
       if (st === 9 && Math.abs(s) >= 9 && vista !== "right") c = mix(p.hair, p.skin, .3);
       if (s > Rr - 3 && st !== 4 && y > top + 1) c = sh(c, -.15);
       R(x, y, 1, 1, c);
@@ -163,7 +175,7 @@ function cabeloExtras(g, p, st, vista, frente){
     const ox = vista === "right" ? 3 : vista === "up" ? 0 : -1;
     elipse(cx + ox, ht - 1, 10, 5, p.hair); for (let x = cx + ox - 7; x <= cx + ox + 2; x++) P(x, ht - 4 + (x > cx + ox - 2 ? 1 : 0), p.hl);
     P(cx + ox + 6, ht + 2, p.dk); P(cx + ox + 7, ht + 1, p.dk); if (vista !== "up") P(cx + ox + 8, ht + 3, p.hair);
-  } else if (st === 3 && frente){ for (let i = 0; i < 6; i++){ const x = cx - 13 + i * 5 + (i % 2), y = ht + 20 + (i % 2); elipse(x, y, 2, 2, p.hair); P(x, y, p.dk); } }
+  } else if (st === 3 && frente){ for (let i = 0; i < 6; i++){ const x = cx - 13 + i * 5 + (i % 2), y = ht + 20 + (i % 2); if (Math.abs(x - cx) < 10) continue; elipse(x, y, 2, 2, p.hair); P(x, y, p.dk); } } // cachinhos só dos lados (no meio caíam em cima do rosto)
 }
 
 // ---- rosto ----
@@ -173,20 +185,24 @@ function rostoEsp(g, p, v, vista, hum, piscar){
   const bc = v.barba ? sh(p.hair, -.1) : null, sobr = p.dk2;
   if (vista === "down"){
     if (bc){ for (let y = ht + 16; y <= ht + 26; y++){ const k = 1 - Math.pow((y - (ht + 13)) / 13.5, 2); if (k <= 0) continue; const h = Math.round(11 * Math.sqrt(k)); for (let x = cx - h; x < cx + h; x++){ const d = Math.abs(x - cx + .5); if (y >= ht + 20 || d >= 7.5) P(x, y, (x + y) % 3 ? bc : sh(bc, -.15)); } } R(cx - 4, ht + 20, 8, 1, bc); }
-    for (const [ex, l] of [[cx - 7, -1], [cx + 4, 1]]){
-      const ey = ht + 13;
-      if (feliz){ P(ex, ey + 2, p.eye); P(ex + 1, ey + 1, p.eye); P(ex + 2, ey + 2, p.eye); }
-      else if (piscar){ R(ex, ey + 2, 3, 1, p.eye); if (ela) P(l < 0 ? ex - 1 : ex + 3, ey + 1, p.eye); }
+    for (const [ex, l] of [[cx - 8, -1], [cx + 4, 1]]){
+      // olho grande: cílio em cima, íris colorida embaixo, brilho grande em cima e um pontinho de luz embaixo
+      const ey = ht + 12;
+      if (feliz){ P(ex, ey + 3, p.eye); P(ex + 1, ey + 2, p.eye); P(ex + 2, ey + 2, p.eye); P(ex + 3, ey + 3, p.eye); }
+      else if (piscar){ R(ex, ey + 3, 4, 1, p.eye); if (ela) P(l < 0 ? ex - 1 : ex + 4, ey + 2, p.eye); }
       else {
-        R(ex, ey, 3, 4, p.eye); P(l < 0 ? ex : ex, ey, "#FFFFFF"); P(ex + 1, ey + 3, "#6A4A7A");
-        if (brava) R(ex, ey, 3, 1, p.skD);
-        if (ela){ P(l < 0 ? ex - 1 : ex + 3, ey, p.eye); P(l < 0 ? ex - 1 : ex + 3, ey - 1, p.eye); }
+        // l l l l / D W W D / D W I D / I I L I / D I I D
+        R(ex, ey, 4, 5, p.eye); R(ex, ey, 4, 1, p.lash);
+        R(ex, ey + 3, 4, 1, p.iris); R(ex + 1, ey + 4, 2, 1, p.irisD); P(ex + 2, ey + 2, p.iris); P(ex + 2, ey + 3, p.irisL);
+        R(ex + 1, ey + 1, 2, 1, "#FFFFFF"); P(ex + 1, ey + 2, "#FFFFFF");
+        if (brava) R(ex, ey, 4, 2, p.skD);
+        if (ela){ P(l < 0 ? ex - 1 : ex + 4, ey, p.lash); P(l < 0 ? ex - 1 : ex + 4, ey - 1, p.lash); }
       }
       // sobrancelhas: brava = ponta de dentro desce; triste = ponta de dentro sobe
-      const dentro = l < 0 ? ex + 2 : ex, fora = l < 0 ? ex - 1 : ex + 3, by0 = ht + 10;
-      if (brava){ P(fora, by0 - 1, sobr); P((fora + dentro) / 2 | 0, by0, sobr); P(dentro + (l < 0 ? 0 : 0), by0 + 1, sobr); P(l < 0 ? ex : ex + 2, by0, sobr); }
-      else if (triste){ P(fora, by0 + 1, sobr); P(l < 0 ? ex : ex + 2, by0, sobr); P(dentro, by0 - 1, sobr); P(l < 0 ? ex + 1 : ex + 1, by0, sobr); }
-      else R(ex - (l < 0 ? 1 : 0), by0 - (feliz ? 1 : 0), 4, 1, sobr);
+      const dentro = l < 0 ? ex + 3 : ex, fora = l < 0 ? ex - 1 : ex + 4, by0 = ht + 9;
+      if (brava){ P(fora, by0 - 1, sobr); P((fora + dentro) / 2 | 0, by0, sobr); P(dentro, by0 + 1, sobr); P(l < 0 ? ex + 1 : ex + 2, by0, sobr); }
+      else if (triste){ P(fora, by0 + 1, sobr); P(l < 0 ? ex + 1 : ex + 2, by0, sobr); P(dentro, by0 - 1, sobr); P(l < 0 ? ex + 2 : ex + 1, by0, sobr); }
+      else { R(ex - (l < 0 ? 1 : 0), by0 - (feliz ? 1 : 0), 5, 1, sobr); P(l < 0 ? ex - 1 : ex + 4, by0 + 1 - (feliz ? 1 : 0), sobr); }
     }
     P(cx, ht + 18, p.skD); P(cx - 1, ht + 19, p.skD);
     R(cx - 10, ht + 18, 3, 2, feliz || bem ? "rgba(238,96,110,.6)" : p.blush); R(cx + 7, ht + 18, 3, 2, feliz || bem ? "rgba(238,96,110,.6)" : p.blush);
@@ -203,7 +219,7 @@ function rostoEsp(g, p, v, vista, hum, piscar){
     const ex = cx + 5, ey = ht + 13;
     if (feliz){ P(ex, ey + 1, p.eye); P(ex + 1, ey + 2, p.eye); P(ex - 1, ey + 2, p.eye); }
     else if (piscar) R(ex, ey + 2, 2, 1, p.eye);
-    else { R(ex, ey, 2, 4, p.eye); P(ex, ey, "#FFFFFF"); if (brava) R(ex, ey, 2, 1, p.skD); if (ela) P(ex + 2, ey, p.eye); }
+    else { R(ex, ey - 1, 3, 5, p.eye); R(ex, ey + 1, 3, 3, p.iris); P(ex + 1, ey + 2, p.irisL); R(ex, ey - 1, 3, 1, p.lash); P(ex + 1, ey, "#FFFFFF"); P(ex + 2, ey, "#FFFFFF"); P(ex + 2, ey + 1, "#FFFFFF"); if (brava) R(ex, ey - 1, 3, 2, p.skD); if (ela){ P(ex + 3, ey - 1, p.lash); P(ex + 3, ey - 2, p.lash); } }
     if (brava){ P(ex - 1, ht + 9, sobr); P(ex, ht + 10, sobr); P(ex + 1, ht + 10, sobr); P(ex + 2, ht + 11, sobr); }
     else if (triste){ P(ex - 1, ht + 11, sobr); R(ex, ht + 10, 2, 1, sobr); P(ex + 2, ht + 9, sobr); P(ex, ht + 17, "#7FB8E8"); }
     else R(ex - 1, ht + 10 - (feliz ? 1 : 0), 4, 1, sobr);
@@ -225,8 +241,8 @@ function acessEsp(g, p, v, vista){
   if (a === 1){ // óculos redondos
     const f = "#C68A3E", lente = "rgba(220,240,255,.35)";
     if (vista === "down"){
-      for (const ex of [cx - 7, cx + 4]){ R(ex - 1, ht + 12, 5, 1, f); R(ex - 1, ht + 17, 5, 1, f); R(ex - 2, ht + 13, 1, 4, f); R(ex + 3, ht + 13, 1, 4, f); P(ex + 2, ht + 13, lente); }
-      R(cx - 2, ht + 13, 4, 1, f); P(cx - 10, ht + 13, f); P(cx + 9, ht + 13, f);
+      for (const ex of [cx - 8, cx + 4]){ R(ex - 1, ht + 11, 6, 1, f); R(ex - 1, ht + 17, 6, 1, f); R(ex - 2, ht + 12, 1, 5, f); R(ex + 4, ht + 12, 1, 5, f); P(ex + 3, ht + 12, lente); }
+      R(cx - 3, ht + 13, 5, 1, f); P(cx - 10, ht + 13, f); P(cx + 9, ht + 13, f);
     } else if (side){ R(cx + 4, ht + 12, 4, 1, f); R(cx + 4, ht + 17, 4, 1, f); R(cx + 3, ht + 13, 1, 4, f); R(cx + 7, ht + 13, 1, 4, f); R(cx - 1, ht + 13, 4, 1, f); }
     else { P(cx - 11, ht + 14, f); P(cx + 10, ht + 14, f); }
   } else if (a === 2){ // laço
@@ -292,6 +308,7 @@ function bracosEsp(g, p, v, vista, pose, aceno, so){
   const larg = y => Math.max(hwEsp(g, y), g.barr ? barrigaHW(g, y) : 0);
   const desenha = (pts, maoAberta) => {
     membro(pts, t => aw - t * 1.2, p.skin, 0, 1, true);
+    membro(pts.map(([x, y]) => [x + aw * .32, y]), 1.3, p.skD, .05, .92, false); // sombra do lado de fora do braço
     if (MANGA[tj]) membro(pts, t => aw + .6 - t * 1.2, mangaC, 0, MANGA[tj], true);
     if (MANGA[tj]) membro(pts, t => aw + .6 - t * 1.2, sh(mangaC, -.12), MANGA[tj] - .03, MANGA[tj], false); // barra da manga
     if (tj === 8 && MANGA[tj] === 1) membro(pts, aw - .5, "#FFFFFF", .94, 1, false); // punho branco do terno
@@ -338,7 +355,7 @@ function pernasEsp(g, p, v, vista){
       const t = (y - g.yC) / (by - 4 - g.yC), fora = Math.round(interp([[0, g.hi - 1], [.45, 7 + lg], [1, 5 + (lg > 0 ? 1 : 0)]], t)), dentro = t < .1 ? 0 : 1;
       const c = corPerna(tj, p, g, y), x0 = l < 0 ? cx - fora : cx + dentro, x1 = l < 0 ? cx - dentro : cx + fora;
       R(x0, y, x1 - x0, 1, c);
-      if (l > 0) P(x1 - 1, y, sh(c, -.18)); else P(x0, y, sh(c, .12));
+      if (l > 0){ P(x1 - 1, y, sh(c, -.18)); P(x1 - 2, y, sh(c, -.08)); } else { P(x0, y, sh(c, .12)); P(x1 - 1, y, sh(c, -.1)); }
       if (c === p.skin && Math.abs(t - .5) < .03) P(l < 0 ? x0 + 2 : x1 - 3, y, p.skD); // joelho
       if (c !== p.skin && l < 0 && y > g.yC + 2) P(x1 - 1, y, sh(c, -.15)); // costura de dentro
     }
@@ -360,7 +377,12 @@ function troncoEsp(g, p, v, vista){
   for (let y = g.yS; y <= g.yC; y++){
     const c = corTronco(tj, p, g, y), cD = sh(c, -.2), cL = sh(c, .2);
     if (side){ const b = bk(y), f = fr(y); R(cx - b, y, b + f, 1, c); R(cx - b, y, 2, 1, cD); P(cx + f - 1, y, cL); }
-    else { const w = hwEsp(g, y); R(cx - w, y, 2 * w, 1, c); R(cx + w - 2, y, 2, 1, cD); P(cx - w, y, cL); }
+    else {
+      // luz vindo da esquerda: beira clara, miolo, meia-sombra e sombra na direita; sombrinha embaixo do braço
+      const w = hwEsp(g, y); R(cx - w, y, 2 * w, 1, c); R(cx + w - 4, y, 2, 1, sh(c, -.1)); R(cx + w - 2, y, 2, 1, cD); P(cx - w, y, cL); P(cx - w + 1, y, sh(c, .1));
+      if (y >= g.yS + 3 && y <= g.yS + 9){ P(cx - w + 2, y, sh(c, -.12)); P(cx + w - 5, y, sh(c, -.18)); }
+      if (g.busto && y === g.yCh + 4) R(cx - w + 3, y, 2 * w - 6, 1, sh(c, -.1));
+    }
   }
   // gravidez
   if (g.barr){
@@ -497,7 +519,11 @@ function contornar(c){
   const x = c.getContext("2d"), d = x.getImageData(0, 0, c.width, c.height), a = d.data, cw = c.width, ch = c.height, mark = [];
   const op = (i, j) => i >= 0 && j >= 0 && i < cw && j < ch && a[(j * cw + i) * 4 + 3] > 40;
   for (let j = 0; j < ch; j++) for (let i = 0; i < cw; i++){ if (op(i, j)) continue; if (op(i - 1, j) || op(i + 1, j) || op(i, j - 1) || op(i, j + 1)) mark.push((j * cw + i) * 4); }
-  for (const q of mark){ a[q] = OUTLINE[0]; a[q + 1] = OUTLINE[1]; a[q + 2] = OUTLINE[2]; a[q + 3] = 255; }
+  // contorno "seletivo": cada pixel da borda puxa a cor do vizinho (escurecida e puxada pro roxo do jogo),
+  // como na pixel art feita à mão: cabelo castanho ganha borda castanho-escura, pele ganha borda de pele
+  const viz = q => { const i = (q >> 2) % cw, j = (q >> 2) / cw | 0; for (const [di, dj] of [[0, -1], [-1, 0], [1, 0], [0, 1]]) if (op(i + di, j + dj)) return ((j + dj) * cw + i + di) * 4; return -1; };
+  const cores = mark.map(q => { const v = viz(q); return v < 0 ? OUTLINE : [0, 1, 2].map(k => Math.round(a[v + k] * .34 + OUTLINE[k] * .66)); });
+  mark.forEach((q, n) => { const c = cores[n]; a[q] = c[0]; a[q + 1] = c[1]; a[q + 2] = c[2]; a[q + 3] = 255; });
   x.putImageData(d, 0, 0);
 }
 // retratos em cache (a animação só alterna entre poucos quadros)
@@ -552,7 +578,9 @@ function pintarEspelho(c, v, vista, pose, hum, t){
   const anim = { piscar: t % 3400 < 150, aceno: pose === "acenar" ? (Math.floor(t / 260) % 2 ? 2 : -1) : 0, resp: pose !== "acenar" && Math.floor(t / 1100) % 2 === 1 };
   x.drawImage(cenaEspelho(), 0, 0);
   x.globalAlpha = .22; x.fillStyle = "#3A2433"; x.beginPath(); x.ellipse(48, 128, 18, 3, 0, 0, 6.29); x.fill(); x.globalAlpha = 1; // sombra no chão
-  x.drawImage(retrato(v, vista, pose, hum, anim), 8, 2);
+  const pronto = typeof retratoPronto === "function" && retratoPronto(v, vista); // arte do PixelLab (js/30-retratos.js)
+  if (pronto) x.drawImage(pronto, 0, 0, 64, 64, -16, 3 + (anim.resp ? 1 : 0), 128, 128);
+  else x.drawImage(retrato(v, vista, pose, hum, anim), 8, 2);
   // brilho do vidro
   x.save(); x.globalAlpha = .28; x.fillStyle = "#FFFFFF";
   for (const [a, w] of [[18, 5], [28, 2]]){ x.beginPath(); x.moveTo(a, 5); x.lineTo(a + w, 5); x.lineTo(5, a + w + 10); x.lineTo(5, a + 10); x.closePath(); x.fill(); }
@@ -594,6 +622,8 @@ function openEspelho(quem){
       const d = dadosEspelho(quem); if (!d){ closePanel(); return; }
       const vis = ESP_VISTAS[espEstado.vista][0];
       pintarEspelho(cv, d.v, vis, ESP_POSES[espEstado.pose][0], d.hum.id, Date.now());
+      const pronto = typeof temRetratoPronto === "function" && temRetratoPronto(d.v); // arte pronta não tem poses
+      if (poses.hidden !== pronto) poses.hidden = pronto;
       const txt = d.nome + " · " + d.hum.em + " " + d.hum.nome;
       if (leg.textContent !== txt) leg.textContent = txt;
       cv.setAttribute("aria-label", d.nome + " no espelho, " + ESP_VISTAS[espEstado.vista][1].toLowerCase() + ", " + ESP_POSES[espEstado.pose][1].toLowerCase());
