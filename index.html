@@ -4,7 +4,7 @@
   abaixo, todos no mesmo escopo global: um arquivo usa funções e variáveis dos outros).
   PUBLICAR VERSÃO NOVA (desde a leva 16a existe service worker, sw.js, que guarda o jogo no aparelho):
     1. troque o número em TODOS os "?v=N" desta página, no <meta name="casinha-versao"> e no arquivo version.txt
-       (o mesmo número nos três). Ex.: busca e troca de "?v=16" por "?v=36", content="16" por content="17", version.txt = 17.
+       (o mesmo número nos três). Ex.: busca e troca de "?v=16" por "?v=37", content="16" por content="17", version.txt = 17.
     2. arquivo novo (js/css)? Ponha a tag aqui com o mesmo ?v=N. O sw.js NÃO precisa mudar: ele é registrado como
        "sw.js?v=N" (pelo meta) e lê a lista de arquivos deste index na instalação.
     Por quê: o ?v=N novo muda o endereço de cada js/css (o cache do Pages e o do service worker guardam por endereço,
@@ -31,8 +31,8 @@
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' shape-rendering='crispEdges'%3E%3Crect x='2' y='7' width='12' height='8' fill='%23E7A3B8'/%3E%3Crect x='1' y='6' width='14' height='2' fill='%235246B0'/%3E%3Crect x='3' y='4' width='10' height='2' fill='%235246B0'/%3E%3Crect x='5' y='2' width='6' height='2' fill='%235246B0'/%3E%3Crect x='7' y='10' width='3' height='5' fill='%237A5A3E'/%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Pixelify+Sans:wght@500;700&family=Nunito:wght@500;700;800&display=swap">
-<meta name="casinha-versao" content="36">
-<link rel="stylesheet" href="css/estilo.css?v=36">
+<meta name="casinha-versao" content="37">
+<link rel="stylesheet" href="css/estilo.css?v=37">
 </head>
 <body>
 <div class="splash16" id="splash16" role="status" aria-live="polite">
@@ -182,37 +182,37 @@
 
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
-<script src="js/01-base.js?v=36"></script>
-<script src="js/02-arte-moveis.js?v=36"></script>
-<script src="js/03-arte-boneco.js?v=36"></script>
-<script src="js/04-cenario.js?v=36"></script>
-<script src="js/05-firebase.js?v=36"></script>
-<script src="js/06-criador.js?v=36"></script>
-<script src="js/07-jogo.js?v=36"></script>
-<script src="js/08-casa.js?v=36"></script>
-<script src="js/09-tarefas-minigames.js?v=36"></script>
-<script src="js/10-clima.js?v=36"></script>
-<script src="js/11-andar2.js?v=36"></script>
-<script src="js/12-sons.js?v=36"></script>
-<script src="js/13-truques-sujeira-visitas.js?v=36"></script>
-<script src="js/14-paredes-nivel-loja.js?v=36"></script>
-<script src="js/15-moveis-novos.js?v=36"></script>
-<script src="js/16-minigames-novos.js?v=36"></script>
-<script src="js/17-namoro-bebe.js?v=36"></script>
-<script src="js/19-momentos.js?v=36"></script>
-<script src="js/20-perto.js?v=36"></script>
-<script src="js/21-construir.js?v=36"></script>
-<script src="js/22-vida.js?v=36"></script>
-<script src="js/23-espelho.js?v=36"></script>
-<script src="js/24-acabamento.js?v=36"></script>
-<script src="js/25-familia.js?v=36"></script>
-<script src="js/26-trabalho.js?v=36"></script>
-<script src="js/27-bairro.js?v=36"></script>
-<script src="js/28-quem-sou.js?v=36"></script>
-<script src="js/29-conversa.js?v=36"></script>
-<script src="js/30-retratos.js?v=36"></script>
-<script src="js/31-salao-corpo.js?v=36"></script>
-<script src="js/32-cozy.js?v=36"></script>
-<script src="js/18-laco.js?v=36"></script>
+<script src="js/01-base.js?v=37"></script>
+<script src="js/02-arte-moveis.js?v=37"></script>
+<script src="js/03-arte-boneco.js?v=37"></script>
+<script src="js/04-cenario.js?v=37"></script>
+<script src="js/05-firebase.js?v=37"></script>
+<script src="js/06-criador.js?v=37"></script>
+<script src="js/07-jogo.js?v=37"></script>
+<script src="js/08-casa.js?v=37"></script>
+<script src="js/09-tarefas-minigames.js?v=37"></script>
+<script src="js/10-clima.js?v=37"></script>
+<script src="js/11-andar2.js?v=37"></script>
+<script src="js/12-sons.js?v=37"></script>
+<script src="js/13-truques-sujeira-visitas.js?v=37"></script>
+<script src="js/14-paredes-nivel-loja.js?v=37"></script>
+<script src="js/15-moveis-novos.js?v=37"></script>
+<script src="js/16-minigames-novos.js?v=37"></script>
+<script src="js/17-namoro-bebe.js?v=37"></script>
+<script src="js/19-momentos.js?v=37"></script>
+<script src="js/20-perto.js?v=37"></script>
+<script src="js/21-construir.js?v=37"></script>
+<script src="js/22-vida.js?v=37"></script>
+<script src="js/23-espelho.js?v=37"></script>
+<script src="js/24-acabamento.js?v=37"></script>
+<script src="js/25-familia.js?v=37"></script>
+<script src="js/26-trabalho.js?v=37"></script>
+<script src="js/27-bairro.js?v=37"></script>
+<script src="js/28-quem-sou.js?v=37"></script>
+<script src="js/29-conversa.js?v=37"></script>
+<script src="js/30-retratos.js?v=37"></script>
+<script src="js/31-salao-corpo.js?v=37"></script>
+<script src="js/32-cozy.js?v=37"></script>
+<script src="js/18-laco.js?v=37"></script>
 </body>
 </html>

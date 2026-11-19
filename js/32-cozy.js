@@ -10,35 +10,37 @@ const COZY = {
     sofa: [{nome:"Lilás",f:[0,0,32,16],b:[32,0,32,16],l:[64,0,16,32],r:[80,0,16,32],sw:"#765C7F"},{nome:"Verde",f:[96,0,32,16],b:[128,0,32,16],l:[160,0,16,32],r:[176,0,16,32],sw:"#66874B"},{nome:"Laranja",f:[192,0,32,16],b:[224,0,32,16],l:[0,32,16,32],r:[16,32,16,32],sw:"#BC7945"},{nome:"Cinza",f:[32,32,32,16],b:[64,32,32,16],l:[96,32,16,32],r:[112,32,16,32],sw:"#545C5D"}],
     poltrona: [{nome:"Mostarda",f:[128,32,16,16],l:[144,32,16,16],r:[160,32,16,16],b:[176,32,16,16],sw:"#C59449"},{nome:"Azul",f:[192,32,16,16],l:[208,32,16,16],r:[224,32,16,16],b:[240,32,16,16],sw:"#3F506F"},{nome:"Verde",f:[0,64,16,16],l:[16,64,16,16],r:[32,64,16,16],b:[48,64,16,16],sw:"#66874B"},{nome:"Vinho",f:[64,64,16,16],l:[80,64,16,16],r:[96,64,16,16],b:[112,64,16,16],sw:"#794245"}],
     casal: [{nome:"Lilás",f:[128,64,32,32],sw:"#8C7296"},{nome:"Azul",f:[160,64,32,32],sw:"#506580"},{nome:"Verde",f:[192,64,32,32],sw:"#4B8053"},{nome:"Rosa",f:[224,64,32,32],sw:"#B37770"}],
-    solteiro: [{nome:"Coral",f:[0,96,16,32],sw:"#A35B4E"},{nome:"Azul",f:[16,96,16,32],sw:"#506580"},{nome:"Verde",f:[32,96,16,32],sw:"#4B8053"},{nome:"Amarelo",f:[48,96,16,32],sw:"#CC9B45"}],
-    armario: [{nome:"Madeira",f:[64,96,30,29],sw:"#926140"},{nome:"Clara",f:[94,96,30,29],sw:"#997549"},{nome:"Escura",f:[124,96,30,29],sw:"#624A39"},{nome:"Branca",f:[154,96,30,29],sw:"#C0AC90"}],
-    banheira: [{nome:"Creme",f:[184,96,30,16],sw:"#CDBB9D"},{nome:"Cinza",f:[214,96,30,16],sw:"#A7A6B2"},{nome:"Preta",f:[0,128,30,16],sw:"#4C4A4C"}],
-    vaso: [{nome:"Branco",f:[30,128,13,16],sw:"#9D9FB0"}],
-    geladeira: [{nome:"Menta",f:[43,128,16,32],sw:"#748678"},{nome:"Vermelha",f:[59,128,16,32],sw:"#C45A51"},{nome:"Amarela",f:[75,128,16,32],sw:"#CF993A"},{nome:"Creme",f:[91,128,16,32],sw:"#C7B494"}],
-    fogao: [{nome:"Creme",f:[107,128,16,16],sw:"#C6B08D"},{nome:"Laranja",f:[123,128,16,16],sw:"#C38954"},{nome:"Inox",f:[139,128,16,16],sw:"#9093A2"},{nome:"Preto",f:[155,128,16,16],sw:"#4E5556"}],
-    pia: [{nome:"Creme",f:[171,128,16,24],sw:"#D9C6A5"},{nome:"Inox",f:[187,128,16,24],sw:"#9093A2"},{nome:"Laranja",f:[203,128,16,24],sw:"#C38A54"},{nome:"Verde",f:[219,128,16,24],sw:"#6E8574"}],
-    tapete: [{nome:"Rosa",f:[0,160,48,32],sw:"#90687F"},{nome:"Azul",f:[48,160,48,32],sw:"#6D8280"},{nome:"Verde",f:[96,160,48,32],sw:"#80765C"},{nome:"Bege",f:[144,160,48,32],sw:"#8D7E60"}],
-    mesa: [{nome:"Madeira",f:[192,160,32,38],sw:"#966342"},{nome:"Clara",f:[224,160,32,38],sw:"#9A7749"},{nome:"Escura",f:[0,198,32,38],sw:"#644C3A"},{nome:"Branca",f:[32,198,32,38],sw:"#C3AF91"}],
-    pc: [{nome:"Madeira",f:[64,198,32,28],o:[96,198,32,28],sw:"#8B5F3F"},{nome:"Clara",f:[128,198,32,28],o:[160,198,32,28],sw:"#956D47"},{nome:"Escura",f:[192,198,32,28],o:[224,198,32,28],sw:"#77573E"},{nome:"Branca",f:[0,236,32,28],o:[32,236,32,28],sw:"#A18265"}],
-    tv: [{nome:"Madeira",f:[64,236,26,15],sw:"#956241"},{nome:"Clara",f:[90,236,26,15],sw:"#9A7649"},{nome:"Escura",f:[116,236,26,15],sw:"#644C3B"},{nome:"Branca",f:[142,236,26,15],sw:"#C2AE91"}],
-    planta: [{nome:"Costela-de-adão",f:[168,236,16,32],sw:"#4F8A3C"},{nome:"Espada-de-são-jorge",f:[184,236,16,32],sw:"#7E9A3A"},{nome:"Orquídea",f:[200,236,16,32],sw:"#D46A9C"},{nome:"Lírio-da-paz",f:[216,236,16,32],sw:"#E8E2D0"}],
-    abajur: [{nome:"Lanterna",f:[232,236,16,32],sw:"#F3E2B0"},{nome:"Cúpula",f:[0,268,16,32],sw:"#F0DDB4"},{nome:"Galhos",f:[16,268,16,32],sw:"#C98A3A"},{nome:"Três luzes",f:[32,268,16,32],sw:"#E8D49A"}],
-    estante: [{nome:"Madeira",f:[48,268,30,30],sw:"#9E7658"},{nome:"Clara",f:[78,268,30,30],sw:"#9B7656"},{nome:"Escura",f:[108,268,30,30],sw:"#9A7456"},{nome:"Branca",f:[138,268,30,30],sw:"#997558"}],
-    namoradeira: [{nome:"Coral",f:[168,268,32,16],sw:"#C06358"}],
-    pufeSofa: [{nome:"Rosa",f:[200,268,13,14],sw:"#AE7767"},{nome:"Verde",f:[213,268,13,14],sw:"#796243"},{nome:"Azul",f:[226,268,13,14],sw:"#54797F"},{nome:"Cinza",f:[239,268,13,14],sw:"#84654E"}],
-    sofaG: [{nome:"Lilás",f:[0,300,56,16],sw:"#775D80"},{nome:"Verde",f:[56,300,56,16],sw:"#66884B"},{nome:"Laranja",f:[112,300,56,16],sw:"#BD7945"},{nome:"Cinza",f:[168,300,56,16],sw:"#535C5E"}],
-    geladeiraG: [{nome:"Inox",f:[224,300,24,31],sw:"#8F92A1"},{nome:"Laranja",f:[0,331,24,31],sw:"#C08554"}],
-    telmesa: [{nome:"Madeira",f:[24,331,16,15],sw:"#9B7849"}],
-    urso: [{nome:"Ursinho",f:[40,331,14,12],sw:"#C68571"}],
-    camaInfantil: [{nome:"Rosa",f:[54,331,15,25],sw:"#E8858E"},{nome:"Azul",f:[69,331,15,25],sw:"#5FA8B8"},{nome:"Verde",f:[84,331,15,25],sw:"#7AAE6A"}],
-    camaTeen: [{nome:"Coral",f:[99,331,16,32],sw:"#A35B4E"},{nome:"Azul",f:[115,331,16,32],sw:"#506580"},{nome:"Verde",f:[131,331,16,32],sw:"#4B8053"},{nome:"Amarelo",f:[147,331,16,32],sw:"#CC9B45"}],
-    mesaEstudos: [{nome:"Rosa",f:[163,331,32,15],sw:"#E8858E"},{nome:"Azul",f:[195,331,32,15],sw:"#5FA8B8"},{nome:"Verde",f:[0,363,32,15],sw:"#7AAE6A"}],
-    bloquinhos: [{nome:"Bloquinhos",f:[32,363,16,16],sw:"#CE7D4B"}]
+    solteiro: [{nome:"Coral",l:[0,96,32,23],r:[32,96,32,23],f:[64,96,16,32],b:[80,96,16,32],sw:"#A35B4E"},{nome:"Azul",l:[96,96,32,23],r:[128,96,32,23],f:[160,96,16,32],b:[176,96,16,32],sw:"#506580"},{nome:"Verde",l:[192,96,32,23],r:[224,96,32,23],f:[0,128,16,32],b:[16,128,16,32],sw:"#4B8053"},{nome:"Amarelo",l:[32,128,32,23],r:[64,128,32,23],f:[96,128,16,32],b:[112,128,16,32],sw:"#CC9B45"}],
+    armario: [{nome:"Madeira",f:[128,128,30,29],sw:"#926140"},{nome:"Clara",f:[158,128,30,29],sw:"#997549"},{nome:"Escura",f:[188,128,30,29],sw:"#624A39"},{nome:"Branca",f:[218,128,30,29],sw:"#C0AC90"}],
+    banheira: [{nome:"Creme",f:[0,160,30,16],sw:"#CDBB9D"},{nome:"Cinza",f:[30,160,30,16],sw:"#A7A6B2"},{nome:"Preta",f:[60,160,30,16],sw:"#4C4A4C"}],
+    vaso: [{nome:"Branco",f:[90,160,13,16],sw:"#9D9FB0"}],
+    geladeira: [{nome:"Menta",f:[103,160,16,32],sw:"#748678"},{nome:"Vermelha",f:[119,160,16,32],sw:"#C45A51"},{nome:"Amarela",f:[135,160,16,32],sw:"#CF993A"},{nome:"Creme",f:[151,160,16,32],sw:"#C7B494"}],
+    fogao: [{nome:"Creme",f:[167,160,16,16],sw:"#C6B08D"},{nome:"Laranja",f:[183,160,16,16],sw:"#C38954"},{nome:"Inox",f:[199,160,16,16],sw:"#9093A2"},{nome:"Preto",f:[215,160,16,16],sw:"#4E5556"}],
+    pia: [{nome:"Creme",f:[231,160,16,24],sw:"#D9C6A5"},{nome:"Inox",f:[0,192,16,24],sw:"#9093A2"},{nome:"Laranja",f:[16,192,16,24],sw:"#C38A54"},{nome:"Verde",f:[32,192,16,24],sw:"#6E8574"}],
+    tapete: [{nome:"Rosa",f:[48,192,48,32],sw:"#90687F"},{nome:"Azul",f:[96,192,48,32],sw:"#6D8280"},{nome:"Verde",f:[144,192,48,32],sw:"#80765C"},{nome:"Bege",f:[192,192,48,32],sw:"#8D7E60"}],
+    mesa: [{nome:"Madeira",f:[0,224,32,38],sw:"#966342"},{nome:"Clara",f:[32,224,32,38],sw:"#9A7749"},{nome:"Escura",f:[64,224,32,38],sw:"#644C3A"},{nome:"Branca",f:[96,224,32,38],sw:"#C3AF91"}],
+    pc: [{nome:"Madeira",f:[128,224,32,28],o:[160,224,32,28],sw:"#8B5F3F"},{nome:"Clara",f:[192,224,32,28],o:[224,224,32,28],sw:"#956D47"},{nome:"Escura",f:[0,262,32,28],o:[32,262,32,28],sw:"#77573E"},{nome:"Branca",f:[64,262,32,28],o:[96,262,32,28],sw:"#A18265"}],
+    tv: [{nome:"Madeira",f:[128,262,26,15],sw:"#956241"},{nome:"Clara",f:[154,262,26,15],sw:"#9A7649"},{nome:"Escura",f:[180,262,26,15],sw:"#644C3B"},{nome:"Branca",f:[206,262,26,15],sw:"#C2AE91"}],
+    planta: [{nome:"Costela-de-adão",f:[232,262,16,32],sw:"#4F8A3C"},{nome:"Espada-de-são-jorge",f:[0,294,16,32],sw:"#7E9A3A"},{nome:"Orquídea",f:[16,294,16,32],sw:"#D46A9C"},{nome:"Lírio-da-paz",f:[32,294,16,32],sw:"#E8E2D0"}],
+    abajur: [{nome:"Lanterna",f:[48,294,16,32],sw:"#F3E2B0"},{nome:"Cúpula",f:[64,294,16,32],sw:"#F0DDB4"},{nome:"Galhos",f:[80,294,16,32],sw:"#C98A3A"},{nome:"Três luzes",f:[96,294,16,32],sw:"#E8D49A"}],
+    estante: [{nome:"Madeira",f:[112,294,30,30],sw:"#9E7658"},{nome:"Clara",f:[142,294,30,30],sw:"#9B7656"},{nome:"Escura",f:[172,294,30,30],sw:"#9A7456"},{nome:"Branca",f:[202,294,30,30],sw:"#997558"}],
+    namoradeira: [{nome:"Coral",f:[0,326,32,16],sw:"#C06358"}],
+    pufeSofa: [{nome:"Rosa",f:[32,326,13,14],sw:"#AE7767"},{nome:"Verde",f:[45,326,13,14],sw:"#796243"},{nome:"Azul",f:[58,326,13,14],sw:"#54797F"},{nome:"Cinza",f:[71,326,13,14],sw:"#84654E"}],
+    sofaG: [{nome:"Lilás",f:[84,326,56,16],sw:"#775D80"},{nome:"Verde",f:[140,326,56,16],sw:"#66884B"},{nome:"Laranja",f:[196,326,56,16],sw:"#BD7945"},{nome:"Cinza",f:[0,342,56,16],sw:"#535C5E"}],
+    geladeiraG: [{nome:"Inox",f:[56,342,24,31],sw:"#8F92A1"},{nome:"Laranja",f:[80,342,24,31],sw:"#C08554"}],
+    telmesa: [{nome:"Madeira",f:[104,342,16,15],sw:"#9B7849"}],
+    urso: [{nome:"Ursinho",f:[120,342,14,12],sw:"#C68571"}],
+    camaInfantil: [{nome:"Rosa",f:[134,342,15,25],sw:"#E8858E"},{nome:"Azul",f:[149,342,15,25],sw:"#5FA8B8"},{nome:"Verde",f:[164,342,15,25],sw:"#7AAE6A"}],
+    camaTeen: [{nome:"Coral",l:[179,342,32,23],r:[211,342,32,23],f:[0,373,16,32],b:[16,373,16,32],sw:"#A35B4E"},{nome:"Azul",l:[32,373,32,23],r:[64,373,32,23],f:[96,373,16,32],b:[112,373,16,32],sw:"#506580"},{nome:"Verde",l:[128,373,32,23],r:[160,373,32,23],f:[192,373,16,32],b:[208,373,16,32],sw:"#4B8053"},{nome:"Amarelo",l:[224,373,32,23],r:[0,405,32,23],f:[32,405,16,32],b:[48,405,16,32],sw:"#CC9B45"}],
+    mesaEstudos: [{nome:"Rosa",f:[64,405,32,15],sw:"#E8858E"},{nome:"Azul",f:[96,405,32,15],sw:"#5FA8B8"},{nome:"Verde",f:[128,405,32,15],sw:"#7AAE6A"}],
+    bloquinhos: [{nome:"Bloquinhos",f:[160,405,16,16],sw:"#CE7D4B"}],
+    dossel: [{nome:"Lilás",f:[176,405,32,52],sw:"#AC8364"},{nome:"Azul",f:[208,405,32,52],sw:"#94775A"},{nome:"Verde",f:[0,457,32,52],sw:"#937C50"},{nome:"Rosa",f:[32,457,32,52],sw:"#A97B57"}],
+    chuveiro: [{nome:"Box",f:[64,457,16,26],sw:"#BCD1D5"}]
   },
-  tv: {"tvOff":[48,363,25,20],"progs":[[[73,363,25,20],[98,363,25,20],[123,363,25,20],[148,363,25,20]],[[173,363,25,20],[198,363,25,20],[223,363,25,20],[0,383,25,20],[25,383,25,20]],[[50,383,25,20],[75,383,25,20],[100,383,25,20],[125,383,25,20],[150,383,25,20],[175,383,25,20],[200,383,25,20],[225,383,25,20]],[[0,403,25,20],[25,403,25,20],[50,403,25,20],[75,403,25,20]]]}
+  tv: {"tvOff":[80,457,25,20],"progs":[[[105,457,25,20],[130,457,25,20],[155,457,25,20],[180,457,25,20]],[[205,457,25,20],[230,457,25,20],[0,509,25,20],[25,509,25,20],[50,509,25,20]],[[75,509,25,20],[100,509,25,20],[125,509,25,20],[150,509,25,20],[175,509,25,20],[200,509,25,20],[225,509,25,20],[0,529,25,20]],[[25,529,25,20],[50,529,25,20],[75,529,25,20],[100,529,25,20]]]}
 };
 // v29: quadros da lareira (fogo) e do aquário (peixinhos em cima de uma mesinha), sem variante de cor
-COZY.anim = {"tvTubo":[[100,403,16,29],[116,403,16,29],[132,403,16,29],[148,403,16,29],[164,403,16,29]],"pote":[[180,403,16,9],[196,403,16,9]],"lareira":[[212,403,27,30],[0,433,27,30],[27,433,27,30],[54,433,27,30],[81,433,27,30]],"aquario":[[108,433,16,30],[124,433,16,30],[140,433,16,30],[156,433,16,30],[172,433,16,30],[188,433,16,30],[204,433,16,30],[220,433,16,30],[236,433,16,30]]};
+COZY.anim = {"tvTubo":[[125,529,16,29],[141,529,16,29],[157,529,16,29],[173,529,16,29],[189,529,16,29]],"pote":[[205,529,16,9],[221,529,16,9]],"lareira":[[0,558,27,30],[27,558,27,30],[54,558,27,30],[81,558,27,30],[108,558,27,30]],"aquario":[[135,558,16,30],[151,558,16,30],[167,558,16,30],[183,558,16,30],[199,558,16,30],[215,558,16,30],[231,558,16,30],[0,588,16,30],[16,588,16,30]]};
 TOP.aquario = Math.max(TOP.aquario || 0, 14);
 for (const [t, h] of [["tvTubo", 13], ["geladeiraG", 15], ["telmesa", 6]]) TOP[t] = Math.max(TOP[t] || 0, h); // v34 // o aquário em cima da mesinha é mais alto que o antigo
 let COZY_OFF = 0; // > 0: desenha o móvel antigo (a cama com dossel usa a cama de casal grande por baixo)
@@ -49,7 +51,7 @@ let COZY_OFF = 0; // > 0: desenha o móvel antigo (a cama com dossel usa a cama 
     for (const k of [...sprCache.keys()]) if (/^f[vz]?:/.test(k)) sprCache.delete(k);
     bgKey = null;
   };
-  im.src = "img/moveis/cozy.png?v=6"; COZY.img = im;
+  im.src = "img/moveis/cozy.png?v=7"; COZY.img = im;
 })();
 const cozyVar = (t, cor) => { const p = COZY.pecas[t]; return p ? p[cor | 0] || p[0] : null; };
 // desenha o recorte encostado no fundo do quadrado do móvel e centralizado; devolve false se não tiver arte
@@ -112,13 +114,14 @@ function telaCozy(b){ if (!COZY.ok) return null; return b === "tv" ? [5, -13, 21
   const top = TOP[t] || 0;
   return sprite("fz:" + t + ":" + f + ":" + (cor | 0), c.w * T, c.h * T + top, (ox, oy) => arteCozy(t, ox, oy + top, f, cor), !c.chao);
 }; }
-// girados: sofá e poltrona têm vista de lado e de costas no pacote
+// girados: sofá, poltrona e cama de solteiro têm vista de lado e de costas no pacote (v37: a arte pode passar do quadrado pra cima)
 { const v0 = spriteVirt; spriteVirt = function(t, f, cor){
   const c = CAT[t], b = c && c.base, v = COZY.ok && cozyVar(b, cor);
-  if (!v || !v.b || !v.l) return v0(t, f, cor);
-  const vista = c.rot === 2 ? "b" : c.rot === 1 ? "r" : "l"; // r = 1: virado pra esquerda (encosto à direita)
-  const s = sprite("fz:" + t + ":" + (cor | 0), c.w * T, c.h * T, (ox, oy) => arteCozy(b, ox, oy, 0, cor, vista, c.w * T, c.h * T));
-  s.ox = 0; s.oy = 0; return s;
+  if (!v || !v.b || !v.l || !v.r) return v0(t, f, cor);
+  const vista = c.rot === 2 ? "b" : c.rot === 1 ? "r" : "l"; // r = 1: virado pra esquerda (encosto/cabeceira à direita)
+  const r = v[vista], extra = Math.max(0, r[3] - c.h * T);
+  const s = sprite("fz:" + t + ":" + (cor | 0), c.w * T, c.h * T + extra, (ox, oy) => arteCozy(b, ox, oy + extra, 0, cor, vista, c.w * T, c.h * T));
+  s.ox = 0; s.oy = extra; return s;
 }; }
 // cores: as variantes prontas do pacote (os nomes e as amostras vêm da folha)
 for (const [t, vs] of Object.entries(COZY.pecas)){
@@ -171,7 +174,11 @@ function quadroPet(tipo, pose, f){
   });
 }; }
 if (typeof petTruqueSpr === "function"){ const t0 = petTruqueSpr; petTruqueSpr = function(tipo, pose, f, esq){
-  if (PETS_CZ.ok && (tipo === "gato" || tipo === "cachorro") && pose === "senta") return petSprite(tipo, "sit", f, esq, false);
+  if (PETS_CZ.ok && (tipo === "gato" || tipo === "cachorro")){ // v37: todos os truques com a arte do pacote
+    if (pose === "senta") return petSprite(tipo, "sit", f, esq, false);
+    if (pose === "pata") return petSprite(tipo, "sit", f ? 1 : 0, esq, false);
+    if (pose === "barriga" || pose === "deitado") return petSprite(tipo, "sleep", pose === "barriga" ? 1 : 0, esq, false);
+  }
   return t0(tipo, pose, f, esq);
 }; }
 // gaiola: só a gaiola do pacote (o passarinho aparece em cima quando a casa tem um; ver passaroCozy)
@@ -233,3 +240,16 @@ for (const gp of Object.values(GRAMAS)){
   if (gp.arb) gp.arb = gp.arb.map(c => suaveCor(c, .74, .93));
 }
 PAPEL_CORES.forEach(p => { p[1] = suaveCor(p[1], .78, .95); });
+
+
+// ---------------- v37: dossel do tamanho da cama de casal; box do chuveiro embaçando ----------------
+if (CAT.dossel){ CAT.dossel.w = 2; CAT.dossel.h = 2; }
+// vidro do box na frente de quem toma banho, embaçado de baixo pra cima (desenhado depois do bonequinho)
+function vidroBox(x, y, tm){
+  ctx.globalAlpha = .28; R(x + 1, y - 9, 14, 23, "#DCEFF5");
+  for (let j = 0; j < 23; j++){ ctx.globalAlpha = .12 + .5 * (j / 23); R(x + 1, y - 9 + j, 14, 1, "#F4F8FA"); }
+  ctx.globalAlpha = .55; for (let k = 0; k < 3; k++){ const yy = y - 6 + k * 3; P(x + 3 + k, yy, "#FFFFFF"); P(x + 4 + k, yy - 1, "#FFFFFF"); }
+  for (let n = 0; n < 4; n++){ const ph = (tm / 900 + n * .27) % 1; ctx.globalAlpha = .7; P(x + 3 + n * 3, Math.round(y - 4 + ph * 16), "#BFE0F5"); }
+  ctx.globalAlpha = 1; R(x, y - 10, 1, 25, "#9AA3AE"); R(x + 15, y - 10, 1, 25, "#9AA3AE"); R(x, y - 10, 16, 1, "#B9C0CA");
+}
+{ const fx0 = drawFx; drawFx = function(t, x, y, tm){ fx0(t, x, y, tm); if (t === "chuveiro" && COZY.ok && COZY.pecas.chuveiro) vidroBox(x, y, tm); }; }

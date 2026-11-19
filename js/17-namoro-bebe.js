@@ -259,7 +259,7 @@ function drawCoberta7(m, f, F, tm){
     if (f !== "dur") return;
     // v32: a cama de casal da Cozy é menor (2x2): a coberta acompanha a altura da cama e a cor da roupa de cama
     const w = CAT[m.t].w * T, hh = CAT[m.t].h * T, grande = hh >= 48, y0c = grande ? 19 : 16, yF = grande ? 45 : 29, yM = grande ? 28 : 22;
-    const cz = typeof COZY !== "undefined" && COZY.ok && m.t === "casal" && cozyVar("casal", m.cor);
+    const cz = typeof COZY !== "undefined" && COZY.ok && (m.t === "casal" || m.t === "dossel") && cozyVar(m.t, m.cor);
     const bl = cz ? cz.sw : BED_BL.casal, blL = sh(bl, .22), blD = sh(bl, -.22), meio = x + w / 2;
     for (let i = 0; i < w - 4; i++){
       const xx = x + 2 + i, onda = Math.sin(tm / 190 + i * .32) * 1.2 + Math.sin(tm / 310 - i * .21) * .8 + Math.sin(tm / NM_RITMO) * 1.1;

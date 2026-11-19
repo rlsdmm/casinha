@@ -210,7 +210,7 @@ function draw(now){
       const aqui = Object.keys(jogadores).filter(k => { const aa = k === pid ? (me && me.acao) : jogadores[k].acao; return aa && aa.mov === acao.mov && (k === pid || jogadores[k].online); });
       const nv = se0 && se0.vagas ? se0.vagas.length : 2;
       slot = Math.max(0, aqui.indexOf(id)) % nv;
-      if (acao.deitar){ deitado = true; pose = "lie"; const s2 = Object.keys(jogadores).indexOf(id) % 2; cx = m0.x * T + (m0.t === "dossel" ? (s2 ? 35 : 13) : m0.t === "casal" ? (s2 ? 23 : 9) : m0.t === "rede" ? 24 : c.w * T / 2); by = m0.y * T + (m0.t === "rede" ? 8 : 21);
+      if (acao.deitar){ deitado = true; pose = "lie"; const s2 = Object.keys(jogadores).indexOf(id) % 2; cx = m0.x * T + (m0.t === "dossel" || m0.t === "casal" ? (c.w > 2 ? (s2 ? 35 : 13) : (s2 ? 23 : 9)) : m0.t === "rede" ? 24 : c.w * T / 2); /* v37: dossel 2x2 */ by = m0.y * T + (m0.t === "rede" ? 8 : 21);
         if (c.virt){ const largo = c.w > 2 && c.h > 2; cx = Math.round((m0.x + c.w / 2) * T) + (largo ? (s2 ? 10 : -10) : 0); by = Math.round((m0.y + c.h / 2) * T) + 6; } } // leva 11: cama girada
       else {
         vg = se0 ? se0.vagas[slot] : null;
@@ -286,7 +286,7 @@ function draw(now){
         }
       }
       if (deitado && movT === "rede"){ R(cx - 8, by - 2, 16, 2, C.rose); R(cx - 7, by - 3, 14, 1, "#F9C9D6"); R(cx - 8, by, 16, 1, "#D97A96"); }
-      else if (deitado){ R(cx - 7, by - 2, 14, 2, C.cream); R(cx - 6, by - 3, 12, 1, "#FFFFFF"); R(cx - 7, by, 14, 1, C.creamD); }
+      else if (deitado){ const hw = ["solteiro", "camaTeen", "camaInfantil"].includes(baseT(movT)) ? 5 : 7; R(cx - hw, by - 2, hw * 2, 2, C.cream); R(cx - hw + 1, by - 3, hw * 2 - 2, 1, "#FFFFFF"); R(cx - hw, by, hw * 2, 1, C.creamD); } /* v37: coberta do tamanho da cama de solteiro */
       if (sobre && !sentado && !deitado && (movT === "piscina" || movT === "jacuzzi")){ ctx.globalAlpha = .82; R(cx - 7, by - 6, 14, 5, "#8FD6EE"); ctx.globalAlpha = 1; R(cx - 6, by - 6, 12, 1, "#E6F8FD"); }
       sobreAvatar7(id, cx, by, dir, pose, deitado, sentado, movT, tm); // leva 7: bebê no colo, barriga na coberta, desejo
       ctx.globalAlpha = 1;
