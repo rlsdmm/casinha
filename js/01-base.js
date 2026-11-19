@@ -87,9 +87,9 @@ const NEEDS = [
 ];
 const DORMIR = [{ id: "dormir", nome: "Dormir", dur: 20, ganho: { energia: 75 }, sobre: 1, deitar: 1 }, { id: "cochilo", nome: "Tirar um cochilo", dur: 8, ganho: { energia: 25 }, sobre: 1, deitar: 1 }];
 const CAT = {
-  casal:     { nome: "Cama de casal", w: 3, h: 3, preco: 450, acoes: DORMIR },
-  solteiro:  { nome: "Cama de solteiro", w: 2, h: 3, preco: 300, acoes: DORMIR },
-  sofa:      { nome: "Sofá", w: 3, h: 1, preco: 250, acoes: [{ id: "relaxar", nome: "Relaxar", dur: 8, ganho: { energia: 10, diversao: 12 }, sobre: 1 }] },
+  casal:     { nome: "Cama de casal", w: 2, h: 2, preco: 450, acoes: DORMIR },
+  solteiro:  { nome: "Cama de solteiro", w: 1, h: 2, preco: 300, acoes: DORMIR },
+  sofa:      { nome: "Sofá", w: 2, h: 1, preco: 250, acoes: [{ id: "relaxar", nome: "Relaxar", dur: 8, ganho: { energia: 10, diversao: 12 }, sobre: 1 }] },
   tv:        { nome: "TV", w: 2, h: 1, preco: 200, acoes: [{ id: "tv", nome: "Assistir TV", dur: 12, ganho: { diversao: 35 } }] },
   game:      { nome: "Videogame", w: 1, h: 1, preco: 150, acoes: [{ id: "jogar", nome: "Jogar videogame", dur: 12, ganho: { diversao: 45, energia: -5 } }] },
   geladeira: { nome: "Geladeira", w: 1, h: 1, preco: 250, acoes: [{ id: "lanche", nome: "Pegar um lanche", dur: 6, ganho: { fome: 30 } }] },
@@ -123,10 +123,10 @@ const CAT = {
 //   cima: posição de quem senta de costas olhando a TV.  frente: retângulos [x, y, w, h] do móvel redesenhados por cima de quem senta.
 //   mesa: mãos em cima do tampo (y do tampo).  cadeira: puxa uma cadeira de escritório.  empe: fica em pé em cima (chuveiro, piscina).
 const SENTAR = {
-  sofa:       { vagas: [{ dx: -9, by: 15 }, { dx: 9, by: 15 }], cima: 12 },
-  poltrona:   { vagas: [{ dx: 0, by: 15, frente: [[-1, -3, 5, 19], [12, -3, 5, 19]] }] },
+  sofa:       { vagas: [{ dx: -7, by: 15 }, { dx: 7, by: 15 }], cima: 12 }, // leva 23: sofá de 2 lugares (arte Cozy)
+  poltrona:   { vagas: [{ dx: 0, by: 15, frente: [[-1, 3, 5, 14], [12, 3, 5, 14]] }] },
   vaso:       { vagas: [{ dx: 0, by: 16 }] },
-  banheira:   { vagas: [{ dx: 3, by: 13, frente: [[-1, 8, 34, 10]], banho: 1 }] },
+  banheira:   { vagas: [{ dx: 3, by: 13, frente: [[-1, 6, 34, 11]], banho: 1 }] },
   mesa:       { sempre: 1, fixas: 1, vagas: [{ dx: 0, by: 6, frente: [[-1, 2, 34, 31]], mesa: 3, z: -.7 }, { dx: 0, by: 32, dir: "up" }] },
   pc:         { sempre: 1, fixas: 1, vagas: [{ dx: 0, by: 21, dir: "up", cadeira: 1 }] },
   piquenique: { fixas: 1, vagas: [{ dx: -8, by: 7, frente: [[-1, 3, 50, 21]], mesa: 4, z: -.7 }, { dx: 8, by: 30, dir: "up" }] },

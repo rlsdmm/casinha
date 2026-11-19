@@ -273,7 +273,7 @@ function drawCoberta7(m, f, F, tm){
       ctx.globalAlpha = 1 - ph; P(bx, byy - 1, "#CFEFFF"); P(bx - 1, byy, "#CFEFFF"); P(bx + 1, byy, "#CFEFFF"); P(bx, byy + 1, "#CFEFFF");
     }
     ctx.globalAlpha = 1;
-    blitFurnParte("banheira", furnFrame("banheira", true, tm, 0), x, y, [-1, 8, 34, 10]); // borda da frente por cima
+    blitFurnParte("banheira", furnFrame("banheira", true, tm, 0), x, y, [-1, 6, 34, 11]); // borda da frente por cima
   }
 }
 function leva7Luzes(lights, tm){

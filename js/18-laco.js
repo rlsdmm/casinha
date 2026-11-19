@@ -210,7 +210,7 @@ function draw(now){
       const aqui = Object.keys(jogadores).filter(k => { const aa = k === pid ? (me && me.acao) : jogadores[k].acao; return aa && aa.mov === acao.mov && (k === pid || jogadores[k].online); });
       const nv = se0 && se0.vagas ? se0.vagas.length : 2;
       slot = Math.max(0, aqui.indexOf(id)) % nv;
-      if (acao.deitar){ deitado = true; pose = "lie"; const s2 = Object.keys(jogadores).indexOf(id) % 2; cx = m0.x * T + (m0.t === "casal" || m0.t === "dossel" ? (s2 ? 35 : 13) : m0.t === "rede" ? 24 : 16); by = m0.y * T + (m0.t === "rede" ? 8 : 21);
+      if (acao.deitar){ deitado = true; pose = "lie"; const s2 = Object.keys(jogadores).indexOf(id) % 2; cx = m0.x * T + (m0.t === "dossel" ? (s2 ? 35 : 13) : m0.t === "casal" ? (s2 ? 23 : 9) : m0.t === "rede" ? 24 : c.w * T / 2); by = m0.y * T + (m0.t === "rede" ? 8 : 21);
         if (c.virt){ const largo = c.w > 2 && c.h > 2; cx = Math.round((m0.x + c.w / 2) * T) + (largo ? (s2 ? 10 : -10) : 0); by = Math.round((m0.y + c.h / 2) * T) + 6; } } // leva 11: cama girada
       else {
         vg = se0 ? se0.vagas[slot] : null;
