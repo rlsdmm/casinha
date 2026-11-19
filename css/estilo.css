@@ -515,3 +515,14 @@ body.ferias15on #buildPanel,body.ferias15on .andarUI,body.ferias15on .modes,body
 .jasou p { margin: 0 0 8px; }
 .jasouLista { display: flex; flex-wrap: wrap; gap: 8px; }
 .jasouLista .btn { min-height: 44px; }
+
+/* 29-conversa: campo de falar colado embaixo da casa + últimas falas por cima da casa */
+.talk29{margin:8px 0 12px}
+.talk29 input{flex:1;min-width:0;min-height:44px}
+.talk29 .btn{min-height:44px}
+.conversa29{position:absolute;left:8px;bottom:8px;z-index:5;max-width:min(78%,340px);display:flex;flex-direction:column;gap:3px;pointer-events:none}
+.conversa29 p{margin:0;background:rgba(18,14,28,.78);border-radius:9px;padding:3px 8px;font-size:.82rem;line-height:1.3;color:#fff;overflow-wrap:anywhere;transition:opacity .6s}
+.conversa29 p b{color:var(--accent)}
+.conversa29 p.velha{opacity:0}
+body.digitando29 .nav16{display:none}
+body.digitando29.comNav16{padding-bottom:0}

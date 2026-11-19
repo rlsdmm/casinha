@@ -283,7 +283,7 @@ function renderBuild(){
 function setMode(m){
   mode = m; tool = null; closeMenu();
   $("mLive").setAttribute("aria-pressed", String(m === "live")); $("mBuild").setAttribute("aria-pressed", String(m === "build"));
-  $("buildPanel").hidden = m !== "build"; $("hud").hidden = m === "build";
+  $("buildPanel").hidden = m !== "build"; $("hud").hidden = m === "build"; $("talk").hidden = m === "build";
   if (m === "build") renderBuild();
 }
 $("mLive").onclick = () => setMode("live");
