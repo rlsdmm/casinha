@@ -717,6 +717,26 @@ function confirmarNome(v, fid){
   fid = fid || bebeSel; v = limpaNome(v); if (!v){ toast("Escreva um nome."); return; } if (!filhos[fid]) return;
   txn("casa/filhos/" + fid + "/nome", c => c ? undefined : v).then(ok => { closePanel(); if (!ok) toast("Já escolheram: " + ((filhos[fid] && filhos[fid].nome) || "") + " 💞"); });
 }
+// v45: interromper a gravidez. Só quem está grávida vê a opção; a outra pessoa recebe um aviso discreto (casa/gvAviso).
+// Não entra na "Nossa história" e não tem penalidade no jogo.
+function openInterromper(){
+  const g = gravidez; if (!g || g.quem !== pid) return;
+  const outro = g.a === pid ? g.b : g.a;
+  openPanel("interromper", "Interromper a gravidez", corpo => {
+    corpo.append(el("p", null, "Essa decisão é sua. Se você confirmar, a gravidez é interrompida e a barriga some."),
+      el("p", "muted", (outro && jogadores[outro] ? "Se quiser, dá pra conversar com " + nomeDe(outro) + " antes. " : "") + "Mais pra frente, se quiserem, dá pra ter um bebê de novo."));
+    const bb = el("div", "hbtns");
+    bb.append(btn("Voltar", "btn ghost", () => openFamilia()), btn("Interromper", "btn", () => {
+      const ini = g.ini;
+      txn("casa/gravidez", cur => cur && cur.quem === pid && cur.ini === ini ? null : undefined).then(ok => {
+        if (!ok){ toast("Não deu agora. Tente de novo."); return; }
+        ref("casa/gvAviso").set({ por: pid, at: srvNow() }).catch(() => {});
+        closePanel(); toast("A gravidez foi interrompida. Cuide-se 💜");
+      });
+    }));
+    corpo.append(bb);
+  });
+}
 function openFamilia(){
   openPanel("familia", "Nós 💞", corpo => { // leva 9: o "Nós" abriga Presentes, Álbum, Nossa história e Datas (nosBotoes9)
     // leva 16a: os ajustes de romance e bebês moraram aqui até a leva 15; agora ficam em ⚙️ Ajustes (montarAjustesRomance)
@@ -738,6 +758,7 @@ function openFamilia(){
           tx.append(el("strong", null, (g.quem === pid ? "Você está" : nomeDe(g.quem) + " está") + " esperando um bebê 🤰"), el("small", null, ["", "Barriguinha aparecendo", "Barrigão", "Reta final"][est2] + " · " + (falta > 0 ? "chega em " + faltaTxt(falta) : "chega a qualquer momento!")));
           const w = el("div", "need"); w.append(barra(clamp((t - g.ini) / GV_DUR * 100, 0, 100), "#F7A3B5")); w.querySelector("i").style.background = "#F7A3B5"; tx.append(w);
           row.append(tx); gvBox.append(row);
+          if (g.quem === pid) gvBox.append(btn("Interromper a gravidez", "btn ghost small", openInterromper)); // v45: decisão de quem está grávida
           const dz = desejoAtual();
           if (dz){ const r2 = el("div", "rowi"), t2 = el("div", "tx"); t2.append(el("strong", null, "Desejo do momento: " + RECEITAS[dz.rk].nome + " 🤤"), el("small", null, dz.feito ? "Realizado por " + (dz.feito === pid ? "você" : nomeDe(dz.feito)) + " 💞" : "Quem cozinhar ganha +$25. Muda a cada 3 horas.")); const e2 = el("div", "me"); e2.style.gap = "10px"; e2.append(iconeSpr(pratoSprite(dz.rk)), t2); r2.append(e2); gvBox.append(r2); }
           if (g.quem !== pid && est2 >= 2 && jogadores[g.quem] && jogadores[g.quem].online) gvBox.append(btn("Sentir o bebê chutar 🥹", "btn ghost", () => { closePanel(); social(g.quem, SOCIAL.find(s => s.id === "chute")); }));
@@ -817,6 +838,7 @@ CONQUISTAS.push(
 function leva7Ouvir(){
   on(ref("casa/namoro"), "value", s => aoMudarNamoro(s.val() || {}));
   on(ref("casa/bebes"), "value", s => { bebesOn = s.val() !== false; refreshPanel("familia"); });
+  on(ref("casa/gvAviso"), "value", s => { const v = s.val(); if (v && v.por && v.por !== pid && srvNow() - (v.at || 0) < 60000 && me) toast(nomeDe(v.por) + " interrompeu a gravidez 💜"); }); // v45
   on(ref("casa/gravidez"), "value", s => {
     const ant = gravidez; gravidez = s.val();
     const g = gravidez, meu = g && (g.a === pid || g.b === pid);
