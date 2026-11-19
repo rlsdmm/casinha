@@ -236,7 +236,7 @@ function draw(now){
     }
     // leva 7: namorando: os dois juntinhos no lugar escolhido (posição e carinha dependem da fase)
     const n7 = aid === "namoro" && m0 ? namoroPose(id, acao, m0, tm, pisca) : null;
-    if (n7){ cx = n7.cx; by = n7.by; pose = n7.pose; dir = n7.dir; frame = 0; deitado = !!n7.lie; sentado = !n7.lie; if (n7.semVaga) vg = null; }
+    if (n7){ cx = n7.cx; by = n7.by; pose = n7.pose; dir = n7.dir; frame = 0; deitado = !!n7.lie; sentado = !n7.lie && !n7.empe; if (n7.semVaga) vg = null; } // v32: no chuveiro ficam em pé
     // leva 9: jantar (conversa corada) e cinema (rir, susto, abraço, choro, comemorar, pipoca)
     const p9 = sentado && (id === pid || j.online) ? leva9Pose(id, aid, acao, m0, tm, cx, by, pisca) : null;
     if (p9){ cx += p9.dx || 0; by += p9.dy || 0; if (p9.pose) pose = p9.pose; if (p9.frame != null) frame = p9.frame; }
