@@ -341,8 +341,8 @@ CAT.dossel.acoes = DORMIR_DOSSEL; // a melhor cama descansa mais
 Object.assign(TOP, { colchao: 1, frigobar: 3, geladeiraG: 14, fogareiro: 4, fogaoChique: 6, ducha: 10, pufeSofa: 3, sofaG: 6, radio: 5, tvG: 11 });
 SENTAR.pufeSofa = { vagas: [{ dx: 0, by: 14 }] };
 SENTAR.sofaG = { vagas: [{ dx: -16, by: 15 }, { dx: 16, by: 15 }, { dx: 0, by: 15 }], cima: 12 };
-const VERSAO_PROX = { colchao: "solteiro", solteiro: "casal", casal: "dossel", frigobar: "geladeira", geladeira: "geladeiraG", fogareiro: "fogao", fogao: "fogaoChique",
-  ducha: "chuveiro", chuveiro: "banheira", pufeSofa: "sofa", radio: "tv" }; // v24: sem "Melhorar" pro sofá grande e a TV grande
+const VERSAO_PROX = { colchao: "solteiro", solteiro: "casal", frigobar: "geladeira", fogareiro: "fogao",
+  ducha: "chuveiro", chuveiro: "banheira", pufeSofa: "sofa", radio: "tv" }; // v24/v26: sem "Melhorar" pros móveis grandes (sofá, TV, geladeira duplex, fogão chique, dossel)
 const FOGO_RITMO = { fogareiro: 1.35, fogao: 1, fogaoChique: .7 }; // tempo de cozinhar
 const FAM = { fogareiro: "fogao", fogaoChique: "fogao", tvG: "tv", radio: "som", ducha: "chuveiro", frigobar: "geladeira", geladeiraG: "geladeira" };
 const baseT = t => (CAT[t] && CAT[t].base) || t;
