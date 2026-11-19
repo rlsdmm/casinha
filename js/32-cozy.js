@@ -123,3 +123,48 @@ const PISOS_CZ = { img: null, ok: false };
   if (PISOS_CZ.ok && p && p.cz != null){ ctx.drawImage(PISOS_CZ.img, p.cz * 16, 0, 16, 16, x * T, y * T, 16, 16); return; }
   d0(x, y, p);
 }; }
+
+// ---------------- bichinhos (v33) ----------------
+// img/moveis/pets.png: gato (pintado de laranja, como a Pipoca) e cachorrinho do pacote, de lado (17x13, virados pra direita),
+// e o passarinho pulando em cima da gaiola (16x32). Gatos de raça (mingau) e coelho continuam desenhados no código.
+const PETS_CZ = { img: null, ok: false, q: {"gatoAnda":[[0,0,17,13],[17,0,17,13],[34,0,17,13],[51,0,17,13]],"gatoDorme":[[0,13,17,13],[17,13,17,13],[34,13,17,13],[51,13,17,13]],"caoAnda":[[0,26,17,13],[17,26,17,13],[34,26,17,13],[51,26,17,13]],"caoSenta":[[0,39,17,13],[17,39,17,13],[34,39,17,13]],"caoCome":[[0,52,17,13],[17,52,17,13]],"caoDorme":[[0,65,17,13],[17,65,17,13],[34,65,17,13],[51,65,17,13]],"gaiola":[[0,78,16,32],[16,78,16,32],[32,78,16,32],[48,78,16,32],[64,78,16,32],[80,78,16,32],[96,78,16,32],[112,78,16,32],[128,78,16,32],[144,78,16,32]]} };
+(() => {
+  const im = new Image();
+  im.onload = () => { PETS_CZ.ok = true; for (const k of [...sprCache.keys()]) if (/^(pet|f:gaiola)/.test(k)) sprCache.delete(k); };
+  im.src = "img/moveis/pets.png?v=1"; PETS_CZ.img = im;
+})();
+function quadroPet(tipo, pose, f){
+  const q = PETS_CZ.q, gato = tipo === "gato", k = f | 0;
+  if (pose === "sleep") return (gato ? q.gatoDorme : q.caoDorme)[k ? 2 : 0];
+  if (pose === "walk") return (gato ? q.gatoAnda : q.caoAnda)[k ? 2 : 0];
+  if (pose === "eat") return gato ? q.gatoAnda[k ? 1 : 0] : q.caoCome[k ? 1 : 0];
+  if (pose === "jump") return (gato ? q.gatoAnda : q.caoAnda)[1];
+  return gato ? q.gatoAnda[0] : q.caoSenta[k ? 1 : 0]; // parado / sentado
+}
+{ const p0 = petSprite; petSprite = function(tipo, pose, f, esq, triste){
+  if (!PETS_CZ.ok || (tipo !== "gato" && tipo !== "cachorro")) return p0(tipo, pose, f, esq, triste);
+  const fr = quadroPet(tipo, pose, f), desce = tipo === "gato" && pose === "eat" ? 1 : 0;
+  return sprite(["petz", tipo, pose, f | 0, esq ? 1 : 0, triste ? 1 : 0].join(":"), 17, 13, (ox, oy) => {
+    ctx.save(); if (esq){ ctx.translate(ox * 2 + 17, 0); ctx.scale(-1, 1); }
+    ctx.drawImage(PETS_CZ.img, fr[0], fr[1], fr[2], fr[3], ox, oy + desce, fr[2], fr[3] - desce);
+    ctx.restore();
+    if (triste){ ctx.globalAlpha = .18; R(ox, oy, 17, 13, "#3A3F6A"); ctx.globalAlpha = 1; } // tristinho: um pouco mais apagado
+  });
+}; }
+if (typeof petTruqueSpr === "function"){ const t0 = petTruqueSpr; petTruqueSpr = function(tipo, pose, f, esq){
+  if (PETS_CZ.ok && (tipo === "gato" || tipo === "cachorro") && pose === "senta") return petSprite(tipo, "sit", f, esq, false);
+  return t0(tipo, pose, f, esq);
+}; }
+// gaiola: só a gaiola do pacote (o passarinho aparece em cima quando a casa tem um; ver passaroCozy)
+{ const g0 = FURN_EXTRA.gaiola; if (g0) FURN_EXTRA.gaiola = (x, y, f) => {
+  if (!PETS_CZ.ok) return g0(x, y, f);
+  const q = PETS_CZ.q.gaiola[0]; ctx.drawImage(PETS_CZ.img, q[0], q[1] + 16, 16, 16, x, y, 16, 16);
+}; }
+// o passarinho em cima da gaiola, pulando (tristinho: parado)
+function passaroCozy(x, y, tm, triste){
+  if (!PETS_CZ.ok) return false;
+  const fs = PETS_CZ.q.gaiola, k = triste ? 0 : Math.floor(tm / 120) % (fs.length + 14); // pula e depois descansa um pouco
+  const q = fs[k < fs.length ? k : 0];
+  ctx.drawImage(PETS_CZ.img, q[0], q[1], 16, 16, x, y - 16, 16, 16);
+  return true;
+}

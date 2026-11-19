@@ -1160,16 +1160,17 @@ function addFamObjs(objs, tm){
       const mid = casaDoPet(id), m = mid && moveis[mid]; if (!m) continue;
       const x = m.x * T, y = m.y * T, triste = petTristeId(id, t), n = petNec(id, t);
       if (p.tipo === "peixe"){
-        const per = 4200 + hashStr(id) % 1500, ph = (tm % per) / per, esq = ph > .5, px = x + 3 + Math.round((esq ? 1 - (ph - .5) * 2 : ph * 2) * 7), py = y - 4 + Math.round(Math.sin(tm / 500) * 1.5) + (triste ? 3 : 0);
+        const cz = typeof COZY !== "undefined" && COZY.ok, aq = cz ? -6 : 0; // v33: o aquário da Cozy fica em cima de uma mesinha (a água é mais alta)
+        const per = 4200 + hashStr(id) % 1500, ph = (tm % per) / per, esq = ph > .5, px = x + 3 + Math.round((esq ? 1 - (ph - .5) * 2 : ph * 2) * 6), py = y - 4 + aq + Math.round(Math.sin(tm / 500) * 1.5) + (triste ? 3 : 0);
         objs.push({ z: (m.y + 1) * T - .3, f: () => {
           ctx.drawImage(peixeSpr(Math.floor(tm / 250) % 2, esq, p.cor || "#F2A65A").c, px, py);
-          if (n.cuida < 40){ ctx.globalAlpha = clamp((40 - n.cuida) / 50, .1, .55); R(x + 2, y - 6, 12, 9, "#6E9E5A"); ctx.globalAlpha = 1; }
+          if (n.cuida < 40){ ctx.globalAlpha = clamp((40 - n.cuida) / 50, .1, .55); R(x + 2, y - 6 + aq, 12, 9, "#6E9E5A"); ctx.globalAlpha = 1; }
           const b = (tm / 900 + hashStr(id) % 7) % 1; ctx.globalAlpha = 1 - b; P(px + (esq ? 0 : 5), py - 1 - Math.round(b * 5), "#FFFFFF"); ctx.globalAlpha = 1;
         } });
         petViews13.push({ id, cx: x + 8, by: y + 2, triste });
       } else {
         const k = Math.floor(tm / 1400 + hashStr(id) % 5), pos = [[4, -14], [9, -14], [6, -9]][k % 3], hop = (tm % 1400) < 200 ? -1 : 0, esq = k % 2 === 1;
-        objs.push({ z: (m.y + 1) * T - .3, f: () => { ctx.drawImage(passSpr(Math.floor(tm / 300) % 2, esq).c, x + pos[0] - 1, y + pos[1] - 1 - (triste ? 0 : hop) + (triste ? 5 : 0)); } });
+        objs.push({ z: (m.y + 1) * T - .3, f: () => { if (typeof passaroCozy === "function" && passaroCozy(x, y, tm + hashStr(id) % 900, triste)) return; ctx.drawImage(passSpr(Math.floor(tm / 300) % 2, esq).c, x + pos[0] - 1, y + pos[1] - 1 - (triste ? 0 : hop) + (triste ? 5 : 0)); } }); // v33: passarinho da Cozy em cima da gaiola
         petViews13.push({ id, cx: x + 8, by: y - 8, triste, passaro: 1 });
       }
       continue;
