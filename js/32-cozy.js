@@ -23,13 +23,20 @@ const COZY = {
     tv: [{nome:"Madeira",f:[64,236,26,15],sw:"#956241"},{nome:"Clara",f:[90,236,26,15],sw:"#9A7649"},{nome:"Escura",f:[116,236,26,15],sw:"#644C3B"},{nome:"Branca",f:[142,236,26,15],sw:"#C2AE91"}],
     planta: [{nome:"Costela-de-adão",f:[168,236,16,32],sw:"#4F8A3C"},{nome:"Espada-de-são-jorge",f:[184,236,16,32],sw:"#7E9A3A"},{nome:"Orquídea",f:[200,236,16,32],sw:"#D46A9C"},{nome:"Lírio-da-paz",f:[216,236,16,32],sw:"#E8E2D0"}],
     abajur: [{nome:"Lanterna",f:[232,236,16,32],sw:"#F3E2B0"},{nome:"Cúpula",f:[0,268,16,32],sw:"#F0DDB4"},{nome:"Galhos",f:[16,268,16,32],sw:"#C98A3A"},{nome:"Três luzes",f:[32,268,16,32],sw:"#E8D49A"}],
-    estante: [{nome:"Madeira",f:[48,268,30,30],sw:"#9E7658"},{nome:"Clara",f:[78,268,30,30],sw:"#9B7656"},{nome:"Escura",f:[108,268,30,30],sw:"#9A7456"},{nome:"Branca",f:[138,268,30,30],sw:"#997558"}]
+    estante: [{nome:"Madeira",f:[48,268,30,30],sw:"#9E7658"},{nome:"Clara",f:[78,268,30,30],sw:"#9B7656"},{nome:"Escura",f:[108,268,30,30],sw:"#9A7456"},{nome:"Branca",f:[138,268,30,30],sw:"#997558"}],
+    namoradeira: [{nome:"Coral",f:[168,268,32,16],sw:"#C06358"}],
+    pufeSofa: [{nome:"Rosa",f:[200,268,13,14],sw:"#AE7767"},{nome:"Verde",f:[213,268,13,14],sw:"#796243"},{nome:"Azul",f:[226,268,13,14],sw:"#54797F"},{nome:"Cinza",f:[239,268,13,14],sw:"#84654E"}],
+    sofaG: [{nome:"Lilás",f:[0,300,56,16],sw:"#775D80"},{nome:"Verde",f:[56,300,56,16],sw:"#66884B"},{nome:"Laranja",f:[112,300,56,16],sw:"#BD7945"},{nome:"Cinza",f:[168,300,56,16],sw:"#535C5E"}],
+    geladeiraG: [{nome:"Inox",f:[224,300,24,31],sw:"#8F92A1"},{nome:"Laranja",f:[0,331,24,31],sw:"#C08554"}],
+    telmesa: [{nome:"Madeira",f:[24,331,16,15],sw:"#9B7849"}],
+    urso: [{nome:"Ursinho",f:[40,331,14,12],sw:"#C68571"}]
   },
-  tv: {"tvOff":[168,268,25,20],"progs":[[[193,268,25,20],[218,268,25,20],[0,300,25,20],[25,300,25,20]],[[50,300,25,20],[75,300,25,20],[100,300,25,20],[125,300,25,20],[150,300,25,20]],[[175,300,25,20],[200,300,25,20],[225,300,25,20],[0,320,25,20],[25,320,25,20],[50,320,25,20],[75,320,25,20],[100,320,25,20]],[[125,320,25,20],[150,320,25,20],[175,320,25,20],[200,320,25,20]]]}
+  tv: {"tvOff":[54,331,25,20],"progs":[[[79,331,25,20],[104,331,25,20],[129,331,25,20],[154,331,25,20]],[[179,331,25,20],[204,331,25,20],[229,331,25,20],[0,362,25,20],[25,362,25,20]],[[50,362,25,20],[75,362,25,20],[100,362,25,20],[125,362,25,20],[150,362,25,20],[175,362,25,20],[200,362,25,20],[225,362,25,20]],[[0,382,25,20],[25,382,25,20],[50,382,25,20],[75,382,25,20]]]}
 };
 // v29: quadros da lareira (fogo) e do aquário (peixinhos em cima de uma mesinha), sem variante de cor
-COZY.anim = {"lareira":[[225,320,27,30],[0,350,27,30],[27,350,27,30],[54,350,27,30],[81,350,27,30]],"aquario":[[108,350,16,30],[124,350,16,30],[140,350,16,30],[156,350,16,30],[172,350,16,30],[188,350,16,30],[204,350,16,30],[220,350,16,30],[236,350,16,30]]};
-TOP.aquario = Math.max(TOP.aquario || 0, 14); // o aquário em cima da mesinha é mais alto que o antigo
+COZY.anim = {"tvTubo":[[100,382,16,29],[116,382,16,29],[132,382,16,29],[148,382,16,29],[164,382,16,29]],"pote":[[180,382,16,9],[196,382,16,9]],"lareira":[[212,382,27,30],[0,412,27,30],[27,412,27,30],[54,412,27,30],[81,412,27,30]],"aquario":[[108,412,16,30],[124,412,16,30],[140,412,16,30],[156,412,16,30],[172,412,16,30],[188,412,16,30],[204,412,16,30],[220,412,16,30],[236,412,16,30]]};
+TOP.aquario = Math.max(TOP.aquario || 0, 14);
+for (const [t, h] of [["tvTubo", 13], ["geladeiraG", 15], ["telmesa", 6]]) TOP[t] = Math.max(TOP[t] || 0, h); // v34 // o aquário em cima da mesinha é mais alto que o antigo
 let COZY_OFF = 0; // > 0: desenha o móvel antigo (a cama com dossel usa a cama de casal grande por baixo)
 (() => {
   const im = new Image();
@@ -38,7 +45,7 @@ let COZY_OFF = 0; // > 0: desenha o móvel antigo (a cama com dossel usa a cama 
     for (const k of [...sprCache.keys()]) if (/^f[vz]?:/.test(k)) sprCache.delete(k);
     bgKey = null;
   };
-  im.src = "img/moveis/cozy.png?v=3"; COZY.img = im;
+  im.src = "img/moveis/cozy.png?v=5"; COZY.img = im;
 })();
 const cozyVar = (t, cor) => { const p = COZY.pecas[t]; return p ? p[cor | 0] || p[0] : null; };
 // desenha o recorte encostado no fundo do quadrado do móvel e centralizado; devolve false se não tiver arte
@@ -60,6 +67,13 @@ function arteCozy(t, x, y, f, cor, vista, w, h){
     return true;
   }
   ctx.drawImage(COZY.img, sx, sy, rw, rh, dx, dy, rw, rh);
+  if (t === "telmesa"){ // v34: o telefone (desenho do jogo) em cima da mesinha do pacote
+    const px = x, py = dy - 4;
+    rbox(px + 4, py - 1, 8, 6, "#7FD1B2"); R(px + 5, py - 1, 6, 1, "#A8E6CC");
+    rbox(px + 3, py - 4, 10, 3, "#5DBB9A"); R(px + 4, py - 4, 8, 1, "#A8E6CC"); R(px + 3, py - 2, 2, 2, "#3F9A7C"); R(px + 11, py - 2, 2, 2, "#3F9A7C");
+    R(px + 6, py + 1, 4, 3, C.cream); P(px + 7, py + 2, C.ink); P(px + 8, py + 2, C.ink);
+    return true;
+  }
   if (t === "tv"){ // TV em cima do rack: desligada ou passando um programa (f = 1 + programa * 8 + quadro)
     const q = f ? (COZY.tv.progs[Math.floor((f - 1) / 8)] || COZY.tv.progs[0])[(f - 1) % 8] : null, tr = q || COZY.tv.tvOff;
     ctx.drawImage(COZY.img, tr[0], tr[1], tr[2], tr[3], x + Math.floor((w - tr[2]) / 2), dy + 2 - tr[3], tr[2], tr[3]);
@@ -76,6 +90,7 @@ function arteCozy(t, x, y, f, cor, vista, w, h){
 const TV_RITMO = [900, 300, 450, 450];
 { const f0 = furnFrame; furnFrame = function(t, on, tm, ph){
   if (COZY.ok && t === "lareira") return Math.floor(tm / 110) % 5;
+  if (COZY.ok && t === "tvTubo") return on ? 1 + Math.floor(tm / 400) % 4 : 0; // v34: desenho antigo passando na TV de tubo da Cozy
   if (COZY.ok && t === "aquario") return Math.floor((tm + (ph || 0) * 131) / 400) % 9;
   if (t !== "tv" || !on || !COZY.ok) return f0(t, on, tm, ph);
   const p = Math.floor(tm / 45000) % COZY.tv.progs.length, n = COZY.tv.progs[p].length;
