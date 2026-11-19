@@ -219,6 +219,7 @@ function buildClick(tx, ty, p){
       me.dinheiro -= preco; saveNeeds(true);
       const novo = { t, x: tx, y: ty, por: pid }; if (cima) novo.andar = 1;
       ref("casa/moveis").push(novo).then(() => { toast(CAT[t].nome + (cima ? " lá em cima" : " na casa") + ". -$" + preco); if (CAT[t].loja) ref("casa/loja/" + t).set(true).catch(() => {}); });
+      tool = null; renderBuild(); // v25: comprou e colocou, solta a seleção (pra outro, escolhe de novo no catálogo)
     } else {
       // leva 8: se alguém vendeu enquanto isso, não recria um móvel "fantasma" só com x e y
       txn("casa/moveis/" + tool.id, cur => cur ? Object.assign(cur, { x: tx, y: ty }) : undefined).then(ok => toast(ok ? "Móvel no lugar novo." : "Esse móvel não está mais na casa."));
