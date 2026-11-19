@@ -947,8 +947,8 @@ const mingauAdotado = () => Object.values(pets).some(p => p && p.raca === "minga
 function casaDoPet(id){ const p = pets[id], d = p && PET13[p.tipo]; if (!d || !d.item) return null; const bs = petsOrdem().filter(k => pets[k].tipo === p.tipo), ms = Object.keys(todosMoveis).filter(k => todosMoveis[k] && todosMoveis[k].t === d.item).sort(); return ms[bs.indexOf(id)] || null; }
 function petDoMovel(mid){ const m = todosMoveis[mid]; if (!m) return null; const tipo = m.t === "aquario" ? "peixe" : m.t === "gaiola" ? "passarinho" : m.t === "hamsterGaiola" ? "hamster" : null; if (!tipo) return null; const ms = Object.keys(todosMoveis).filter(k => todosMoveis[k] && todosMoveis[k].t === m.t).sort(); return petsOrdem().filter(k => pets[k].tipo === tipo)[ms.indexOf(mid)] || null; }
 // ---- arte ----
-function drawCoelho(x, y, pose, f, triste){
-  const c = "#F4EEE6", cL = "#FFFFFF", cD = "#D9CFC4", or = "#F7A3B5", ink = "#2E2638";
+function drawCoelho(x, y, pose, f, triste, pal){ // v44: pal = cor do coelho (COELHO_CORES no 33-coelhos.js)
+  const c = (pal && pal.c) || "#F4EEE6", cL = (pal && pal.cL) || "#FFFFFF", cD = (pal && pal.cD) || "#D9CFC4", or = "#F7A3B5", ink = "#2E2638";
   if (pose === "sleep"){ rbox(x + 2, y + 6, 11, 6, c); R(x + 3, y + 6, 9, 1, cL); R(x + 9, y + 5, 5, 2, c); R(x + 9, y + 4, 4, 1, cD); P(x + 12, y + 8, ink); P(x + 13, y + 8, ink); R(x + 1, y + 8, 2, 2, cL); return; }
   const hop = pose === "walk" && f ? -2 : 0, eat = pose === "eat";
   R(x + 1, y + 6 + hop, 2, 2, cL); // rabinho
@@ -961,8 +961,9 @@ function drawCoelho(x, y, pose, f, triste){
   P(hx + 5, hy + 4, or); P(hx + 2, hy + 4, "rgba(238,96,110,.55)");
   if (eat){ R(hx + 5, hy + 5, 3, 1, "#F2883A"); P(hx + 8, hy + 4, "#7FD1B2"); }
 }
-function coelhoSprite(pose, f, esq, triste){
-  const k = ["coelho", pose, f, triste ? 1 : 0].join(":"), base = sprite(k, 15, 13, (ox, oy) => drawCoelho(ox, oy + 1, pose, f, triste));
+function coelhoSprite(pose, f, esq, triste, cor, mini){
+  const pal = typeof coelhoPal === "function" ? coelhoPal(cor) : null;
+  const k = ["coelho", pose, f, triste ? 1 : 0, cor | 0, mini ? 1 : 0].join(":"), base = sprite(k, 15, 13, (ox, oy) => mini && pal ? drawFilhoteCoelho(ox, oy + 1, pose, f, triste, pal) : drawCoelho(ox, oy + 1, pose, f, triste, pal));
   if (!esq) return base;
   return sprite(k + ":e", 15, 13, () => { ctx.save(); ctx.translate(base.c.width, 0); ctx.scale(-1, 1); ctx.drawImage(base.c, 0, 0); ctx.restore(); }, false);
 }
@@ -1045,7 +1046,7 @@ function petMenu13(id, p){
 function iconePet(id){
   const p = pets[id], cv = el("canvas"); cv.width = 17; cv.height = 15; const x = cv.getContext("2d"); x.imageSmoothingEnabled = false;
   if (!p) return cv;
-  if (p.tipo === "coelho") x.drawImage(coelhoSprite("stand", 0, false, false).c, 1, 1);
+  if (p.tipo === "coelho") x.drawImage(coelhoSprite("stand", 0, false, false, p.cor, typeof ehFilhoteCoelho === "function" && ehFilhoteCoelho(p)).c, 1, 1);
   else if (p.tipo === "peixe"){ x.fillStyle = "#8FD0EE"; x.fillRect(1, 3, 15, 10); x.drawImage(peixeSpr(0, false, p.cor || "#F2A65A").c, 5, 6); }
   else if (p.tipo === "passarinho") x.drawImage(passSpr(0, false).c, 5, 5);
   else if (p.tipo === "hamster"){ if (!(typeof iconeHamster === "function" && iconeHamster(x))){ x.fillStyle = "#E8C08A"; x.fillRect(4, 6, 9, 6); } }
@@ -1062,16 +1063,17 @@ function openPets(){
       if (s === sig) return; sig = s; lista.textContent = ""; rod.textContent = "";
       for (const id of l){
         const p = pets[id], d = PET13[p.tipo], n = petNec(id), box = el("div", "rowi pet13"), esq = el("div", "me"), tx = el("div", "tx");
-        tx.append(el("strong", null, d.ic + " " + (p.nome || d.nome)), el("small", null, (p.raca === "mingau" ? "O Mingau, adotado da rua" : d.nome) + (id === petPid ? " · aprende truques" : "") + (petTristeId(id) ? " · tristinho" : "")));
+        tx.append(el("strong", null, d.ic + " " + (p.nome || d.nome)), el("small", null, (p.raca === "mingau" ? "O Mingau, adotado da rua" : d.nome) + (typeof infoCoelho === "function" ? infoCoelho(p, id) : "") + (id === petPid ? " · aprende truques" : "") + (petTristeId(id) ? " · tristinho" : "")));
         for (const [nn, v, c] of [["Fome", n.fome, "#EF9F27"], [d.ch === "limpo" ? "Limpeza" : "Carinho", n.cuida, "#D4537E"]]){ const w = el("div", "need"), r = el("div", "row"); r.append(el("span", null, nn), el("span", null, Math.round(v) + "%")); w.append(r, barra(v, c)); tx.append(w); }
         esq.style.gap = "10px"; esq.append(iconePet(id), tx);
         const bb = el("div", "hbtns pbtn13");
         bb.append(btn(d.comida, "btn ghost small", () => petAcao13(id, "comida")), btn(d.cuida, "btn ghost small", () => petAcao13(id, "cuida")));
         if (id === petPid) bb.append(btn("Nome e truques", "btn ghost small", openPetPanel));
         else bb.append(btn("Nome", "btn ghost small", () => renomearPet(id)));
+        if (p.tipo === "coelho" && !visitando && typeof doarCoelho === "function") bb.append(btn("Doar 💝", "btn ghost small", () => doarCoelho(id))); // v44
         box.append(esq, bb); lista.append(box);
       }
-      if (!visitando) rod.append(btn(l.length < FAMILIA.petsMax ? "🐾 Adotar bichinho (" + l.length + "/" + FAMILIA.petsMax + ")" : "Casa cheia de bichinhos (" + FAMILIA.petsMax + "/" + FAMILIA.petsMax + ")", "btn", openAdocao));
+      if (!visitando) rod.append(btn(typeof cabeAlgum !== "function" || cabeAlgum() ? "🐾 Adotar bichinho" : "Casa cheia de bichinhos", "btn", openAdocao)); // v44: coelhos têm vagas próprias
     };
     upd(); let ult = 0; painel.tick = () => { if (Date.now() - ult > 2000){ ult = Date.now(); upd(); } }; return upd;
   });
@@ -1216,7 +1218,7 @@ function addFamObjs(objs, tm){
     if (alegre && pose !== "walk"){ pose = "jump"; f = 0; oy = -Math.round(Math.abs(Math.sin(tm / 140)) * 5); }
     if (p.tipo === "coelho" && pose === "walk") oy = -Math.round(Math.abs(Math.sin(tm / 130)) * 2);
     const cx = Math.round((st.x + .5) * T), by = Math.round((st.y + 1) * T - 3);
-    const spr = p.tipo === "coelho" ? coelhoSprite(pose === "sit" ? "stand" : pose, f, st.esq, st.triste) : petSprite(p.raca === "mingau" ? "mingau" : p.tipo, pose, f, st.esq, st.triste);
+    const spr = p.tipo === "coelho" ? coelhoSprite(pose === "sit" ? "stand" : pose, f, st.esq, st.triste, p.cor, typeof ehFilhoteCoelho === "function" && ehFilhoteCoelho(p)) : petSprite(p.raca === "mingau" ? "mingau" : p.tipo, pose, f, st.esq, st.triste);
     objs.push({ z: by - .4, f: () => { R(cx - 5, by + 1, 10, 1, "rgba(35,18,40,.25)"); ctx.drawImage(spr.c, cx - 9, by - 13 + oy); if (st.triste) drawNuvem(cx + (st.esq ? -3 : 3), by - 19, tm); } });
     petViews13.push({ id, cx, by, pose, triste: st.triste });
   }
@@ -1356,7 +1358,7 @@ function openRelacoes(){
   const l = f0(), i = l.findIndex(x => x.ic === "🐱");
   const n = petsOrdem().length, it = { ic: "🐾", t: "Bichinhos", sub: petsOrdem().map(k => pets[k].nome || PET13[pets[k].tipo].nome).join(", ") || "O bichinho da casa", fn: openPets };
   if (i >= 0) l[i] = it; else l.push(it);
-  if (!visitando && n < FAMILIA.petsMax) l.push({ ic: "🏠", t: "Adotar bichinho", sub: "Coelho, peixinho, passarinho… (" + n + "/" + FAMILIA.petsMax + ")", fn: openAdocao });
+  if (!visitando && (typeof cabeAlgum === "function" ? cabeAlgum() : n < FAMILIA.petsMax)) l.push({ ic: "🏠", t: "Adotar bichinho", sub: "Coelho, peixinho, passarinho… (um casal de coelhos tem filhotes 🐰)", fn: openAdocao });
   return l;
 }; }
 // computador: joalheria e adoção (dá pra fazer pelo celular também, nas abas)
