@@ -96,3 +96,20 @@ for (const [t, vs] of Object.entries(COZY.pecas)){
   if (vs.length < 2) continue;
   CORES[t] = { m: (CORES[t] && CORES[t].m) || {}, v: vs.map(v => ({ nome: v.nome, sw: v.sw })) };
 }
+
+// ---------------- pisos (v28) ----------------
+// img/moveis/pisos.png: uma fileira de quadrinhos 16x16 do pacote, que emendam sozinhos. PISOS[i].cz = posição na fileira.
+// O deck da varanda continua desenhado no código. Pisos novos entram no fim da lista (o banco guarda o índice).
+PISOS.push({ nome: "Taco", a: "#7A5A3C", b: "#5E4430", tipo: "tabua" }, { nome: "Parquet", a: "#6E5238", b: "#55402C", tipo: "tabua" },
+  { nome: "Ladrilho hidráulico", a: "#C9BDB8", b: "#A9473F", tipo: "xadrez" });
+[[0, 0], [1, 1], [2, 2], [3, 3], [4, 4], [5, 5], [6, 6], [7, 7], [9, 8], [10, 9], [11, 10]].forEach(([i, k]) => { if (PISOS[i]) PISOS[i].cz = k; });
+const PISOS_CZ = { img: null, ok: false };
+(() => {
+  const im = new Image();
+  im.onload = () => { PISOS_CZ.ok = true; bgKey = null; if (typeof mode !== "undefined" && mode === "build" && typeof renderBuild === "function") renderBuild(); };
+  im.src = "img/moveis/pisos.png?v=2"; PISOS_CZ.img = im;
+})();
+{ const d0 = drawFloorTile; drawFloorTile = function(x, y, p){
+  if (PISOS_CZ.ok && p && p.cz != null){ ctx.drawImage(PISOS_CZ.img, p.cz * 16, 0, 16, 16, x * T, y * T, 16, 16); return; }
+  d0(x, y, p);
+}; }
