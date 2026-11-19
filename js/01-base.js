@@ -160,8 +160,8 @@ const MOVEIS_INICIAIS = [
 // itens que entraram depois (leva 1): casas antigas recebem uma vez, onde couber
 const EXTRAS_LEVA1 = [["canteiro",13,1],["canteiro",14,1],["pote",16,11]];
 
-const ROUPAS = ["#0B8A7C", "#D9483D", "#5246B0", "#EF9F27", "#D4537E", "#378ADD", "#3B6D11", "#2C2C2A"];
-const CABELOS = ["#2B1D14", "#6B3A2A", "#B5651D", "#E8C27A", "#8E8E8E", "#1E1E1E", "#B03A5B", "#5246B0", "#D2602A", "#F3E3BE", "#E58FB5", "#3F8FD0", "#3F9A6E"];
+const ROUPAS = ["#3E8C80", "#C2584E", "#5E5A9E", "#D99A45", "#C46A86", "#4F84B8", "#5A7A3A", "#3A3638"]; // v30: tons mais suaves, no estilo da Cozy
+const CABELOS = ["#2B1D14", "#6B3A2A", "#A8653A", "#D9B97E", "#8E8E8E", "#262326", "#A04A62", "#5E5A9E", "#C0683A", "#E6D6B4", "#D592AE", "#4F84B8", "#4E8A6A"];
 const PELES = ["#F6D2B0", "#E8B48C", "#C98E62", "#9C6644", "#6B4430"];
 const ESTILOS = ["Curto", "Comprido", "Coque", "Cacheado", "Raspado", "Franja", "Rabo de cavalo", "Maria-chiquinha", "Black power", "Topete"];
 // leva 3: corpo (neutro = como era antes), tipo de roupa e acessório. preco = paga uma vez no guarda-roupa (jogadores/<pid>/guarda)
