@@ -659,6 +659,30 @@ function naEscola(f, t){
   if (a.h >= E.fim && a.h < E.fim + .2) return "voltando";
   return null;
 }
+// v42: a ida até a cama (quando mandam dormir, ou na hora de dormir). Anda do lugar onde estava até o lado da cama
+// e só então aparece deitada. Calculado pelo relógio, igual em todos os aparelhos.
+function vizinhoCama(m){
+  const c = CAT[m.t] || { w: 1, h: 2 }, cand = [];
+  for (let y = m.y; y < m.y + c.h; y++) cand.push([m.x - 1, y], [m.x + c.w, y]);
+  for (let x = m.x; x < m.x + c.w; x++) cand.push([x, m.y + c.h]);
+  return cand.find(([x, y]) => walkable(x, y)) || null;
+}
+function indoPraCama(fid, f, t, seed, teen){
+  const cid = camaDe(fid), m = cid && todosMoveis[cid]; if (!m || (m.andar || 0) !== 0 || andarAtual !== 0) return null;
+  let ini, de;
+  if (f.indoCama && f.dormirAte && t < f.dormirAte){ ini = f.indoCama.ini; de = [f.indoCama.x, f.indoCama.y]; }
+  else {
+    const a = agoraBR(t), h0 = teen ? 22.5 : 21; if (a.h < h0 || FAMILIA.horaTeste != null) return null;
+    const hx = a.d.getUTCHours() + a.d.getUTCMinutes() / 60 + a.d.getUTCSeconds() / 3600 + a.d.getUTCMilliseconds() / 3600000; // com segundos (a.h é só em minutos)
+    ini = t - (hx - h0) * HORA; const p = npcAndar(seed, ini, teen ? 2.2 : 2.6); de = [Math.round(p.x), Math.round(p.y)];
+  }
+  if (t < ini) return null;
+  const alvo = vizinhoCama(m); if (!alvo) return null;
+  const path = petPath(de, alvo); if (!path || !path.length) return null;
+  const passos = (t - ini) / 1000 * 2.4; if (passos >= path.length) return null;
+  const pts = [de].concat(path), i = Math.floor(passos), fr = passos - i, p0 = pts[i], p1 = pts[i + 1], dx = p1[0] - p0[0], dy = p1[1] - p0[1];
+  return { x: p0[0] + dx * fr, y: p0[1] + dy * fr, moving: true, dir: dx ? (dx > 0 ? "right" : "left") : dy > 0 ? "down" : "up" };
+}
 function dormeAgora(f, t){
   if (f.dormirAte && t < f.dormirAte) return true;
   const a = agoraBR(t), teen = filhoFase(f, t) === "adolescente", fds = a.dw === 0 || a.dw === 6;
@@ -690,7 +714,10 @@ function famEstado(fid, t){
   const esc = naEscola(f, t);
   if (esc === "escola") return { onde: "escola", fase };
   if (f.com && t >= f.com.ini && t < f.com.ate) return { onde: "casa", x: f.com.x, y: f.com.y, dir: f.com.dir || "down", moving: false, pose: { brincar: "jump", abracar: "arms", lanche: "feliz", historia: "feliz" }[f.com.tipo] || "stand", fase, com: f.com };
-  if (dormeAgora(f, t) && !esc) return { onde: "cama", fase, cama: camaDe(fid) };
+  if (dormeAgora(f, t) && !esc){ // v42: antes de deitar, vai andando até a cama
+    const ida = indoPraCama(fid, f, t, seed, teen); if (ida) return Object.assign(ida, { onde: "casa", fase, pose: "walk" });
+    return { onde: "cama", fase, cama: camaDe(fid) };
+  }
   if (esc === "saindo"){ const s = saidaEscola(), st = npcAndar(seed, t, 2.2, kk => kk >= Math.floor(t / NPC_SLOT) - 0 ? s : null); const a = agoraBR(t), al = clamp((8 - a.h) / .05, 0, 1); return Object.assign(st, { onde: "casa", fase, mochila: 1, alpha: al, pose: st.moving ? "walk" : "stand" }); }
   const st = npcAndar(seed, t, teen ? 2.2 : 2.6, kk => (esc === "voltando" && kk === Math.floor(t / NPC_SLOT) - 1) ? saidaEscola() : petAlvoKid(seed, kk));
   st.onde = "casa"; st.fase = fase; st.pose = st.moving ? "walk" : "stand";
@@ -789,7 +816,7 @@ function famAcaoFim(a, k){
   if (k === "lanche") up.comeu = t;
   if (k === "brincar" || k === "historia") up.brincou = t;
   if (A.estudo){ up.estudo = Math.round(clamp(estudoDe(f, t) + A.estudo, 0, 100)); up.estudoAt = t; }
-  if (k === "dormir"){ const h = agoraBR(t).h; up.dormirAte = t + ((h >= 7 ? 31 - h : 7 - h) * HORA); toast(nomeFilho(fid) + " dormiu 😴 Boa noite!"); }
+  if (k === "dormir"){ const h = agoraBR(t).h; up.dormirAte = t + ((h >= 7 ? 31 - h : 7 - h) * HORA); const c = f.com || {}; up.indoCama = { ini: t, x: Math.round(c.x != null ? c.x : me.tx), y: Math.round(c.y != null ? c.y : me.ty) }; toast(nomeFilho(fid) + " foi pra caminha 😴 Boa noite!"); } // v42: vai andando até a cama
   if (k === "licao"){ ganharHab("logica", 10); toast(nomeFilho(fid) + " entendeu a matéria ✏️ (+estudo)"); }
   if (k === "brincar") sfx("risada");
   ref("casa/filhos/" + fid).update(up).catch(() => {});
