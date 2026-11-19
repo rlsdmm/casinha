@@ -234,6 +234,7 @@ const ITENS16 = {
     if (!visitando){
       const nz = Object.keys(vizinhos).length;
       l.push({ ic: "🔗", t: "Convidar pelo link", sub: "Chamar mais gente pra casa", fn: openConvite },
+        { ic: "🔄", t: "Entrar como outro morador", sub: "Abriu em outro celular e virou gente nova?", fn: () => openQuemSou() },
         { ic: "🏘️", t: "Bairro", sub: nz ? nz + (nz === 1 ? " casa de amigo" : " casas de amigos") : "Visitar amigos", fn: () => openBairro() });
     }
     l.push({ ic: "🎓", t: "Ver tutorial de novo", sub: "Os balões do começo", fn: () => setTimeout(() => iniciarTutorial(), 50) });

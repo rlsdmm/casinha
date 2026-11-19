@@ -509,3 +509,9 @@ body.comNav16 .sheet{padding-bottom:18px}
 body.fora15 #buildPanel,body.fora15 .andarUI,body.fora15 .modes,body.fora15 #invite,body.fora15 #invitePanel{display:none!important}
 body.ferias15on #buildPanel,body.ferias15on .andarUI,body.ferias15on .modes,body.ferias15on #invite,body.ferias15on #invitePanel{display:none!important}
 .ferias15 .hbtns .btn{flex:1 1 140px;min-height:44px}
+
+/* 28-quem-sou: "Já tem bonequinho nesta casa?" */
+.jasou { background: rgba(142,124,240,.12); border-radius: 12px; padding: 10px 12px; margin: 0 0 12px; }
+.jasou p { margin: 0 0 8px; }
+.jasouLista { display: flex; flex-wrap: wrap; gap: 8px; }
+.jasouLista .btn { min-height: 44px; }

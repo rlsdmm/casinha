@@ -22,6 +22,7 @@ function openCreator(edit){
   showScreen("screenCreator");
   $("cName").value = creator.nome || "";
   montarCriador();
+  if (typeof renderQuemSouCriador === "function") renderQuemSouCriador(); // 28-quem-sou
   window.scrollTo(0, 0);
 }
 // opções em botões; ao clicar, redesenha tudo e devolve o foco ao mesmo botão
