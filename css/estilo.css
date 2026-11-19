@@ -502,3 +502,10 @@ body.comNav16 .sheet{padding-bottom:18px}
 .svc14 .tx{flex:1 1 180px}
 .req14{margin:0;padding-left:4px;list-style:none;display:flex;flex-direction:column;gap:4px;font-size:.92rem}
 .escolha.atual14{border-color:var(--accent)}
+/* leva 15: rua do bairro, lugares e férias */
+.rua15 h2,.ferias15 h2{font-size:1.15rem}
+.rua15 .hbtns .btn{flex:1 1 130px;min-height:44px}
+.rua15 .btn.fechado15{opacity:.6}
+body.fora15 #buildPanel,body.fora15 .andarUI,body.fora15 .modes,body.fora15 #invite,body.fora15 #invitePanel{display:none!important}
+body.ferias15on #buildPanel,body.ferias15on .andarUI,body.ferias15on .modes,body.ferias15on #invite,body.ferias15on #invitePanel{display:none!important}
+.ferias15 .hbtns .btn{flex:1 1 140px;min-height:44px}
