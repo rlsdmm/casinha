@@ -886,6 +886,49 @@ function menuVizinho(id, p){
   openMenu(p, v.nome, it);
 }
 const RESP15 = { conversa: ["Que bom conversar com você! 😊", "Pois é, né?", "Hahaha, verdade!", "Volta mais vezes!"], elogio: ["Ah, obrigado(a)! 😊", "Que gentileza! 💛", "Você que é! 😄"], piadaBoa: ["HAHAHA! 😂", "Essa foi boa! 🤣", "Kkkkk, conta outra!"], piadaRuim: ["Hm… 😐", "Não entendi… 🤔", "…tá. 😶"], cafe: ["Obrigado(a) pelo café! ☕💛"] };
+// v50: respostas dos vizinhos. Cada ação tem a sua lista (café, conversa, mostrar a casa) e cada vizinho um jeitinho;
+// sorteia sem repetir a última frase daquele vizinho. Antes a visita usava uma conta fixa (horário da visita + tamanho do
+// nome da ação) e caía sempre na mesma fala solta, tipo "Acordo às 5 todo dia".
+const ela15 = id => { const v = VIZ[id] || {}, c = (v.av && v.av.corpo) || (v.L && v.L.corpo); return c === "ela"; };
+const oa15 = (id, txt) => txt.replace(/\(a\)/g, ela15(id) ? "a" : "o");
+const CAFE15 = ["Hum, que cafezinho gostoso! ☕", "Nada como um café com os vizinhos 💛", "Obrigad(a)! Passadinho na hora, né? ☕", "Aceito! Um cafezinho sempre cai bem ☕",
+  "Que cheirinho bom! ☕✨", "Café e uma boa prosa: combinação perfeita 😊", "Esquentou até o coração 💛", "Do jeitinho que eu gosto! ☕"];
+const CAFE_VIZ15 = {
+  "npc-neusa": ["Quase tão bom quanto o do Grão Doce! 😄☕", "Que delícia ser servida pra variar, meu bem 🥹", "Forte do jeitinho que eu gosto! Depois te conto meu segredo ☕", "Pó bom, água no ponto… vocês aprenderam direitinho! ☕"],
+  "npc-rafa": ["Sem açúcar, por favor! 💪☕", "Cafeína antes do treino? Bora! ⚡"],
+  "npc-bia": ["Combustível pro prazo de sexta ☕😅", "Agora eu desenho até de madrugada! 🎨☕"],
+  "npc-osvaldo": ["No barco eu tomava café às 4 da manhã! 🎣☕", "Café com pipoca, já provou? Fica bom, viu!"],
+  "npc-jorge": ["No tempo dos Correios era um café a cada entrega! 📮☕", "Esse café merece carta de agradecimento ✉️"],
+  "npc-cida": ["Da próxima eu trago o bolo de fubá pra acompanhar! 🍰", "Ai, que gostoso… igualzinho o de casa 💛"],
+  "npc-marcos": ["Café e violão: combinação perfeita 🎸☕", "Esse café merece uma música! 🎶"],
+  "npc-paula": ["Igual ao nosso café de sábado ☕", "Café bom e casa bonita, que visita boa! 📐"],
+  "npc-livia": ["…obrigada. Tá uma delícia 😊☕", "O Biscoito ia querer um pouquinho também 🐶"],
+  "npc-hideo": ["Esse pó é lá do mercado? Escolheram bem! ☕", "Café bom, freguês satisfeito 😄"],
+  "npc-teo": ["Café? Minha vó vai achar que eu cresci 😅", "Valeu! Agora eu aguento estudar 📚"],
+  "npc-caio": ["Valeu! Plantão no caixa pede isso ☕", "Salvou meu dia 🙌"]
+};
+const CAFE_MAIS15 = ["Mais um? Hoje eu não durmo! 😄", "Ih, já tô ligad(a) de tanto café ☕⚡", "Esse já foi o segundo… tô voando! 😂", "Mais um cafezinho? Vocês me mimam! 🥹"];
+const TOUR15 = ["Que casinha linda! 🏡", "Adorei a decoração, viu? ✨", "Dá pra ver o carinho em cada cantinho 💛", "Que vontade de morar aqui 😄", "Vocês capricharam!", "Que janela mais charmosa! 🪟", "Tá tudo tão aconchegante 🛋️"];
+const TOUR_VIZ15 = { "npc-paula": ["Gostei da planta da casa! Bem pensada 📐", "Essa parede ficou linda, que papel bonito!"], "npc-cida": ["Que cortina bonita! Fui costureira, sei reconhecer 🧵"], "npc-livia": ["Que cantinho bom pro bichinho de vocês 🐾"], "npc-marcos": ["Essa sala tem acústica boa, hein! 🎸"] };
+const CONVERSA15 = ["Que bom conversar com vocês! 😊", "Adoro essa vizinhança 💛", "Vocês são uns amores!", "A gente precisa fazer isso mais vezes!"];
+const ultFala15 = {};
+function semRepetir15(chave, lista){ // evita as últimas 3 frases daquele vizinho (ou menos, se a lista for curta)
+  const uniq = [...new Set(lista)]; if (!uniq.length) return "";
+  const hist = ultFala15[chave] || (ultFala15[chave] = []), evita = new Set(hist.slice(-Math.min(3, uniq.length - 1)));
+  const pode = lista.filter(t => !evita.has(t)), txt = (pode.length ? pode : lista)[Math.floor(Math.random() * (pode.length ? pode : lista).length)];
+  hist.push(txt); if (hist.length > 6) hist.shift();
+  return txt;
+}
+const cafesVisita15 = {};
+function respostaVizinho15(id, tipo, chaveVisita){
+  const v = VIZ[id] || { falas: [] };
+  if (tipo === "cafe"){
+    const k = (chaveVisita || "") + id, n = cafesVisita15[k] = (cafesVisita15[k] || 0) + 1;
+    return oa15(id, semRepetir15(id + "cafe", n > 1 ? CAFE_MAIS15 : CAFE15.concat(CAFE_VIZ15[id] || [], CAFE_VIZ15[id] || [])));
+  }
+  if (tipo === "tour") return oa15(id, semRepetir15(id + "tour", TOUR15.concat(TOUR_VIZ15[id] || [])));
+  return oa15(id, semRepetir15(id + "conversa", (v.falas || []).concat(CONVERSA15)));
+}
 function interagir(id, tipo){
   const v = VIZ[id], o = npcVis[id];
   if (!o){ toast(v.nome + " já foi embora."); return; }
@@ -896,9 +939,9 @@ function interagir(id, tipo){
       elogio: ["b-elogio", "Elogiando " + v.nome, 3, { social: 14 }], cafe: ["b-conversa", "Tomando um café com " + v.nome, 6, { social: 25, energia: 8 }] }[tipo];
     startAcao({ id: dados[0], nome: dados[1], dur: dados[2], ganho: dados[3], fim: () => {
       let d = 5, r = RESP15.conversa;
-      if (tipo === "conversa"){ d = 5; r = [v.falas[(hash(Date.now() / 60000 | 0, id.length, 9) + Math.floor(amizadeDe(pid, id) / 10)) % v.falas.length]]; ganharHab("charme", 4); }
+      if (tipo === "conversa"){ d = 5; r = [respostaVizinho15(id, "conversa")]; ganharHab("charme", 4); }
       if (tipo === "elogio"){ d = 4; r = RESP15.elogio; }
-      if (tipo === "cafe"){ d = 9; r = RESP15.cafe; }
+      if (tipo === "cafe"){ d = 9; r = [respostaVizinho15(id, "cafe", "rua" + brDia())]; }
       if (tipo === "piada"){ const gosta = v.tracos.some(k => k === "brincalhao" || k === "sociavel" || k === "comilao"), serio = v.tracos.some(k => k === "timido" || k === "organizado"), sorte = Math.random();
         if (gosta || (!serio && sorte < .7) || (serio && sorte < .35)){ d = gosta ? 8 : 5; r = RESP15.piadaBoa; sfx("risada"); } else { d = -2; r = RESP15.piadaRuim; } }
       falaNpc(id, r[Math.floor(Math.random() * r.length)]);
@@ -964,7 +1007,7 @@ const visFeito15 = new Set();
   const id = v.tipo, nm = VIZ[id].nome, faz = (k, nome, dur, ganho, d) => {
     if (andarAtual !== 0){ toast("A visita está lá embaixo."); return; }
     const [sx, sy] = visitaSpot(v), fora = sy > HC, goal = fora ? (x, y) => Math.abs(x - sx) + Math.abs(y - sy) === 1 : (x, y) => y === HC - 1 && Math.abs(x - sx) <= 1;
-    const a = { id: "v-" + k, nome, dur, ganho, fim: () => { visFeito15.add(v.id); relMudar(pid, id, relBonus({ amizade: d })).then(() => checarConquistas()); toast(nm + ": \"" + VIZ[id].falas[hash(v.ini / 1000 | 0, k.length, 3) % VIZ[id].falas.length] + "\""); } };
+    const a = { id: "v-" + k, nome, dur, ganho, fim: () => { visFeito15.add(v.id); relMudar(pid, id, relBonus({ amizade: d })).then(() => checarConquistas()); toast(nm + ": \"" + respostaVizinho15(id, k === "cafe15" ? "cafe" : k === "tour15" ? "tour" : "conversa", v.id) + "\""); } };
     if (!bfs(me.tx, me.ty, goal)){ if (me.acao) setAcao(null); me.path = []; startAcao(a); return; }
     goTo(null, goal, () => { faceTo(sx, sy); startAcao(a); });
   };
