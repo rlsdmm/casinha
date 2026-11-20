@@ -841,7 +841,7 @@ function rostoCanvas(id){
   const cv = el("canvas", "rosto13"); cv.width = 16; cv.height = 14; const x = cv.getContext("2d"); x.imageSmoothingEnabled = false;
   const f = filhos[id];
   if (f){ const L = lookFilho(f), fase = filhoFase(f); if (fase === "bebe" || fase === "engatinhando") x.drawImage(sprite("bbface:" + L.pele + ":" + L.cabelo, 8, 7, (ox, oy) => drawBebe("berco", "acordado", ox, oy, PELES[L.pele], CABELOS[L.cabelo])).c, 4, 4); else x.drawImage(kidSprite(fase === "adolescente", L, "down", 0, "stand", 0).c, 0, fase === "adolescente" ? 1 : 3, 16, 14, 0, 0, 16, 14); }
-  else { const j = id === pid ? (me && me.dados) : jogadores[id]; if (j) x.drawImage(avatarSprite(j, "down", 0, "stand").c, 1, 6, 16, 14, 0, 0, 16, 14); }
+  else { const j = id === pid ? (me && me.dados) : jogadores[id]; if (j) x.drawImage(avatarSprite(j, "down", 0, "stand").c, 1, 7, 16, 14, 0, 0, 16, 14); }
   cv.setAttribute("aria-hidden", "true"); return cv;
 }
 function famSecaoFilho(fid, box){

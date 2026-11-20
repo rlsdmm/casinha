@@ -991,7 +991,7 @@ const svAt = (wx, wy, folga) => svVis.find(v => Math.hypot(wx - v.cx, (wy - (v.b
 { const f0 = rostoCanvas; rostoCanvas = function(id){
   if (!SERV_NPC[id]) return f0(id);
   const cv = el("canvas", "rosto13"); cv.width = 16; cv.height = 14; const x = cv.getContext("2d"); x.imageSmoothingEnabled = false;
-  x.drawImage(avatarSprite(SERV_NPC[id].av, "down", 0, "stand").c, 1, 6, 16, 14, 0, 0, 16, 14); cv.setAttribute("aria-hidden", "true"); return cv;
+  x.drawImage(avatarSprite(SERV_NPC[id].av, "down", 0, "stand").c, 1, 7, 16, 14, 0, 0, 16, 14); cv.setAttribute("aria-hidden", "true"); return cv;
 }; }
 CONQUISTAS.push(
   { id: "promo1", nome: "Primeira promoção", txt: "Alguém da casa subiu de cargo.", meta: 1, val: () => moradores().some(([, j]) => carreiraDe(j) && (j.carreira.promo || 0) >= 1) ? 1 : 0 },

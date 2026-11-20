@@ -178,7 +178,7 @@ function renderAndarUI(){
   for (const [id, nome, a, fala] of lista){
     const b = btn("", "achip", () => irEscada());
     const cv = el("canvas"); cv.width = 16; cv.height = 14; const x = cv.getContext("2d"); x.imageSmoothingEnabled = false;
-    x.drawImage(avatarSprite(jogadores[id], "down", 0, "stand").c, 1, 2 + AV_Y0, 16, 14, 0, 0, 16, 14);
+    x.drawImage(avatarSprite(jogadores[id], "down", 0, "stand").c, 1, 7, 16, 14, 0, 0, 16, 14);
     const onde = ondeTxt(a);
     b.append(cv, el("span", "tx", nome + " está " + onde + (fala ? ": “" + fala + "”" : "")), el("span", "seta", a > andarAtual ? "⬆" : "⬇"));
     b.setAttribute("aria-label", nome + " está " + onde + (fala ? " e disse: " + fala : "") + ". Toque para ir até a escada.");
