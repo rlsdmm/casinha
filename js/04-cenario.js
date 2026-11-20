@@ -400,7 +400,7 @@ function blitEscada(){
   if (andarAtual === 1) ctx.drawImage(s.c, x - 2, y - 11); else ctx.drawImage(s.c, x - 2, y - ESC_ALTO - 3);
 }
 // fundo (jardim, pisos, paredes, portas, janelas): desenhado uma vez e guardado
-const bg = document.createElement("canvas"); bg.width = W * T; bg.height = H * T;
+const bg = document.createElement("canvas"); bg.width = W * T; bg.height = H * T + TOPO; // v47: + faixa da parede alta
 let bgKey = null;
 function ensureBg(hr){
   const est = estacao(), chuva = climaAgora(), mes = mesAgora();
@@ -437,13 +437,13 @@ function ensureBg(hr){
     const kind = skyKind(hr);
     for (const k of janelas()){
       const [x, y] = k.split(",").map(Number), px = x * T, py = y * T;
-      drawWindow(px, py, hr, x, est, chuva, cima);
+      if (y === 0) janelaAlta35(px, hr, x, est, chuva, cima); else drawWindow(px, py, hr, x, est, chuva, cima); // v47: janela grande na parede alta
       if (kind !== "noite"){ // luz da janela no chão (fraquinha quando chove, forte no verão)
         const c = chuva ? "rgba(210,225,255,.1)" : kind === "dia" ? (est === "verao" ? "rgba(255,246,190,.3)" : "rgba(255,248,210,.2)") : kind === "tarde" ? "rgba(255,190,120,.22)" : "rgba(255,210,200,.18)";
         for (let r = 0; r < 20; r++){ if (r === 9 || r === 10) continue; const o = Math.floor(r / 3); R(px + 4 + o, py + T + 3 + r, 4, 1, c); R(px + 9 + o, py + T + 3 + r, 4, 1, c); }
       }
     }
-    for (const [k, kindD] of Object.entries(decorAtual())){ const [x, y] = k.split(",").map(Number); if (isFace(x, y)) drawDecor(kindD, x * T, y * T, hr); }
+    for (const [k, kindD] of Object.entries(decorAtual())){ const [x, y] = k.split(",").map(Number); if (isFace(x, y)) drawDecor(kindD, x * T, y * T + (y === 0 ? DY35 : 0), hr); }
     if (!cima){ if (portaQ) drawPedras(); else drawPlaca(PLACA.x * T, PLACA.y * T); }
     if (mes === 6) drawBandeirinhas();
   });
@@ -463,6 +463,7 @@ function drawWindowAnim(tm, hr){
   const kind = skyKind(hr), chuva = climaAgora();
   for (const k of janelas()){
     const [x, y] = k.split(",").map(Number), px = x * T, py = y * T;
+    if (y === 0){ janelaAltaAnim35(px, x, tm, hr); continue; } // v47
     if (chuva){ // nuvem carregada passando
       const cxp = Math.floor((tm / 2600 + x * 5) % 18) - 5;
       for (let i = 0; i < 6; i++){ const ax = px + 4 + cxp + i; if (ax < px + 4 || ax > px + 12 || ax === px + 8) continue; P(ax, py + 6, kind === "noite" ? "#3A3F66" : "#9AA4B6"); if (i > 0 && i < 5) P(ax, py + 5, kind === "noite" ? "#323760" : "#A9B2C2"); }
@@ -480,6 +481,6 @@ function drawWindowAnim(tm, hr){
   }
 }
 // vinheta suave nos cantos
-const vig = document.createElement("canvas"); vig.width = W * T; vig.height = H * T;
-function desenharVinheta(){ const v = vig.getContext("2d"), g = v.createRadialGradient(W * T / 2, H * T / 2, H * T * .45, W * T / 2, H * T / 2, W * T * .72); g.addColorStop(0, "rgba(40,18,50,0)"); g.addColorStop(1, "rgba(40,18,50,.3)"); v.clearRect(0, 0, vig.width, vig.height); v.fillStyle = g; v.fillRect(0, 0, W * T, H * T); }
+const vig = document.createElement("canvas"); vig.width = W * T; vig.height = H * T + TOPO;
+function desenharVinheta(){ const v = vig.getContext("2d"), vw = vig.width, vh = vig.height, g = v.createRadialGradient(vw / 2, vh / 2, vh * .45, vw / 2, vh / 2, vw * .72); g.addColorStop(0, "rgba(40,18,50,0)"); g.addColorStop(1, "rgba(40,18,50,.3)"); v.clearRect(0, 0, vw, vh); v.fillStyle = g; v.fillRect(0, 0, vw, vh); }
 desenharVinheta();

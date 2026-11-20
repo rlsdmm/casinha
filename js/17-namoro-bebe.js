@@ -615,7 +615,7 @@ function addLeva7Objs(objs, tm){
     const F = nmFase(g, t), f = F ? (F.f === "fim" ? "dep" : F.f) : "esp", z = (m.y + CAT[m.t].h) * T + .5;
     objs.push({ z, f: () => drawCoberta7(m, f, F, tm) });
     if (f === "dur" || f === "dep") for (const [x, y, v] of roupaSpots(g, m)) objs.push({ z: (y + 1) * T - 12, f: () => ctx.drawImage(sujSprite("roupa", v).c, x * T - 1, y * T - 1) });
-    if (F && F.f !== "fim") objs.push({ z: 1e9, f: () => { const a = f === "paq" ? F.p * .3 : f === "dur" ? .3 : .3 * (1 - F.p); ctx.fillStyle = "rgba(28,14,48," + a.toFixed(3) + ")"; ctx.fillRect(0, 0, W * T, H * T); } });
+    if (F && F.f !== "fim") objs.push({ z: 1e9, f: () => { const a = f === "paq" ? F.p * .3 : f === "dur" ? .3 : .3 * (1 - F.p); ctx.fillStyle = "rgba(28,14,48," + a.toFixed(3) + ")"; ctx.fillRect(0, -TOPO, W * T, H * T + TOPO); } });
   }
   addBebeObjs(objs, tm);
   if (testeVisivel()){ const pk = piaDoTeste(), m = pk && moveis[pk]; if (m) objs.push({ z: (m.y + 1) * T - .4, f: () => ctx.drawImage(testeSpr().c, m.x * T + 3, m.y * T - 4) }); }

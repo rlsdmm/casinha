@@ -4,14 +4,18 @@
 const canvas = $("game");
 function resize(){
   const w = canvas.clientWidth || canvas.parentElement.clientWidth, dpr = Math.min(window.devicePixelRatio || 1, 3);
-  canvas.width = Math.round(w * dpr); canvas.height = Math.round(w * H / W * dpr);
-  canvas.style.height = (w * H / W) + "px";
+  const hh = H * T + TOPO; // v47: + faixa da parede alta
+  canvas.width = Math.round(w * dpr); canvas.height = Math.round(w * hh / (W * T) * dpr);
+  canvas.style.height = (w * hh / (W * T)) + "px";
 }
 window.addEventListener("resize", () => { if (!$("screenGame").hidden) resize(); });
 
+function cenaCasa47(){ try { return !(typeof viagemOn === "function" && viagemOn()) && !(typeof naRuaOuLugar === "function" && naRuaOuLugar()) && !(typeof feriasEu === "function" && feriasEu()); } catch (e){ return true; } }
 function worldFromEvent(e){
   const r = canvas.getBoundingClientRect();
-  return { x: (e.clientX - r.left) / r.width * W * T, y: (e.clientY - r.top) / r.height * H * T, sx: e.clientX - r.left, sy: e.clientY - r.top };
+  let y = (e.clientY - r.top) / r.height * (H * T + TOPO);
+  if (cenaCasa47()) y = Math.max(0, y - TOPO); // v47: na casa, a faixa da parede alta conta como a linha 0
+  return { x: (e.clientX - r.left) / r.width * W * T, y, sx: e.clientX - r.left, sy: e.clientY - r.top };
 }
 function playerAt(wx, wy, folga){
   let best = null, bd = 12 + (folga || 0);

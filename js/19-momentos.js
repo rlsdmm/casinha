@@ -43,16 +43,17 @@ function historia(chave, emoji, texto, extra){
 const mascaras = new Map();
 function mascaraComodo(cm){
   const k = andarAtual + "|" + H + "|" + cm; let c = mascaras.get(k); if (c) return c;
-  c = document.createElement("canvas"); c.width = W * T; c.height = H * T;
+  c = document.createElement("canvas"); c.width = W * T; c.height = H * T + TOPO;
   const x = c.getContext("2d"); x.fillStyle = "#1C0E30";
-  for (let y = 0; y < H; y++) for (let xx = 0; xx < W; xx++) if (comodo(xx, y) === cm) x.fillRect(xx * T, y * T, T, T);
+  for (let y = 0; y < H; y++) for (let xx = 0; xx < W; xx++) if (comodo(xx, y) === cm) x.fillRect(xx * T, y * T + TOPO, T, T);
+  for (let xx = 0; xx < W; xx++) if (comodo(xx, 0) === cm) x.fillRect(xx * T, 0, T, TOPO); // v47: a faixa da parede alta
   if (mascaras.size > 24) mascaras.clear();
   mascaras.set(k, c); return c;
 }
 function escurecer(objs, cm, a, brilhos, z){
   if (a <= 0) return;
   objs.push({ z: z || 1e9 - 1, f: () => {
-    ctx.globalAlpha = clamp(a, 0, 1); ctx.drawImage(mascaraComodo(cm), 0, 0);
+    ctx.globalAlpha = clamp(a, 0, 1); ctx.drawImage(mascaraComodo(cm), 0, -TOPO);
     ctx.globalCompositeOperation = "lighter";
     for (const [x, y, r, c, p] of brilhos || []){ const r2 = r * .7; ctx.globalAlpha = clamp(p, 0, 1); ctx.drawImage(luzSpr(c, r, 1), x - r2, y - r2, r2 * 2, r2 * 2); }
     ctx.globalCompositeOperation = "source-over"; ctx.globalAlpha = 1;

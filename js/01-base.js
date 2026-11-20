@@ -4,6 +4,7 @@ const DB_URL = "https://sintonia-a-dois-default-rtdb.firebaseio.com";
 // Mapa: a casa ocupa as linhas 0..HC (HC = parede de baixo). Com quintal comprado (leva 2),
 // o mapa ganha linhas de grama cercada abaixo da casa: H passa de H_CASA (13) para H_QUINTAL (18).
 const W = 18, T = 16, HC = 12, H_CASA = 13, H_QUINTAL = 18;
+const TOPO = 16, DY35 = -10; // v47: faixa da parede alta em cima da cena; quanto sobe o que fica pendurado na parede de cima
 let H = H_CASA;
 // Leva 4: segundo andar. Cada andar é uma cena do tamanho da casa; o cliente desenha só o andar do próprio jogador.
 // A escada fica no mesmo lugar nos dois andares (canto direito da sala): no térreo ela sobe para o norte,

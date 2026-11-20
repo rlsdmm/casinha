@@ -96,7 +96,7 @@ function raiosSol34(tm, hr){
   const spr = raioSpr34(cor);
   for (const k of janelas()){
     const [x, y] = k.split(",").map(Number); if (!isFace(x, y)) continue;
-    const px = x * T + 2, py = y * T + 12;
+    const px = x * T + 2, py = y * T + (y === 0 ? 7 : 12); // v47: janela alta
     ctx.globalAlpha = forca; ctx.globalCompositeOperation = "screen"; ctx.drawImage(spr, px, py); ctx.globalCompositeOperation = "source-over";
     // poeirinha dançando dentro do feixe
     for (let i = 0; i < 4; i++){

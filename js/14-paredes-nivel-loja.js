@@ -198,7 +198,7 @@ function addDecorFrente(objs, tm){
   const hr = hourNow();
   for (const [, d] of decorDoAndar()){
     if (!isFace(d.x, d.y) || !moveAltoEm(d.x, d.y + 1)) continue;
-    const m = moveis[occ[d.y + 1][d.x]], c = CAT[m.t], def = DECOR_CAT[d.t], px = d.x * T, py = d.y * T - 2;
+    const m = moveis[occ[d.y + 1][d.x]], c = CAT[m.t], def = DECOR_CAT[d.t], px = d.x * T, py = d.y * T - 2 + (d.y === 0 ? DY35 : 0);
     objs.push({ z: (m.y + c.h) * T - 1 + .3, f: () => {
       R(px + 3, py + 14, 10, 1, "rgba(35,18,40,.28)"); // sombrinha no móvel, pra parecer pendurada na frente
       if (!def.vivo) ctx.drawImage(decorSprite(d.t).c, px - 1, py - 1);
@@ -211,7 +211,7 @@ function drawDecorParede(tm, hr){
     if (mode === "build" && tool && tool.kind === "decorMover" && tool.id === id) continue;
     if (!isFace(d.x, d.y)) continue;
     if (mode === "live" && moveAltoEm(d.x, d.y + 1)) continue; // leva 16a: vai por cima do móvel (addDecorFrente)
-    const def = DECOR_CAT[d.t], px = d.x * T, py = d.y * T;
+    const def = DECOR_CAT[d.t], px = d.x * T, py = d.y * T + (d.y === 0 ? DY35 : 0); // v47: parede alta
     if (!def.vivo) ctx.drawImage(decorSprite(d.t).c, px - 1, py - 1);
     if (def.anim) def.anim(px, py, tm, hr);
   }
@@ -225,7 +225,7 @@ function leva6Luzes(lights, ativo, tm){
     lights.push([m.x * T + CAT[m.t].w * T / 2, m.y * T + L[3], L[1], L[0], L[2] * (m.t === "lareira" ? .88 + .12 * Math.sin(tm / 90) * Math.sin(tm / 230) : 1)]);
   }
   for (const [, d] of decorDoAndar()){
-    const x = d.x * T + 8, y = d.y * T + 7;
+    const x = d.x * T + 8, y = d.y * T + 7 + (d.y === 0 ? DY35 : 0);
     if (d.t === "luzinhas") lights.push([x, y, 30, "255,214,150", .85]);
     else if (d.t === "neon") lights.push([x, y + 1, 28, "255,110,180", .9]);
     else if (d.t === "letreiro") lights.push([x, y + 2, 16, "255,180,200", .5]);
@@ -242,18 +242,19 @@ function leva6Fantasma(){
   if (mode !== "build" || !tool) return;
   if (tool.kind === "decor" || tool.kind === "decorMover"){
     ctx.fillStyle = "rgba(93,202,165,.25)";
-    for (let y = 0; y < HC; y++) for (let x = 1; x < W - 1; x++) if (decorSpotOk(x, y, tool.id)) ctx.fillRect(x * T + 1, y * T + 4, T - 2, 9);
+    for (let y = 0; y < HC; y++) for (let x = 1; x < W - 1; x++) if (decorSpotOk(x, y, tool.id)) ctx.fillRect(x * T + 1, y * T + 4 + (y === 0 ? DY35 : 0), T - 2, 9);
     if (hover && MAP[hover.y]){
       const ok = decorSpotOk(hover.x, hover.y, tool.id);
-      ctx.fillStyle = ok ? "rgba(93,202,165,.45)" : "rgba(240,112,122,.45)"; ctx.fillRect(hover.x * T, hover.y * T, T, T);
-      if (ok){ ctx.globalAlpha = .85; const def = DECOR_CAT[tool.t]; if (!def.vivo) ctx.drawImage(decorSprite(tool.t).c, hover.x * T - 1, hover.y * T - 1); else def.anim(hover.x * T, hover.y * T, Date.now(), hourNow()); ctx.globalAlpha = 1; }
+      const hy = hover.y * T + (hover.y === 0 ? DY35 : 0); // v47: parede alta
+      ctx.fillStyle = ok ? "rgba(93,202,165,.45)" : "rgba(240,112,122,.45)"; ctx.fillRect(hover.x * T, hy, T, T);
+      if (ok){ ctx.globalAlpha = .85; const def = DECOR_CAT[tool.t]; if (!def.vivo) ctx.drawImage(decorSprite(tool.t).c, hover.x * T - 1, hy - 1); else def.anim(hover.x * T, hy, Date.now(), hourNow()); ctx.globalAlpha = 1; }
     }
   } else if (tool.kind === "papel" && hover){
     const cm = comodoDoToque(hover.x, hover.y); if (!cm || cm === "quintal") return;
     ctx.fillStyle = "rgba(142,124,240,.28)";
     for (let y = 0; y < H; y++) for (let x = 0; x < W; x++){
       if (MAP[y][x] !== 1 && comodo(x, y) === cm) ctx.fillRect(x * T, y * T, T, T);
-      else if (isFace(x, y) && x > 0 && x < W - 1 && comodo(x === VX ? x + 1 : x, y + 1) === cm) ctx.fillRect(x * T, y * T + 4, T, 9);
+      else if (isFace(x, y) && x > 0 && x < W - 1 && comodo(x === VX ? x + 1 : x, y + 1) === cm) ctx.fillRect(x * T, y === 0 ? -TOPO + 4 : y * T + 4, T, y === 0 ? TOPO + 9 : 9);
     }
   }
 }

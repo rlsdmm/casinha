@@ -322,7 +322,7 @@ function refreshAba16(){ const k = abaAberta(); if (k && k !== "nos") refreshPan
 // 4. TUTORIAL (primeira vez de cada jogador; visita tem um curtinho)
 // ---------------------------------------------------------------------
 // alvo(): um elemento da página ou um retângulo da tela { x, y, w, h } (pra coisas desenhadas no canvas)
-function rectTile16(x, y, w, h){ const r = canvas.getBoundingClientRect(), k = r.width / (W * T); return { x: r.left + x * T * k, y: r.top + y * T * k, w: w * T * k, h: h * T * k }; }
+function rectTile16(x, y, w, h){ const r = canvas.getBoundingClientRect(), k = r.width / (W * T); return { x: r.left + x * T * k, y: r.top + (y * T + TOPO) * k, w: w * T * k, h: h * T * k }; }
 function alvoChao16(){
   if (!me) return canvas;
   for (const [dx, dy] of [[2, 1], [-2, 1], [2, -1], [-2, -1], [1, 2], [3, 0], [-3, 0], [0, 2]]){ const x = me.tx + dx, y = me.ty + dy; if (walkable(x, y)) return rectTile16(x, y, 1, 1); }

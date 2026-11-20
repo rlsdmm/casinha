@@ -51,16 +51,16 @@ function drawChuva(tm, tipo){
   const garoa = tipo === "garoa", Ww = W * T, Hh = H * T, cor = garoa ? "rgba(228,238,255,.55)" : "rgba(212,230,255,.78)", len = garoa ? 2 : 4;
   ctx.save(); ctx.beginPath();
   if (zeroAqui()) chuvaClipZero(); // leva 11: casa do zero: chove em todo o lado de fora
-  else { ctx.rect(0, 0, 9, Hh); ctx.rect(Ww - 9, 0, 9, Hh); ctx.rect(0, HC * T + 7, Ww, Hh - HC * T - 7); }
+  else { ctx.rect(0, -TOPO, 9, Hh + TOPO); ctx.rect(Ww - 9, -TOPO, 9, Hh + TOPO); ctx.rect(0, HC * T + 7, Ww, Hh - HC * T - 7); }
   if (andarAtual === 1) ctx.rect((VX + 1) * T, 9 * T, (W - VX - 1) * T, 3 * T + 7); // varanda é aberta
-  const jan = [...janelas()].map(w => w.split(",").map(Number));
+  const jan = [...janelas()].map(w => w.split(",").map(Number)).filter(([, y]) => y !== 0); // v47: as da parede alta têm gota própria
   for (const [x, y] of jan) ctx.rect(x * T + 4, y * T + 5, 9, 7);
   ctx.clip();
   ctx.fillStyle = cor;
   const n = garoa ? 90 : 190;
   for (let i = 0; i < n; i++){
     const h = hash(i, 31, 5), vel = (garoa ? 55 : 160) + (h >> 9) % 50;
-    const y = ((h >> 4) % (Hh + 30) + tm / 1000 * vel) % (Hh + 30) - 15;
+    const y = ((h >> 4) % (Hh + TOPO + 30) + tm / 1000 * vel) % (Hh + TOPO + 30) - 15 - TOPO;
     const x = (((h % Ww) - Math.floor(y / 5)) % Ww + Ww) % Ww; // inclinação leve
     ctx.fillRect(x, Math.floor(y), 1, len);
   }

@@ -100,8 +100,8 @@ function update(dt){
   if (performance.now() - lastSave > 4000){ lastSave = performance.now(); saveNeeds(false); }
 }
 
-const lo = document.createElement("canvas"); lo.width = W * T; lo.height = H * T;
-const lc = document.createElement("canvas"); lc.width = W * T; lc.height = H * T;
+const lo = document.createElement("canvas"); lo.width = W * T; lo.height = H * T + TOPO; // v47: + faixa da parede alta
+const lc = document.createElement("canvas"); lc.width = W * T; lc.height = H * T + TOPO;
 // leva 8: luz radial em cache por cor e raio (tipo 0: mapa de luz, 3 paradas; tipo 1: brilho, 2 paradas, raio * .7).
 // Desenhada com globalAlpha = força; mesmo resultado do gradiente com alfa embutido.
 let luzSig = "";
@@ -118,7 +118,7 @@ function luzSpr(c, r, tipo){
 }
 // troca o tamanho da cena (com ou sem quintal): canvases internos, vinheta e largura máxima da tela
 function tamanhoCena(){
-  for (const c of [bg, lo, lc, vig]){ c.width = W * T; c.height = H * T; }
+  for (const c of [bg, lo, lc, vig]){ c.width = W * T; c.height = H * T + TOPO; }
   desenharVinheta(); bgKey = null;
   $("stage").style.maxWidth = H > H_CASA ? "min(100%, 78vh)" : "";
   if (!$("screenGame").hidden) resize();
@@ -128,10 +128,11 @@ const labelTop16 = {}; // id -> topo do nome na tela (depois de empilhar os nome
 function draw(now){
   const mctx = canvas.getContext("2d");
   ctx = lo.getContext("2d"); S = 1; ctx.imageSmoothingEnabled = false;
+  ctx.setTransform(1, 0, 0, 1, 0, TOPO); // v47: a cena desce TOPO px; em cima fica a parede alta
   const tm = Date.now(), hr = hourNow();
   // fundo guardado em cache: jardim, pisos, paredes, portas e janelas
   ensureBg(hr);
-  ctx.drawImage(bg, 0, 0);
+  ctx.drawImage(bg, 0, -TOPO);
   drawWindowAnim(tm, hr);
   const clima = climaAgora(), est = estacao(), natal = mesAgora() === 12;
   if (natal && !zeroAqui()) drawPiscaPisca(tm);
@@ -322,7 +323,7 @@ function draw(now){
   ctx.globalAlpha = 1;
   // chuva (leva 3): gotas no jardim, no quintal e nas janelas
   if (clima) drawChuva(tm, clima);
-  if (natal && !zeroAqui()) for (let i = 0; i < 8; i++) lights.push([24 + i * 34, 6, 18, ["255,110,120", "255,220,120", "130,220,170", "140,180,255"][i % 4], .95]);
+  if (natal && !zeroAqui()) for (let i = 0; i < 8; i++) lights.push([24 + i * 34, -7, 18, ["255,110,120", "255,220,120", "130,220,170", "140,180,255"][i % 4], .95]);
   // luz do dia e da noite: um mapa de luz colorido multiplicado sobre a cena (chuva escurece o céu)
   let dk = darkness(hr); if (clima) dk = Math.min(.5, dk + (clima === "garoa" ? .08 : .15));
   const k = dk * 2;
@@ -338,13 +339,15 @@ function draw(now){
     if (lsig !== luzSig){
       luzSig = lsig;
       const l = lc.getContext("2d");
+      l.setTransform(1, 0, 0, 1, 0, 0);
       l.globalCompositeOperation = "source-over"; l.globalAlpha = 1;
       l.fillStyle = base; l.fillRect(0, 0, lc.width, lc.height);
+      l.setTransform(1, 0, 0, 1, 0, TOPO); // v47: luzes na posição da cena
       l.globalCompositeOperation = "lighter";
       for (const [x, y, r, c, pw] of lights){ l.globalAlpha = clamp(pw * k, 0, 1); l.drawImage(luzSpr(c, r, 0), x - r, y - r, r * 2, r * 2); }
-      l.globalAlpha = 1; l.globalCompositeOperation = "source-over";
+      l.globalAlpha = 1; l.globalCompositeOperation = "source-over"; l.setTransform(1, 0, 0, 1, 0, 0);
     }
-    ctx.globalCompositeOperation = "multiply"; ctx.drawImage(lc, 0, 0);
+    ctx.globalCompositeOperation = "multiply"; ctx.drawImage(lc, 0, -TOPO);
     ctx.globalCompositeOperation = "lighter";
     for (const [x, y, r, c, pw] of lights){
       if (r < 20) continue;
@@ -360,14 +363,16 @@ function draw(now){
     ctx.globalCompositeOperation = "source-over";
   }
   // tom quente de dia e vinheta nos cantos
-  if (k < 1 && !clima){ ctx.fillStyle = est === "verao" ? "rgba(255,206,110," + (.11 * (1 - k)) + ")" : est === "inverno" ? "rgba(200,220,255," + (.06 * (1 - k)) + ")" : "rgba(255,196,120," + (.06 * (1 - k)) + ")"; ctx.fillRect(0, 0, lo.width, lo.height); }
-  ctx.drawImage(vig, 0, 0);
+  if (k < 1 && !clima){ ctx.fillStyle = est === "verao" ? "rgba(255,206,110," + (.11 * (1 - k)) + ")" : est === "inverno" ? "rgba(200,220,255," + (.06 * (1 - k)) + ")" : "rgba(255,196,120," + (.06 * (1 - k)) + ")"; ctx.fillRect(0, -TOPO, lo.width, lo.height); }
+  ctx.drawImage(vig, 0, -TOPO);
+  ctx.setTransform(1, 0, 0, 1, 0, 0); // v47
   // amplia a arte para a tela
   mctx.imageSmoothingEnabled = false;
   mctx.drawImage(lo, 0, 0, canvas.width, canvas.height);
 
   // textos em alta resolução
   const K = canvas.width / (W * T), dpr = Math.min(window.devicePixelRatio || 1, 3);
+  mctx.save(); mctx.translate(0, Math.round(TOPO * K)); // v47: nomes e balões acompanham a cena que desceu
   const fs = Math.round(clamp(4.6 * K, 12 * dpr, 17 * dpr));
   mctx.font = "700 " + fs + "px 'Pixelify Sans', monospace"; mctx.textAlign = "center"; mctx.textBaseline = "bottom";
   // leva 8: nomes de quem está lado a lado não se encavalam ("AnBeto"): quem esbarra num nome já posto sobe uma linha
@@ -440,6 +445,7 @@ function draw(now){
   drawLabels10(mctx, K, fs, tm); // leva 10: nome da pelúcia, "foram à praia", telefone com recado
   drawLabels11(mctx, K, fs); // leva 11: nome dos cômodos no modo construir (casa do zero)
   for (const L of labels){ if (L.acao && /^s-(beijo|abracar)/.test(L.acao.id || "") && Math.random() < .04) burst(L.cx / T - .5, L.by / T - 1, "heart"); }
+  mctx.restore(); // v47
 }
 
 // leva 8: aviso de versão nova. Quem está com a página aberta (ou com o HTML velho no cache do Pages) vê um botão

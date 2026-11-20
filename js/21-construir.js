@@ -1100,7 +1100,7 @@ function aplicarObra(){
     if (andarAtual !== 0){ andarAtual = 0; if (me){ me.andar = 0; ref("jogadores/" + pid + "/andar").set(0).catch(() => {}); } }
     escadaOn = false;
   } else restaurarFixos();
-  remontar(); aplicarMoveis(); if (bg.height !== H * T) tamanhoCena(); bgKey = null; luzSig = "";
+  remontar(); aplicarMoveis(); if (bg.height !== H * T + TOPO) tamanhoCena(); bgKey = null; luzSig = "";
   if (typeof mascaras !== "undefined") mascaras.clear();
   if (me && !walkable(me.tx, me.ty) && !me.acao){ const [x, y] = freeSpot(); me.tx = me.px = x; me.ty = me.py = y; me.path = []; savePos(); }
   if (mode === "build") renderBuild();
