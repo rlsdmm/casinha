@@ -574,7 +574,7 @@ function escolherDestino(d){
 }
 const FRASES_ATIV = { castelo: "Castelo pronto 🏰", mergulho: "Que água boa! 🌊", picole: "Picolé de morango 🍦", banho: "Que geladinha! 💦", pedras: "Pulou todas! 🪨", piquenique: "Piquenique delícia 🧺",
   sorvete: "Sorvete de casquinha 🍨", fogos: "Uaaau! 🎆", dancar: "Dança na rua 💃", colher: "Um girassol pra levar 🌻", coroa: "Coroa de flores 👑", correr: "Correndo no campo 🏃", roda: "Lá de cima dá pra ver tudo 🎡", algodao: "Algodão-doce 🍭", carrossel: "Upa, cavalinho! 🎠" };
-function fazerAtiv(aid){
+function fazerAtivPasseio(aid){ // v49: era fazerAtiv, mas o 27-bairro tem outra fazerAtiv(c, a) que sobrescrevia esta
   if (!emViagem() || !passeio.destino) return;
   ref("casa/passeio/ativ/" + pid).set({ id: aid, at: TS() }).catch(() => {});
   const k = passeio.ini + ":" + passeio.destino + ":" + aid;
@@ -671,7 +671,7 @@ function syncViagemUI(){
     return;
   }
   viagemCard.append(el("h2", null, d.em + " " + d.nome), el("p", "muted", "Com " + psNomes() + "."));
-  const at = el("div", "hbtns"); for (const [aid, nome] of d.ativ) at.append(btn(nome, "btn", () => fazerAtiv(aid)));
+  const at = el("div", "hbtns"); for (const [aid, nome] of d.ativ) at.append(btn(nome, "btn", () => fazerAtivPasseio(aid)));
   const bb = el("div", "hbtns"); bb.append(btn("📸 Foto", "btn ghost", fotoViagem), btn("🗺️ Outro destino", "btn ghost", () => txn("casa/passeio", cur => { if (!cur || cur.estado !== "viajando" || !cur.vai || !cur.vai[pid]) return; cur.destino = null; cur.ativ = null; return cur; })), btn("🏠 Voltar pra casa", "btn ghost", voltarDoPasseio));
   viagemCard.append(at, bb);
 }
