@@ -30,17 +30,18 @@ function openSalao(){
     corpo.append(conta, el("div", "hbtns"));
     corpo.lastChild.append(pagar);
     const custoSalao = () => (novo.estilo !== d0.estilo ? SALAO_PRECO.estilo : 0) + (novo.cabelo !== d0.cabelo ? SALAO_PRECO.cabelo : 0) + (novo.barba !== (d0.barba || 0) ? SALAO_PRECO.barba : 0);
-    const botoes = (box, itens, campo, cor) => {
+    const botoes = (box, itens, campo, cor, idx) => { // idx: qual valor cada botão grava (cortes filtrados pelo corpo)
       box.textContent = "";
-      itens.forEach((it, i) => {
-        const b = btn(cor ? "" : it, cor ? "swatch" : "btn ghost small", () => { novo[campo] = i; upd(); const nb = box.children[i]; if (nb) nb.focus({ preventScroll: true }); });
+      itens.forEach((it, j) => {
+        const i = idx ? idx[j] : j;
+        const b = btn(cor ? "" : it, cor ? "swatch" : "btn ghost small", () => { novo[campo] = i; upd(); const nb = box.children[j]; if (nb) nb.focus({ preventScroll: true }); });
         if (cor){ b.style.background = it; b.setAttribute("aria-label", "Cor do cabelo " + (i + 1)); }
         b.setAttribute("aria-pressed", String(novo[campo] === i));
         box.append(b);
       });
     };
     const upd = () => {
-      botoes(boxE, ESTILOS, "estilo"); botoes(boxC, CABELOS, "cabelo", true); botoes(boxB, ["Sem barba", "Com barba"], "barba");
+      { const ok = estilosDe(d0.corpo); botoes(boxE, ok.map(i => ESTILOS[i]), "estilo", false, ok); } botoes(boxC, CABELOS, "cabelo", true); botoes(boxB, ["Sem barba", "Com barba"], "barba");
       const custo = custoSalao();
       pagar.textContent = custo ? "Pagar $" + custo : "Sair sem mudar";
       conta.textContent = custo ? "Você tem $" + Math.floor(me.dinheiro) + "." : "Escolha um corte, uma cor" + (d0.corpo === "ele" ? " ou a barba." : ".");

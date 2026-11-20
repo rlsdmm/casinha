@@ -16,7 +16,8 @@ function openCreator(edit, refazer){
   if (d) creator = Object.assign({ nome: d.nome || "", sorteado: true, tracos: tracosDe(d) }, visual(d)); // leva 12: traços
   else if (!creator.sorteado){
     const rnd = n => Math.floor(Math.random() * n), gratis = TRAJES.map((t, i) => t.preco || t.nivel || t.casamento ? -1 : i).filter(i => i >= 0);
-    Object.assign(creator, { sorteado: true, corpo: Math.random() < .5 ? "ele" : "ela", barba: 0, acess: 0, roupa: rnd(ROUPAS.length), cabelo: rnd(6), estilo: rnd(ESTILOS.length), pele: rnd(PELES.length), traje: gratis[rnd(gratis.length)] });
+    Object.assign(creator, { sorteado: true, corpo: Math.random() < .5 ? "ele" : "ela", barba: 0, acess: 0, roupa: rnd(ROUPAS.length), cabelo: rnd(6), estilo: 0, pele: rnd(PELES.length), traje: gratis[rnd(gratis.length)] });
+    { const ok = estilosDe(creator.corpo); creator.estilo = ok[rnd(ok.length)]; }
   }
   creatorEdit = !!d; creatorRefazer = !!(d && refazer);
   showScreen("screenCreator");
@@ -51,7 +52,7 @@ function montarCriador(){
   for (const id of ["lTracos", "swTracos", "cTracoTx"]) $(id).hidden = soRoupa && !faltaTraco;
   $("cName").hidden = soRoupa; $("cName").previousElementSibling.hidden = soRoupa;
   $("cBack").hidden = !ed;
-  opcoes("swCorpo", CORPOS.filter(([k]) => k !== "neutro").map(([k, n]) => ({ nome: n, on: creator.corpo === k, fn: () => { creator.corpo = k; if (k !== "ele") creator.barba = 0; } })));
+  opcoes("swCorpo", CORPOS.filter(([k]) => k !== "neutro").map(([k, n]) => ({ nome: n, on: creator.corpo === k, fn: () => { creator.corpo = k; if (k !== "ele") creator.barba = 0; creator.estilo = estiloPara(k, creator.estilo); } })));
   const vc = visual(creator); // leva 12b: formato do corpo, altura e físico (com desenhinho em cada botão)
   opcoes("swForma", FORMAS.map(([k, n]) => ({ nome: n, on: vc.forma === k, fn: () => creator.forma = k })));
   opcoes("swAltura", ALTURAS.map(([k, n]) => ({ nome: n, on: vc.altura === k, fn: () => creator.altura = k })));
@@ -65,7 +66,7 @@ function montarCriador(){
     return it;
   }));
   opcoes("swRoupa", ROUPAS.map((c, i) => ({ nome: "Cor da roupa " + (i + 1), cor: c, on: creator.roupa === i, fn: () => creator.roupa = i })));
-  opcoes("swEstilo", ESTILOS.map((n, i) => ({ nome: n, on: creator.estilo === i, fn: () => creator.estilo = i })));
+  opcoes("swEstilo", estilosDe(creator.corpo).map(i => ({ nome: ESTILOS[i], on: creator.estilo === i, fn: () => creator.estilo = i })));
   opcoes("swCabelo", CABELOS.map((c, i) => ({ nome: "Cor do cabelo " + (i + 1), cor: c, on: creator.cabelo === i, fn: () => creator.cabelo = i })));
   opcoes("swAcess", ACESS.map((a, i) => itemPago("acess", i, a)));
   opcoes("swPele", PELES.map((c, i) => ({ nome: "Tom de pele " + (i + 1), cor: c, on: creator.pele === i, fn: () => creator.pele = i })));

@@ -165,6 +165,10 @@ const ROUPAS = ["#3E8C80", "#C2584E", "#5E5A9E", "#D99A45", "#C46A86", "#4F84B8"
 const CABELOS = ["#2B1D14", "#6B3A2A", "#A8653A", "#D9B97E", "#8E8E8E", "#262326", "#A04A62", "#5E5A9E", "#C0683A", "#E6D6B4", "#D592AE", "#4F84B8", "#4E8A6A"];
 const PELES = ["#F6D2B0", "#E8B48C", "#C98E62", "#9C6644", "#6B4430"];
 const ESTILOS = ["Curto", "Comprido", "Coque", "Cacheado", "Raspado", "Franja", "Rabo de cavalo", "Maria-chiquinha", "Black power", "Topete"];
+// v52: cada corpo só vê os cortes dele (criador, salão e filhos); "neutro" vê todos
+const ESTILOS_CORPO = { ele: [0, 9, 4, 5, 3, 8], ela: [0, 1, 6, 7, 2, 3, 5, 8] };
+const estilosDe = corpo => ESTILOS_CORPO[corpo] || ESTILOS.map((_, i) => i);
+const estiloPara = (corpo, e) => estilosDe(corpo).includes(e) ? e : estilosDe(corpo)[0];
 // leva 3: corpo (neutro = como era antes), tipo de roupa e acessório. preco = paga uma vez no guarda-roupa (jogadores/<pid>/guarda)
 const CORPOS = [["ele", "Ele"], ["ela", "Ela"], ["neutro", "Neutro"]];
 const TRAJES = [{ nome: "Camiseta" }, { nome: "Vestido" }, { nome: "Saia e blusa" }, { nome: "Macacão", preco: 40 }, { nome: "Moletom", preco: 60 }, { nome: "Regata" }];

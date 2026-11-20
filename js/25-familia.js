@@ -515,7 +515,8 @@ FAIXAS.push({ id: "casamento", nome: "Marcha dos Noivos", desc: "Pra entrar no a
 // 5. FILHOS QUE CRESCEM (casa/filhos): bebê → engatinhando → criança → adolescente
 // =====================================================================
 // ---- arte: criança e adolescente em pixel art chibi (mesmo contorno automático dos bonecos) ----
-const lookFilho = f => ({ pele: idxDe(f.pele, PELES), cabelo: idxDe(f.cabelo, CABELOS), estilo: idxDe(f.estilo, ESTILOS), corpo: f.corpo === "ela" || f.corpo === "ele" ? f.corpo : "neutro", roupa: (f.roupa | 0) % 8 });
+const lookFilho = f => { const corpo = f.corpo === "ela" || f.corpo === "ele" ? f.corpo : "neutro";
+  return { pele: idxDe(f.pele, PELES), cabelo: idxDe(f.cabelo, CABELOS), estilo: estiloPara(corpo, idxDe(f.estilo, ESTILOS)), corpo, roupa: (f.roupa | 0) % 8 }; };
 const CAB_LONGO = new Set([1, 2, 6, 7]);
 // cx = meio, by = linha dos pés. Criança: ~16 px de altura; adolescente: ~20 (adulto: ~27)
 function drawKid(teen, L, cx, by, dir, frame, pose, mochila){
