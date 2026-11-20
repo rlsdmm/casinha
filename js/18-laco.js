@@ -141,6 +141,7 @@ function draw(now){
   // tapetes
   for (const m of Object.values(moveis)) if (CAT[m.t] && CAT[m.t].chao){ R(m.x * T + 4, m.y * T + CAT[m.t].h * T - 2, CAT[m.t].w * T - 8, 1, "rgba(35,18,40,.18)"); blitFurn(m.t, m.x * T, m.y * T, 0, m.cor); }
   drawSujeiraChao(); // leva 5: pó, migalhas, roupa, folhas, lama, pelos
+  if (typeof sombrasMoveis34 === "function") sombrasMoveis34(); // v46: sombra macia dos móveis
   // sombras dos móveis (em degraus, para ficarem suaves)
   for (const [id, m] of Object.entries(moveis)){
     const c = CAT[m.t]; if (!c || c.chao) continue;
@@ -296,6 +297,7 @@ function draw(now){
     labels.push({ id, j, cx, by: sentado ? by + 2 : by, acao, off, deitado, some: esc && esc.a < .6 });
   }
   objs.sort((a, b) => a.z - b.z).forEach(o => o.f());
+  if (typeof raiosSol34 === "function") raiosSol34(tm, hr); // v46: raios de sol pelas janelas
 
   // fantasma do modo construir
   if (mode === "build" && tool && hover && (tool.kind === "novo" || tool.kind === "mover")){
