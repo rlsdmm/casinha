@@ -27,7 +27,7 @@ const FRASES_NM = ["Que momento, hein? 😏", "Os vizinhos nem desconfiam 🤫",
 const FRASES_CHUVEIRO = ["Banho a dois 🚿🔥", "Economizando água, né? 😏", "O banheiro inteiro embaçou 🫣", "Que banho demorado, hein? 😏", "Ninguém saiu dali com frio 🔥"];
 const L7 = { chance: null };
 let namoros = {}, nmCarregado = false, gravidez = null, gvCarregada = false, bebe = null, bbCarregado = false, bebesOn = true;
-let nmTx = {}, nmFeito = {}, nmSpots = {}, nmBeijou = {}, nmFalou = {}, nmSom = 0, nmPart = 0;
+let nmTx = {}, nmFeito = {}, nmSpots = {}, nmBeijou = {}, nmFalou = {}, nmFogo = {}, nmSom = 0, nmPart = 0;
 let gvTentou = 0, nasceuTentou = 0, quemAberto = false, bbChoroSom = 0, bbChorava = {}, bbVoltou = 0, bbColoLimpo = false, bebeViews = [];
 let filhos = {}, bebeSel = null, bercoTentou = 0; // leva 13
 Object.assign(SFX_MIN, { cabeceira: 600, choro: 4000, chute: 400, risada: 1200 });
@@ -232,11 +232,11 @@ function namoroPose(id, acao, m, tm, pisca){
   if (CAT[m.t] && CAT[m.t].virt) return null; // leva 12: girado: deita/senta nas vagas do móvel girado (laço)
   const g = ng[1], lado = id === g.a ? -1 : 1, F = nmFase(g, srvNow()), f = F ? (F.f === "fim" ? "dep" : F.f) : "esp";
   const x0 = m.x * T, y0 = m.y * T, meio = x0 + CAT[m.t].w * T / 2;
-  const beijo = f === "paq" && F.d > 2300 && F.d < 3700;
+  const beijo = f === "paq" && F.d > 2000; // v57: beijo mais longo, até o clima
   const seps = { cama: [11, 8, 4, 5], rede: [8, 7, 5, 5], sofa: m.t === "sofa" ? [9, 7, 6, 5] : [7, 6, 6, 5], banheira: [6, 6, 5, 5], chuveiro: [6, 4, 3, 4] }[grp];
   const sep = beijo ? 4 : seps[{ esp: 0, paq: 1, dur: 2, dep: 3 }[f]];
   if (grp === "cama" || grp === "rede"){
-    const by = y0 + (grp === "cama" ? 21 : 8) + (f === "dur" ? Math.round(Math.sin(tm / NM_RITMO + (lado > 0 ? Math.PI : 0)) * 1.3) : 0);
+    const by = y0 + (grp === "cama" ? 21 : 8) + (f === "dur" ? Math.round(Math.sin(tm / NM_RITMO + (lado > 0 ? Math.PI : 0)) * 2) : 0);
     const pose = f === "dep" ? "liehappymessy" : f === "dur" ? "lieblush" : "lieopenblush" + (pisca ? "blink" : "");
     return { cx: Math.round(meio + lado * sep), by, pose, dir: "down", lie: 1 };
   }
@@ -262,13 +262,13 @@ function drawCoberta7(m, f, F, tm){
     const cz = typeof COZY !== "undefined" && COZY.ok && (m.t === "casal" || m.t === "dossel") && cozyVar(m.t, m.cor);
     const bl = cz ? cz.sw : BED_BL.casal, blL = sh(bl, .22), blD = sh(bl, -.22), meio = x + w / 2;
     for (let i = 0; i < w - 4; i++){
-      const xx = x + 2 + i, onda = Math.sin(tm / 190 + i * .32) * 1.2 + Math.sin(tm / 310 - i * .21) * .8 + Math.sin(tm / NM_RITMO) * 1.1;
+      const xx = x + 2 + i, onda = Math.sin(tm / 190 + i * .32) * 1.2 + Math.sin(tm / 310 - i * .21) * .8 + Math.sin(tm / NM_RITMO) * 1.8;
       const topo = Math.round(y + y0c + onda);
       P(xx, topo - 1, OL); R(xx, topo, 1, y + yF - topo, bl);
       R(xx, topo, 1, 2, C.cream); P(xx, topo + 2, C.creamD); P(xx, topo + 3, blD);
       // os dois montinhos embaixo da coberta, subindo e descendo
       const b = Math.max(0, 1 - Math.abs(xx - (meio - 6)) / 8) + Math.max(0, 1 - Math.abs(xx - (meio + 6)) / 8);
-      if (b > .25){ const yy = y + yM + Math.round(Math.sin(tm / NM_RITMO + (xx < meio ? 0 : Math.PI)) * 2); P(xx, yy, blL); if (b > .6) P(xx, yy + 1, blL); P(xx, yy + 4, blD); }
+      if (b > .25){ const yy = y + yM + Math.round(Math.sin(tm / NM_RITMO + (xx < meio ? 0 : Math.PI)) * 3); P(xx, yy, blL); if (b > .6) P(xx, yy + 1, blL); P(xx, yy + 4, blD); }
       if ((i + Math.floor(tm / 400)) % 9 === 0) P(xx, Math.min(y + yF - 2, topo + 6 + (i % 3) * 3), "#F4E9B8"); // estrelinhas da estampa
     }
     R(x + 2, y + yF - 1, w - 4, 1, blD);
@@ -323,9 +323,9 @@ function leva7Luzes(lights, tm){
   for (const g of Object.values(namoros)){
     if (!g || g.estado !== "aceito" || !g.ini) continue;
     const m = moveis[g.mov], F = nmFase(g, t); if (!m || !F || F.f === "fim") continue;
-    const k = F.f === "paq" ? F.p : F.f === "dur" ? 1 : 1 - F.p, cm = comodo(m.x, m.y);
-    for (const L of lights){ if (L[2] > 20 && comodo(clamp(Math.floor(L[0] / T), 0, W - 1), clamp(Math.floor(L[1] / T), 0, H - 1)) === cm) L[4] *= 1 - .65 * k; } // abajur baixinho
-    lights.push([m.x * T + CAT[m.t].w * T / 2, m.y * T + 10, 40, "255,140,190", .7 * k]);
+    const k = F.f === "paq" ? F.p : F.f === "dur" ? 1 : 1 - F.p, cm = comodo(m.x, m.y), pisca = F.f === "dur" ? .8 + .2 * Math.sin(tm / (NM_RITMO * 1.7)) + (Math.sin(tm / 97) > .93 ? -.25 : 0) : 1; // v57: luz tremulando
+    for (const L of lights){ if (L[2] > 20 && comodo(clamp(Math.floor(L[0] / T), 0, W - 1), clamp(Math.floor(L[1] / T), 0, H - 1)) === cm) L[4] *= (1 - .65 * k) * pisca; } // abajur baixinho
+    lights.push([m.x * T + CAT[m.t].w * T / 2, m.y * T + 10, 40, "255,140,190", .7 * k * (F.f === "dur" ? 1.1 + .25 * Math.sin(tm / NM_RITMO) : 1)]);
   }
 }
 
@@ -614,7 +614,16 @@ function addLeva7Objs(objs, tm){
     if (!ali) continue;
     const F = nmFase(g, t), f = F ? (F.f === "fim" ? "dep" : F.f) : "esp", z = (m.y + CAT[m.t].h) * T + .5;
     objs.push({ z, f: () => drawCoberta7(m, f, F, tm) });
-    if (f === "dur" || f === "dep") for (const [x, y, v] of roupaSpots(g, m)) objs.push({ z: (y + 1) * T - 12, f: () => ctx.drawImage(sujSprite("roupa", v).c, x * T - 1, y * T - 1) });
+    if (f === "dur" || f === "dep"){ // v57: as roupas saem voando da cama e caem no chão
+      const d0 = f === "dur" ? F.d - NM_PAQ : 9e9, ox = m.x * T + CAT[m.t].w * T / 2 - 8, oy = m.y * T + 4;
+      roupaSpots(g, m).forEach(([x, y, v], i) => {
+        const p = clamp((d0 - 150 - i * 420) / 750, 0, 1);
+        if (p >= 1){ objs.push({ z: (y + 1) * T - 12, f: () => ctx.drawImage(sujSprite("roupa", v).c, x * T - 1, y * T - 1) }); return; }
+        if (p <= 0) return;
+        const px = ox + (x * T - 1 - ox) * p, py = oy + (y * T - 1 - oy) * p - Math.sin(Math.PI * p) * 22;
+        objs.push({ z: 1e8, f: () => { ctx.save(); ctx.translate(Math.round(px + 8), Math.round(py + 8)); ctx.rotate(Math.round(p * 6) * Math.PI / 4); ctx.drawImage(sujSprite("roupa", v).c, -8, -8); ctx.restore(); } });
+      });
+    }
     if (F && F.f !== "fim") objs.push({ z: 1e9, f: () => { const a = f === "paq" ? F.p * .3 : f === "dur" ? .3 : .3 * (1 - F.p); ctx.fillStyle = "rgba(28,14,48," + a.toFixed(3) + ")"; ctx.fillRect(0, -TOPO, W * T, H * T + TOPO); } });
   }
   addBebeObjs(objs, tm);
@@ -663,11 +672,13 @@ function leva7Update(dt){
     if (!g || g.estado !== "aceito" || !g.ini) continue;
     const m = moveis[g.mov], F = nmFase(g, t); if (!m || !F || F.f === "fim") continue;
     const c = CAT[m.t], wx = m.x * T + c.w * T / 2, wy = m.y * T + (NM_GRUPO[m.t] === "cama" ? 14 : 0);
-    nmPart += dt * (F.f === "dur" ? 2.4 : F.f === "paq" ? 1.3 : .8);
+    nmPart += dt * (F.f === "dur" ? 4 : F.f === "paq" ? 1.3 : .8);
     while (nmPart > 1){ nmPart--; particles.push({ x: wx + Math.random() * 22 - 11, y: wy + Math.random() * 6, vx: Math.random() * 6 - 3, vy: -9 - Math.random() * 7, life: 1.8, kind: Math.random() < .65 ? "heart" : "brilho" }); }
-    if (F.f === "paq" && F.d > 2300 && !nmBeijou[id]){ nmBeijou[id] = 1; sfx("beijo"); }
+    if (F.f === "paq" && F.d > 2000 && !nmBeijou[id]){ nmBeijou[id] = 1; sfx("beijo"); }
+    if (F.f === "paq" && F.d > 4200 && nmBeijou[id] === 1){ nmBeijou[id] = 2; sfx("beijo"); } // v57: segundo beijinho
     if (F.f !== "dep" && NM_GRUPO[m.t] === "chuveiro" && Date.now() - nmSom > 2600){ nmSom = Date.now(); sfx("agua", clamp(1 - Math.hypot(me.px - m.x, me.py - m.y) / 16, .2, 1) * .7); }
     if (F.f === "dur" && NM_GRUPO[m.t] === "cama" && Date.now() - nmSom > NM_RITMO * Math.PI * 2){ nmSom = Date.now(); sfx("cabeceira", clamp(1 - Math.hypot(me.px - m.x - 1.5, me.py - m.y - 1.5) / 16, .25, 1) * .8); }
+    if (F.f === "dur" && (g.a === pid || g.b === pid) && !nmFogo[id]){ nmFogo[id] = 1; ref("jogadores/" + pid).update({ fala: g.a === pid ? "🔥" : "😳", falaAt: TS() }).catch(() => {}); } // v57
     if (F.f === "dep" && (g.a === pid || g.b === pid) && !nmFalou[id]){ nmFalou[id] = 1; ref("jogadores/" + pid).update({ fala: g.a === pid ? "😏" : "💕", falaAt: TS() }).catch(() => {}); }
   }
   for (const fid of infantes()) comBebe(fid, () => {
@@ -866,7 +877,7 @@ function leva7Ouvir(){
 }
 function leva7Reset(){
   namoros = {}; nmCarregado = false; gravidez = null; gvCarregada = false; bebe = null; bbCarregado = false; bebesOn = true;
-  nmTx = {}; nmFeito = {}; nmSpots = {}; nmBeijou = {}; nmFalou = {}; quemAberto = false; bbChorava = {}; bbColoLimpo = false; bebeViews = [];
+  nmTx = {}; nmFeito = {}; nmSpots = {}; nmBeijou = {}; nmFalou = {}; nmFogo = {}; quemAberto = false; bbChorava = {}; bbColoLimpo = false; bebeViews = [];
   filhos = {}; bebeSel = null; bercoTentou = 0;
 }
 setInterval(() => { if (!me) return; vigiarNamoro(); vigiarGravidez(); vigiarBebe(); renderFamiliaBtn(); }, 1000);
