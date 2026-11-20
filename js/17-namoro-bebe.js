@@ -215,7 +215,7 @@ function banhoAgora7(id, aid, movT){
   if (aid !== "namoro") return false;
   const ng = namoroDe(id); if (!ng) return false;
   const F = nmFase(ng[1], srvNow());
-  return !!F && (F.f === "dur" || F.f === "dep") && ["chuveiro", "banheira"].includes(ng[1].lugar); // v55: na cama, no sofá e na rede ficam de roupa
+  return !!F && (F.f === "dur" || F.f === "dep") && ["chuveiro", "banheira", "cama", "sofa", "rede"].includes(ng[1].lugar);
 }
 // vapor do banho de chuveiro: tapa do peito pra baixo (quem toma banho sozinho)
 function vaporBanho(cx, by, tm){
@@ -225,22 +225,6 @@ function vaporBanho(cx, by, tm){
     ctx.globalAlpha = .86; R(cx + i, topo, 1, alt, (i + Math.floor(tm / 300)) % 4 === 0 ? "#FFFFFF" : "#E9F3F8"); P(cx + i, topo, "#FFFFFF");
   }
   ctx.globalAlpha = 1;
-}
-// v55: nuvem fofinha de corações por cima do móvel no "clima" (a cena fica só sugerida; ninguém aparece)
-function nuvemNamoro(m, F, tm){
-  const c = CAT[m.t]; if (!c) return;
-  const grp = NM_GRUPO[m.t], w = c.w * T, x0 = m.x * T, y0 = m.y * T, meio = x0 + w / 2;
-  const topo = y0 - (grp === "chuveiro" ? 20 : grp === "cama" ? 1 : 4), base = y0 + Math.min(c.h * T * .8, 26), rx = Math.max(12, w / 2);
-  const entra = Math.min(1, ((F.d || 0) - NM_PAQ) / 900, (1 - F.p) * 12), cy = (topo + base) / 2, ry = (base - topo) / 2 + 2;
-  ctx.save(); ctx.globalAlpha = .97 * entra;
-  const bolas = [[0, 0, rx, ry]];
-  for (let i = 0; i < 5; i++){ const a = -Math.PI + (i + .5) * Math.PI / 5; bolas.push([Math.cos(a) * rx * .8, Math.sin(a) * ry * .8, rx * .42, ry * .45]); }
-  const pulsa = k => Math.sin(tm / 700 + k) * .8;
-  bolas.forEach(([dx, dy, a, b], k) => elipse(Math.round(meio + dx), Math.round(cy + dy), a + 1 + pulsa(k), b + 1 + pulsa(k), "#C77DA6")); // contorno
-  bolas.forEach(([dx, dy, a, b], k) => elipse(Math.round(meio + dx), Math.round(cy + dy), a + pulsa(k), b + pulsa(k), "#F9D3E3"));
-  elipse(Math.round(meio - rx * .3), Math.round(cy - ry * .35), rx * .35, ry * .25, "#FFEAF2"); // brilho
-  for (let i = 0; i < 3; i++){ const ph = (tm / 1400 + i / 3) % 1, hx = Math.round(meio - 8 + i * 8 + Math.sin(tm / 500 + i) * 2), hy = Math.round(cy + 2 - ph * 8); ctx.globalAlpha = entra * (ph < .8 ? 1 : (1 - ph) * 5); pixHeart(hx - 2, hy - 2, i === 1 ? "#E8607A" : "#F07A98"); }
-  ctx.restore();
 }
 // posição e carinha de quem está namorando (no laço de desenho)
 function namoroPose(id, acao, m, tm, pisca){
@@ -252,18 +236,18 @@ function namoroPose(id, acao, m, tm, pisca){
   const seps = { cama: [11, 8, 4, 5], rede: [8, 7, 5, 5], sofa: m.t === "sofa" ? [9, 7, 6, 5] : [7, 6, 6, 5], banheira: [6, 6, 5, 5], chuveiro: [6, 4, 3, 4] }[grp];
   const sep = beijo ? 4 : seps[{ esp: 0, paq: 1, dur: 2, dep: 3 }[f]];
   if (grp === "cama" || grp === "rede"){
-    const by = y0 + (grp === "cama" ? 21 : 8) + 0;
+    const by = y0 + (grp === "cama" ? 21 : 8) + (f === "dur" ? Math.round(Math.sin(tm / NM_RITMO + (lado > 0 ? Math.PI : 0)) * 1.3) : 0);
     const pose = f === "dep" ? "liehappymessy" : f === "dur" ? "lieblush" : "lieopenblush" + (pisca ? "blink" : "");
     return { cx: Math.round(meio + lado * sep), by, pose, dir: "down", lie: 1 };
   }
   if (grp === "chuveiro"){ // v32: em pé, de frente um pro outro; no "clima", abraçados debaixo d'água
-    const emb = 0; // v55: sem embalo
-    const by = y0 + 14 + 0;
+    const emb = f === "dur" ? Math.sin(tm / NM_RITMO) : 0;
+    const by = y0 + 14 + (f === "dur" ? Math.round(Math.sin(tm / NM_RITMO + (lado > 0 ? Math.PI : 0)) * .9) : 0);
     const pose = f === "dur" ? "arms" : f === "dep" ? "standhappymessy" : "standblush" + (pisca ? "blink" : "");
     return { cx: Math.round(meio + lado * sep + emb), by, pose, dir: f === "dep" ? "down" : lado < 0 ? "right" : "left", lie: 0, empe: 1, semVaga: true };
   }
   const virados = f === "esp" || f === "paq";
-  const by = y0 + (grp === "banheira" ? 13 : m.t === "sofa" ? 15 : 14) + 0;
+  const by = y0 + (grp === "banheira" ? 13 : m.t === "sofa" ? 15 : 14) + (f === "dur" ? Math.round(Math.sin(tm / NM_RITMO + (lado > 0 ? Math.PI : 0)) * .9) : 0);
   const pose = "sit" + (f === "dep" ? "happymessy" : "blush") + (virados && pisca ? "blink" : "");
   return { cx: Math.round(meio + lado * sep), by, pose, dir: virados ? (lado < 0 ? "right" : "left") : "down", lie: 0, semVaga: grp === "banheira" };
 }
@@ -278,12 +262,13 @@ function drawCoberta7(m, f, F, tm){
     const cz = typeof COZY !== "undefined" && COZY.ok && (m.t === "casal" || m.t === "dossel") && cozyVar(m.t, m.cor);
     const bl = cz ? cz.sw : BED_BL.casal, blL = sh(bl, .22), blD = sh(bl, -.22), meio = x + w / 2;
     for (let i = 0; i < w - 4; i++){
-      const xx = x + 2 + i, onda = Math.sin(tm / 190 + i * .32) * 1.2 + Math.sin(tm / 310 - i * .21) * .8;
+      const xx = x + 2 + i, onda = Math.sin(tm / 190 + i * .32) * 1.2 + Math.sin(tm / 310 - i * .21) * .8 + Math.sin(tm / NM_RITMO) * 1.1;
       const topo = Math.round(y + y0c + onda);
       P(xx, topo - 1, OL); R(xx, topo, 1, y + yF - topo, bl);
       R(xx, topo, 1, 2, C.cream); P(xx, topo + 2, C.creamD); P(xx, topo + 3, blD);
       // os dois montinhos embaixo da coberta, subindo e descendo
-      // v55: sem os montinhos se mexendo embaixo da coberta
+      const b = Math.max(0, 1 - Math.abs(xx - (meio - 6)) / 8) + Math.max(0, 1 - Math.abs(xx - (meio + 6)) / 8);
+      if (b > .25){ const yy = y + yM + Math.round(Math.sin(tm / NM_RITMO + (xx < meio ? 0 : Math.PI)) * 2); P(xx, yy, blL); if (b > .6) P(xx, yy + 1, blL); P(xx, yy + 4, blD); }
       if ((i + Math.floor(tm / 400)) % 9 === 0) P(xx, Math.min(y + yF - 2, topo + 6 + (i % 3) * 3), "#F4E9B8"); // estrelinhas da estampa
     }
     R(x + 2, y + yF - 1, w - 4, 1, blD);
@@ -322,7 +307,7 @@ function drawCoberta7(m, f, F, tm){
   } else if (grp === "banheira"){
     const nivel = f === "esp" ? 7 : f === "paq" ? 7 - 3 * F.p : f === "dur" ? 4 : f === "dep" ? 4 + 3 * F.p : 7;
     for (let i = 0; i < 26; i++){
-      const xx = x + 3 + i, topo = Math.round(y + nivel + Math.sin(tm / 330 + i * .8) * .8);
+      const xx = x + 3 + i, topo = Math.round(y + nivel + Math.sin(tm / 330 + i * .8) * .8 - (f === "dur" ? Math.max(0, Math.sin(tm / NM_RITMO + i * .25)) * 1.5 : 0));
       R(xx, topo, 1, y + 9 - topo, "#FFFFFF"); P(xx, topo, i % 3 ? "#FFFFFF" : "#E6F4FB"); if (i % 4 === 1) P(xx, topo + 2, "#D6ECF7");
     }
     if (f === "dur" || f === "paq") for (let k = 0; k < 6; k++){ // bolhas subindo
@@ -629,7 +614,7 @@ function addLeva7Objs(objs, tm){
     if (!ali) continue;
     const F = nmFase(g, t), f = F ? (F.f === "fim" ? "dep" : F.f) : "esp", z = (m.y + CAT[m.t].h) * T + .5;
     objs.push({ z, f: () => drawCoberta7(m, f, F, tm) });
-    if (f === "dur") objs.push({ z: z + 2, f: () => nuvemNamoro(m, F, tm) }); // v55: no clima, uma nuvem de corações esconde os dois
+    if (f === "dur" || f === "dep") for (const [x, y, v] of roupaSpots(g, m)) objs.push({ z: (y + 1) * T - 12, f: () => ctx.drawImage(sujSprite("roupa", v).c, x * T - 1, y * T - 1) });
     if (F && F.f !== "fim") objs.push({ z: 1e9, f: () => { const a = f === "paq" ? F.p * .3 : f === "dur" ? .3 : .3 * (1 - F.p); ctx.fillStyle = "rgba(28,14,48," + a.toFixed(3) + ")"; ctx.fillRect(0, -TOPO, W * T, H * T + TOPO); } });
   }
   addBebeObjs(objs, tm);
@@ -673,7 +658,7 @@ function vigiarBebe(){
 function leva7Update(dt){
   const t = srvNow(), b = barrigaDe(pid);
   if (b) me.needs.energia = clamp(me.needs.energia - .006 * b * dt, 0, 100); // grávida cansa mais rápido
-  // namoro: corações e estrelinhas subindo, o beijo e o balão depois
+  // namoro: corações e estrelinhas subindo, o beijo, o toc toc da cabeceira, o balão depois
   for (const [id, g] of Object.entries(namoros)){
     if (!g || g.estado !== "aceito" || !g.ini) continue;
     const m = moveis[g.mov], F = nmFase(g, t); if (!m || !F || F.f === "fim") continue;
@@ -682,6 +667,7 @@ function leva7Update(dt){
     while (nmPart > 1){ nmPart--; particles.push({ x: wx + Math.random() * 22 - 11, y: wy + Math.random() * 6, vx: Math.random() * 6 - 3, vy: -9 - Math.random() * 7, life: 1.8, kind: Math.random() < .65 ? "heart" : "brilho" }); }
     if (F.f === "paq" && F.d > 2300 && !nmBeijou[id]){ nmBeijou[id] = 1; sfx("beijo"); }
     if (F.f !== "dep" && NM_GRUPO[m.t] === "chuveiro" && Date.now() - nmSom > 2600){ nmSom = Date.now(); sfx("agua", clamp(1 - Math.hypot(me.px - m.x, me.py - m.y) / 16, .2, 1) * .7); }
+    if (F.f === "dur" && NM_GRUPO[m.t] === "cama" && Date.now() - nmSom > NM_RITMO * Math.PI * 2){ nmSom = Date.now(); sfx("cabeceira", clamp(1 - Math.hypot(me.px - m.x - 1.5, me.py - m.y - 1.5) / 16, .25, 1) * .8); }
     if (F.f === "dep" && (g.a === pid || g.b === pid) && !nmFalou[id]){ nmFalou[id] = 1; ref("jogadores/" + pid).update({ fala: g.a === pid ? "😏" : "💕", falaAt: TS() }).catch(() => {}); }
   }
   for (const fid of infantes()) comBebe(fid, () => {
