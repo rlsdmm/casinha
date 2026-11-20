@@ -299,6 +299,7 @@ function draw(now){
   }
   objs.sort((a, b) => a.z - b.z).forEach(o => o.f());
   if (typeof raiosSol34 === "function") raiosSol34(tm, hr); // v46: raios de sol pelas janelas
+  if (typeof vidaFora37 === "function") vidaFora37(tm, hr); // v48: nuvem, borboletas, folhas lá fora
 
   // fantasma do modo construir
   if (mode === "build" && tool && hover && (tool.kind === "novo" || tool.kind === "mover")){
