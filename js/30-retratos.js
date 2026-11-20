@@ -8,6 +8,9 @@
 const RETRATOS_PRONTOS = [
   { src: "img/retratos/amanda.png?v=1", corpo: "ela", pele: 2, cabelo: 0, estilo: 6, acess: 2,
     trajes: { 2: 0, 1: 1, 4: 2 } }, // saia e blusa, vestido, moletom (linha na folha)
+  // v51: Luisi desenhado a partir do moletom da Amanda (cabelo curto preto, orelhas, pele um tom mais clara); só moletom
+  { src: "img/retratos/luisi.png?v=1", corpo: "ele", pele: 1, cabelo: 5, estilo: 0, acess: 0,
+    trajes: { 4: 0 } },
 ];
 const RP_COL = { down: 0, right: 1, up: 2, left: 3 };
 
