@@ -1809,7 +1809,7 @@ if (typeof bebeNeeds === "function"){ const f0 = bebeNeeds; bebeNeeds = function
 { const f0 = rostoCanvas; rostoCanvas = function(id){
   if (!VIZ[id]) return f0(id);
   const v = VIZ[id], cv = el("canvas", "rosto13"); cv.width = 16; cv.height = 14; const x = cv.getContext("2d"); x.imageSmoothingEnabled = false;
-  if (v.teen) x.drawImage(kidSprite(true, v.L, "down", 0, "stand", 0).c, 0, 1, 16, 14, 0, 0, 16, 14);
+  if (v.teen) x.drawImage(kidSprite(true, v.L, "down", 0, "stand", 0).c, 1, 5, 16, 14, 0, 0, 16, 14);
   else x.drawImage(avatarSprite(v.av, "down", 0, "stand").c, 1, 7, 16, 14, 0, 0, 16, 14);
   cv.setAttribute("aria-hidden", "true"); return cv;
 }; }

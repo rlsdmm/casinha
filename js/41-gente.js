@@ -9,7 +9,7 @@ const GENTE = { img: null, ok: false, cache: new Map(),
     r_basic: 17, r_dress: 18, r_floral: 19, r_overalls: 20, r_pants: 21, r_shoes: 22, r_skirt: 23, r_spaghetti: 24, r_sporty: 25, r_stripe: 26, r_suit: 27, r_suit_tie: 28, r_sailor: 29, a_beard: 30, a_glasses: 31, a_glasses_sun: 32 } };
 (() => {
   const im = new Image();
-  im.onload = () => { GENTE.ok = true; for (const k of [...sprCache.keys()]) if (/^av/.test(k)) sprCache.delete(k); };
+  im.onload = () => { GENTE.ok = true; for (const k of [...sprCache.keys()]) if (/^(av|kid)/.test(k)) sprCache.delete(k); };
   im.src = "img/gente/cozypeople.png?v=1"; GENTE.img = im;
 })();
 // penteados do jogo -> cabelos do pacote (10, 11 e 12 são novos)
@@ -71,7 +71,7 @@ function gQuadro(v, sec, dir, fr, olho, blush){
     const pts = []; for (let j = 0; j < 32; j++) for (let i = 0; i < 32; i++) if (o[(j * 32 + i) * 4 + 3]) pts.push([i, j]);
     const top = {}; for (const [i, j] of pts) top[i] = top[i] == null ? j : Math.min(top[i], j);
     x.fillStyle = pele; for (const [i, j] of pts) x.fillRect(i, j, 1, 1);
-    x.fillStyle = sh(pele, -.55); for (const [i, j] of pts) if (j === top[i] + lin2) x.fillRect(i, j, 1, 1);
+    x.fillStyle = mix(pele, "#3A2433", .85); for (const [i, j] of pts) if (j === top[i] + lin2) x.fillRect(i < 16 ? i - 1 : i, j, 2, 1); // risquinho de 2px
   }
   if (lin !== 1) camada("blush", "#EE6070", blush ? .9 : .28);
   for (const [p, cor] of gCamadas(v)) camada(p, cor);
@@ -156,7 +156,7 @@ function gSentado(v, cx, by, dir, frame, pose, olho, fx, breath, acess, baguncad
   baguncado(oy + 11); acess(oy + 12, dir);
 }
 // o pacote já vem com contorno: os bonecos novos não ganham o contorno automático
-{ const s0 = sprite; sprite = function(key, w, h, fn, outline){ return s0(key, w, h, fn, GENTE.ok && /^av/.test(key) ? false : outline); }; }
+{ const s0 = sprite; sprite = function(key, w, h, fn, outline){ return s0(key, w, h, fn, GENTE.ok && /^(av|kid:)/.test(key) ? false : outline); }; }
 // espelho: o boneco novo ampliado 4x (no lugar do desenho grande e da arte pronta do PixelLab, que tinham outro estilo)
 { const r0 = retrato; retrato = function(v, vista, pose, hum, anim){
   if (!GENTE.ok || !v) return r0(v, vista, pose, hum, anim);
@@ -176,3 +176,48 @@ function gSentado(v, cx, by, dir, frame, pose, olho, fx, breath, acess, baguncad
 { const a0 = rpAchar; rpAchar = function(v){ return GENTE.ok ? null : a0(v); }; }
 // "mão na cintura" não existe no pacote: o espelho fica com em pé e acenando
 { const i = ESP_POSES.findIndex(p => p[0] === "cintura"); if (i >= 0) ESP_POSES.splice(i, 1); }
+
+// ---- v54: filhos (criança e adolescente) com as mesmas peças ----
+// A criança é o boneco de adulto com 5 linhas e 2 colunas a menos (cabeça e corpo encolhem, os olhos ficam);
+// o adolescente perde só 2 linhas do corpo. Bebê e engatinhando continuam com o desenho de antes.
+TRAJE_GENTE.kidVestido = [["dress", "c"], ["shoes", G_SAP]];
+TRAJE_GENTE.kid = [["basic", "c"], ["pants", G_JEANS], ["shoes", G_SAP]];
+function gKidQuadro(teen, L, dir, fr, olho, blush, sec){
+  const v = { corpo: L.corpo, roupa: L.roupa | 0, traje: L.corpo === "ela" && !teen ? "kidVestido" : "kid", cabelo: L.cabelo | 0, estilo: L.estilo | 0, pele: L.pele | 0, barba: 0, acess: 0, banho: 0 };
+  const key = ["gk", teen ? 1 : 0, v.corpo, v.roupa, v.cabelo, v.estilo, v.pele, sec, dir, fr, olho, blush].join(":");
+  let c = GENTE.cache.get(key); if (c) return c;
+  const q = gQuadro(v, sec, dir, fr, olho, blush), d = q.getContext("2d").getImageData(0, 0, 32, 32).data;
+  // colunas dos olhos nesse quadro (não podem sumir)
+  const o = gPeca("olhos", "#3A2433").getContext("2d").getImageData(fr * 32, sec * 128 + (G_LINHA[dir] || 0) * 32, 32, 32).data, olhoX = new Set();
+  for (let j = 0; j < 32; j++) for (let i = 0; i < 32; i++) if (o[(j * 32 + i) * 4 + 3]) olhoX.add(i);
+  const tiraL = teen ? [27, 28] : [15, 18, 26, 28, 30];
+  const tiraC = teen ? [] : [[12, 11, 10], [19, 20, 21]].map(cs => cs.find(i => !olhoX.has(i)));
+  const cols = [...Array(32).keys()].filter(i => !tiraC.includes(i)), rows = [...Array(32).keys()].filter(j => !tiraL.includes(j));
+  c = document.createElement("canvas"); c.width = 32; c.height = 32; const x = c.getContext("2d"), img = x.createImageData(32, 32), a = img.data;
+  const dx = Math.floor((32 - cols.length) / 2), dy = 32 - rows.length;
+  rows.forEach((j, jj) => cols.forEach((i, ii) => { const s = (j * 32 + i) * 4, t = ((jj + dy) * 32 + ii + dx) * 4; for (let k = 0; k < 4; k++) a[t + k] = d[s + k]; }));
+  x.putImageData(img, 0, 0); GENTE.cache.set(key, c); return c;
+}
+{ const k0 = drawKid; drawKid = function(teen, L, cx, by, dir, frame, pose, mochila){
+  if (!GENTE.ok) return k0(teen, L, cx, by, dir, frame, pose, mochila);
+  pose = String(pose || "stand");
+  const braco = pose === "arms" || pose === "jump", olho = pose === "blink" || pose === "sleep" ? "fechado" : pose === "feliz" ? "feliz" : "aberto";
+  const fr = braco ? 0 : ((frame | 0) % 4) * 2, q = gKidQuadro(teen, L, dir || "down", fr, olho, pose === "blush", braco ? 1 : 0);
+  ctx.drawImage(q, Math.round(cx - 16), Math.round(by - 32));
+  if (mochila){ // mochila nas costas
+    const mc = "#E8735F", mD = sh(mc, -.25), ol = sh(mc, -.6), ty = by - (teen ? 9 : 7), side = dir === "left" || dir === "right";
+    if (dir === "up"){ R(cx - 4, ty - 1, 8, 6, ol); R(cx - 3, ty, 6, 4, mc); R(cx - 3, ty + 1, 6, 1, mD); }
+    else if (side){ const x0 = dir === "right" ? cx - 8 : cx + 5; R(x0, ty - 1, 4, 6, ol); R(x0 + 1, ty, 2, 4, mc); }
+    else { P(cx - 4, ty, mD); P(cx + 3, ty, mD); }
+  }
+}; }
+// dormindo: a cabeça da criança no travesseiro, coberta por cima (a coberta é a mesma de antes)
+{ const d0 = kidDormindo; kidDormindo = function(L, x, y, teen, cob){
+  if (!GENTE.ok) return d0(L, x, y, teen, cob);
+  const q = gKidQuadro(teen, L, "down", 0, "fechado", false, 0);
+  const b = q.getContext("2d").getImageData(0, 0, 32, 32).data; let topo = 0; for (let j = 0; j < 32 && !topo; j++) for (let i = 0; i < 32; i++) if (b[(j * 32 + i) * 4 + 3]){ topo = j; break; }
+  const h = teen ? 14 : 11; // da ponta do cabelo até o queixo
+  ctx.drawImage(q, 0, topo, 32, h, x - 8, y, 32, h);
+  const fim = y + 7 + (teen ? 18 : 14), yb = y + h - 1; // a coberta termina onde terminava; começa no queixo
+  rbox(x + 1, yb, 14, fim - yb, cob); R(x + 2, yb, 12, 1, sh(cob, .3)); R(x + 1, yb + 2, 14, 1, "#FFF4E0"); R(x + 4, yb + 6, 8, 1, sh(cob, -.15));
+}; }
